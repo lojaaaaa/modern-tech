@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+set -eu
+cd "$(git rev-parse --show-toplevel)"
+printf 'Checking frontend rules and formatting…\n'
+(cd frontend && npm run lint && npm run format:check && npm run typecheck)
+if git diff --cached --name-only | grep -q '^backend/'; then
+  printf 'Checking PHP style and static analysis…\n'
+  docker compose exec -T api vendor/bin/pint --test
+  docker compose exec -T api vendor/bin/phpstan analyse --no-progress
+fi
+git diff --cached --check

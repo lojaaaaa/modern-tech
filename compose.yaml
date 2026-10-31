@@ -1,0 +1,102 @@
+name: modern-tech
+x-api: &api
+  image: modern-tech-api:local
+  build:
+    context: .
+    dockerfile: infra/php/Dockerfile
+  env_file: backend/.env
+  volumes:
+    - ./backend:/var/www/html
+    - documents:/var/www/html/storage/app/private
+  depends_on:
+    postgres: {condition: service_healthy}
+    redis-queue: {condition: service_healthy}
+services:
+  gateway:
+    image: nginx:1.28-alpine
+    ports: ["127.0.0.1:8088:80"]
+    volumes: ["./infra/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro"]
+    depends_on:
+      api: {condition: service_started}
+      web: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ && wget -q -O /dev/null http://127.0.0.1/health/ready"]
+      interval: 5s
+      timeout: 5s
+      start_period: 10s
+      retries: 24
+  web:
+    build:
+      context: frontend
+      target: development
+    working_dir: /app
+    volumes: ["./frontend:/app", "web_modules:/app/node_modules"]
+    command: npm run dev
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5173').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      start_period: 10s
+      retries: 24
+  api:
+    <<: *api
+  worker:
+    <<: *api
+    command: php artisan queue:work redis --queue=short,default --tries=3 --timeout=180 --sleep=2
+    stop_grace_period: 200s
+  worker-processing:
+    <<: *api
+    command: php artisan queue:work redis --queue=processing --tries=3 --timeout=900 --sleep=2
+    stop_grace_period: 920s
+  worker-transfers:
+    <<: *api
+    command: php artisan queue:work redis --queue=transfers --tries=3 --timeout=900 --sleep=2
+    stop_grace_period: 920s
+  scheduler:
+    <<: *api
+    command: php artisan schedule:work
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: modern_tech
+      POSTGRES_USER: modern_tech
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Run scripts/bootstrap.sh first}
+    volumes: ["postgres:/var/lib/postgresql"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U modern_tech -d modern_tech"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  redis-queue:
+    image: redis:7.4-alpine
+    command: redis-server --appendonly yes --maxmemory-policy noeviction
+    volumes: ["queue:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  redis-cache:
+    image: redis:7.4-alpine
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+  tika:
+    image: apache/tika:3.2.3.0-full
+    environment: {JAVA_TOOL_OPTIONS: "-Xmx1024m"}
+    mem_limit: 2g
+  gotenberg:
+    image: gotenberg/gotenberg:8.24.0
+    command: ["gotenberg", "--api-timeout=180s", "--libreoffice-disable-routes=false", "--chromium-disable-routes=true"]
+    mem_limit: 1g
+  clamav:
+    build: infra/clamav
+    volumes: ["clamav:/var/lib/clamav"]
+    mem_limit: 2g
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports: ["127.0.0.1:8026:8025"]
+volumes:
+  web_modules:
+  postgres:
+  documents:
+  queue:
+  clamav:

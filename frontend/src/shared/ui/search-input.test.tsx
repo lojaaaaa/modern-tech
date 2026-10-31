@@ -1,0 +1,31 @@
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, expect, it, vi } from 'vitest';
+import { SearchInput } from './search-input';
+afterEach(() => vi.useRealTimers());
+it('debounces typing and immediately clears the query', () => {
+    vi.useFakeTimers();
+    const onSearch = vi.fn();
+    render(<SearchInput initialValue="" onSearch={onSearch} />);
+    const input = screen.getByRole('textbox');
+    fireEvent.change(input, { target: { value: 'до' } });
+    act(() => vi.advanceTimersByTime(200));
+    fireEvent.change(input, { target: { value: 'документ' } });
+    act(() => vi.advanceTimersByTime(349));
+    expect(onSearch).not.toHaveBeenCalled();
+    act(() => vi.advanceTimersByTime(1));
+    expect(onSearch).toHaveBeenCalledExactlyOnceWith('документ');
+    fireEvent.click(screen.getByRole('button', { name: 'Очистить поиск' }));
+    expect(onSearch).toHaveBeenLastCalledWith('');
+});
+it('keeps focus when the URL receives the debounced value and responds to navigation', () => {
+    const onSearch = vi.fn();
+    const { rerender } = render(<SearchInput initialValue="" onSearch={onSearch} />);
+    const input = screen.getByRole('textbox');
+    input.focus();
+    fireEvent.change(input, { target: { value: 'текст' } });
+    rerender(<SearchInput initialValue="текст" onSearch={onSearch} />);
+    expect(document.activeElement).toBe(input);
+    expect(input).toHaveValue('текст');
+    rerender(<SearchInput initialValue="назад" onSearch={onSearch} />);
+    expect(input).toHaveValue('назад');
+});

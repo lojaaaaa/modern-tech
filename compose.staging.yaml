@@ -1,0 +1,88 @@
+# Standalone isolated test environment; see docs/STAGING.md.
+name: modern-tech-staging
+x-api: &api
+  image: modern-tech-api:${RELEASE_TAG:-staging}
+  build:
+    context: .
+    dockerfile: infra/php/Dockerfile
+  env_file: .local/staging/backend.env
+  volumes:
+    - documents:/var/www/html/storage/app/private
+  restart: unless-stopped
+  depends_on:
+    postgres: {condition: service_healthy}
+    redis-queue: {condition: service_healthy}
+services:
+  web:
+    image: modern-tech-web:${RELEASE_TAG:-staging}
+    build:
+      context: frontend
+      target: production
+    restart: unless-stopped
+    ports: ["127.0.0.1:${STAGING_PORT:-8089}:80"]
+    depends_on: [api]
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1/health/ready"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+  api:
+    <<: *api
+  worker:
+    <<: *api
+    command: php artisan queue:work redis --queue=short,default --tries=3 --timeout=180 --sleep=2
+    stop_grace_period: 200s
+  worker-processing:
+    <<: *api
+    command: php artisan queue:work redis --queue=processing --tries=3 --timeout=900 --sleep=2
+    stop_grace_period: 920s
+  worker-transfers:
+    <<: *api
+    command: php artisan queue:work redis --queue=transfers --tries=3 --timeout=900 --sleep=2
+    stop_grace_period: 920s
+  scheduler:
+    <<: *api
+    command: php artisan schedule:work
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: modern_tech
+      POSTGRES_USER: modern_tech
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Run scripts/bootstrap.sh first}
+    volumes: ["postgres:/var/lib/postgresql"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U modern_tech -d modern_tech"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  redis-queue:
+    image: redis:7.4-alpine
+    command: redis-server --appendonly yes --maxmemory-policy noeviction
+    volumes: ["queue:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  redis-cache:
+    image: redis:7.4-alpine
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+  tika:
+    image: apache/tika:3.2.3.0-full
+    environment: {JAVA_TOOL_OPTIONS: "-Xmx1024m"}
+    mem_limit: 2g
+  gotenberg:
+    image: gotenberg/gotenberg:8.24.0
+    command: ["gotenberg", "--api-timeout=180s", "--libreoffice-disable-routes=false", "--chromium-disable-routes=true"]
+    mem_limit: 1g
+  clamav:
+    build: infra/clamav
+    volumes: ["clamav:/var/lib/clamav"]
+    mem_limit: 2g
+  mailpit:
+    image: axllent/mailpit:v1.27
+volumes:
+  postgres:
+  documents:
+  queue:
+  clamav:

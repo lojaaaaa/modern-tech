@@ -1,0 +1,34 @@
+# Merge with compose.yaml; requires Docker Compose 2.24.4+ for !override.
+services:
+  web:
+    image: modern-tech-web:${RELEASE_TAG:-local}
+    build:
+      context: frontend
+      target: production
+    volumes: !override []
+    command: !override ["nginx", "-g", "daemon off;"]
+    ports: ["127.0.0.1:8089:80"]
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1/health/ready"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+  gateway:
+    profiles: [development]
+  api:
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+    volumes: !override ["documents:/var/www/html/storage/app/private"]
+  worker:
+    environment: {APP_ENV: production, APP_DEBUG: "false"}
+    volumes: !override ["documents:/var/www/html/storage/app/private"]
+  worker-processing:
+    environment: {APP_ENV: production, APP_DEBUG: "false"}
+    volumes: !override ["documents:/var/www/html/storage/app/private"]
+  worker-transfers:
+    environment: {APP_ENV: production, APP_DEBUG: "false"}
+    volumes: !override ["documents:/var/www/html/storage/app/private"]
+  scheduler:
+    environment: {APP_ENV: production, APP_DEBUG: "false"}
+    volumes: !override ["documents:/var/www/html/storage/app/private"]

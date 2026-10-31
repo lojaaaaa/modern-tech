@@ -1,0 +1,80 @@
+<?php
+
+declare(strict_types=1);
+use App\Http\Middleware\EnsureActive;
+use App\Modules\Audit\Http\AuditController;
+use App\Modules\Collaboration\Http\CommentController;
+use App\Modules\Documents\Http\BatchController;
+use App\Modules\Documents\Http\DocumentController;
+use App\Modules\Documents\Http\LibraryController;
+use App\Modules\Documents\Http\PreviewController;
+use App\Modules\Identity\Http\AuthController;
+use App\Modules\Identity\Http\PasswordController;
+use App\Modules\Identity\Http\UserController;
+use App\Modules\Integrations\Http\ConnectionController;
+use App\Modules\Integrations\Http\TransferController;
+use App\Modules\Observability\Http\MetricsController;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Facades\Route;
+
+Route::get('/health/ready', function () {
+    DB::select('select 1');
+    Redis::connection()->ping();
+    Cache::put('health:ready', true, 10);
+    abort_unless(Cache::get('health:ready') === true, 503);
+
+    return response()->json(['status' => 'ready']);
+});
+Route::prefix('api/v1')->group(function (): void {
+    Route::post('/auth/forgot-password', [PasswordController::class, 'forgot'])->middleware('throttle:3,15');
+    Route::post('/auth/reset-password', [PasswordController::class, 'reset'])->middleware('throttle:10,1');
+    Route::post('/auth/login', [AuthController::class, 'login']);
+    Route::middleware(['auth', EnsureActive::class])->group(function (): void {
+        Route::get('/admin/metrics', MetricsController::class);
+        Route::get('/connections', [ConnectionController::class, 'index']);
+        Route::post('/connections', [ConnectionController::class, 'store']);
+        Route::get('/connections/{connection}/files', [ConnectionController::class, 'files']);
+        Route::delete('/connections/{connection}', [ConnectionController::class, 'disconnect']);
+        Route::get('/transfers', [TransferController::class, 'index']);
+        Route::post('/transfers', [TransferController::class, 'store']);
+        Route::delete('/transfers/{transfer}', [TransferController::class, 'cancel']);
+        Route::get('/me', [AuthController::class, 'me']);
+        Route::post('/auth/logout', [AuthController::class, 'logout']);
+        Route::get('/users', [UserController::class, 'index']);
+        Route::post('/users', [UserController::class, 'store']);
+        Route::patch('/users/{user}', [UserController::class, 'update']);
+        Route::get('/folders', [LibraryController::class, 'folders']);
+        Route::post('/folders', [LibraryController::class, 'createFolder']);
+        Route::delete('/folders/{folder}', [LibraryController::class, 'removeFolder']);
+        Route::get('/tags', [LibraryController::class, 'tags']);
+        Route::put('/documents/{document}/folder', [LibraryController::class, 'move']);
+        Route::put('/documents/{document}/tags', [LibraryController::class, 'setTags']);
+        Route::put('/documents/{document}/favorite', [LibraryController::class, 'favorite']);
+        Route::post('/documents/batch', [BatchController::class, 'store']);
+        Route::post('/documents/duplicates', [DocumentController::class, 'duplicates']);
+        Route::get('/documents', [DocumentController::class, 'index']);
+        Route::get('/search', [DocumentController::class, 'index']);
+        Route::post('/documents', [DocumentController::class, 'store']);
+        Route::get('/documents/{document}', [DocumentController::class, 'show']);
+        Route::patch('/documents/{document}', [DocumentController::class, 'update']);
+        Route::delete('/documents/{document}', [DocumentController::class, 'destroy']);
+        Route::post('/documents/{id}/restore', [DocumentController::class, 'restore']);
+        Route::get('/documents/{document}/versions', [DocumentController::class, 'versions']);
+        Route::post('/documents/{document}/versions', [DocumentController::class, 'addVersion']);
+        Route::get('/versions/{version}/download', [DocumentController::class, 'download']);
+        Route::get('/versions/{version}/preview', [PreviewController::class, 'show']);
+        Route::get('/versions/{version}/entities', [DocumentController::class, 'entities']);
+        Route::get('/versions/{version}/text', [DocumentController::class, 'text']);
+        Route::get('/documents/{document}/participants', [DocumentController::class, 'participants']);
+        Route::get('/documents/{document}/grants', [DocumentController::class, 'grants']);
+        Route::put('/documents/{document}/grants', [DocumentController::class, 'setGrants']);
+        Route::get('/documents/{document}/comments', [CommentController::class, 'index']);
+        Route::post('/documents/{document}/comments', [CommentController::class, 'store']);
+        Route::put('/comments/{id}/resolution', [CommentController::class, 'resolve']);
+        Route::patch('/comments/{id}', [CommentController::class, 'update']);
+        Route::delete('/comments/{id}', [CommentController::class, 'destroy']);
+        Route::get('/admin/audit', [AuditController::class, 'index']);
+    });
+});
