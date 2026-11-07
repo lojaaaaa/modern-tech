@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Office co-editing prototype</title>
+<style>
+html,body{height:100%;margin:0;font:14px system-ui;background:#f4f4f4}body{display:flex;flex-direction:column}header{padding:8px 12px;display:flex;align-items:center;gap:14px;min-height:32px}header a{color:#2455a0}#office{flex:1;min-height:0}output{margin-left:auto}button{font:inherit}#error{background:#fdd;color:#900;padding:12px}iframe{border:0}
+</style>
+<header><b>Изолированный прототип</b><span id="identity"></span><a href="/?file=sample.docx&user=alice">DOCX</a><a href="/?file=sample.xlsx&user=alice">XLSX</a><a href="/?file=sample.pptx&user=alice">PPTX</a><button id="save">Запросить сохранение</button><button id="close">Закрыть редактор</button><output id="status" aria-live="polite">Подключение</output></header>
+<div id="error" hidden></div><div id="office"><div id="editor"></div></div>
+<script src="__OFFICE_PUBLIC_URL__/web-apps/apps/api/documents/api.js"></script>
+<script type="module">
+const params = new URLSearchParams(location.search);
+const file = params.get('file') || 'sample.docx';
+const user = params.get('user') || 'alice';
+const response = await fetch(`/config?file=${encodeURIComponent(file)}&user=${encodeURIComponent(user)}`);
+const config = await response.json();
+const state = document.querySelector('#status');
+document.querySelector('#identity').textContent = `${config.editorConfig?.user.name || user} · ${file}`;
+config.events = {
+ onAppReady: () => state.textContent = 'Редактор загружен',
+ onDocumentReady: () => { state.textContent = 'Документ открыт'; window.pocReady = true; },
+ onDocumentStateChange: event => state.textContent = event.data ? 'Изменения передаются редактору' : 'Редактор принял изменения; файл ещё требует callback',
+ onError: event => { document.querySelector('#error').hidden = false; document.querySelector('#error').textContent = JSON.stringify(event.data); window.pocError = event.data; }
+};
+window.editor = new DocsAPI.DocEditor('editor', config);
+document.querySelector('#save').onclick = async () => {
+ const result = await (await fetch(`/forcesave/${file}`, {method:'POST'})).json();
+ state.textContent = `Запрос сохранения: ${JSON.stringify(result)}. Подтверждение — /events`;
+};
+document.querySelector('#close').onclick = () => { window.editor.destroyEditor(); state.textContent = 'Редактор закрыт; ожидание callback'; window.pocReady = false; };
+</script>
+</html>

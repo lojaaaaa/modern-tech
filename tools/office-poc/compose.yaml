@@ -1,0 +1,50 @@
+name: modern-tech-office-poc
+services:
+  harness:
+    image: node:24-alpine@sha256:f70403e87646dc51b45295f4b8b70cdad0b63d2297c4c9899119b03f7af7a6b3
+    platform: linux/arm64
+    working_dir: /poc
+    command: [node, server.mjs]
+    environment:
+      JWT_SECRET: ${JWT_SECRET:?Generate tools/office-poc/.env first}
+      OFFICE_INTERNAL_URL: http://documentserver
+      OFFICE_PUBLIC_URL: http://localhost:8891
+      HARNESS_INTERNAL_URL: http://harness:8890
+    ports:
+      - 127.0.0.1:8890:8890
+    volumes:
+      - ./server.mjs:/poc/server.mjs:ro
+      - ./web:/poc/web:ro
+      - ./corpus:/poc/corpus:ro
+      - ./data:/poc/data
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://localhost:8890/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  documentserver:
+    image: onlyoffice/documentserver:9.4.0.1@sha256:3ab6ebc7c605e5a32b7ae3ff19daed4925090245acc8100ce2230bd766c88212
+    platform: linux/arm64
+    environment:
+      JWT_ENABLED: "true"
+      JWT_SECRET: ${JWT_SECRET:?Generate tools/office-poc/.env first}
+      JWT_HEADER: Authorization
+      ALLOW_PRIVATE_IP_ADDRESS: "true"
+      ALLOW_META_IP_ADDRESS: "false"
+    ports:
+      - 127.0.0.1:8891:80
+    shm_size: 1gb
+    volumes:
+      - office-data:/var/www/onlyoffice/Data
+      - office-cache:/var/lib/onlyoffice
+      - office-logs:/var/log/onlyoffice
+    healthcheck:
+      test: [CMD, curl, -fsS, http://localhost/healthcheck]
+      interval: 10s
+      timeout: 5s
+      retries: 36
+      start_period: 60s
+volumes:
+  office-data:
+  office-cache:
+  office-logs:
