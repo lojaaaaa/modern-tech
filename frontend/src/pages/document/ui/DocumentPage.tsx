@@ -32,6 +32,7 @@ const DocumentWorkspace = () => {
     const [tab, setTab] = useState<'preview' | 'text' | 'versions' | 'access' | 'compare' | 'entities'>('preview');
     const [anchor, setAnchor] = useState<TextAnchor | null>(null);
     const [target, setTarget] = useState<AnchorTarget | null>(null);
+    const [newCommentId, setNewCommentId] = useState<string | null>(null);
     const [selectedVersion, setSelectedVersion] = useState<string | null>(null);
     const readerPanel = useRef<HTMLElement>(null);
     const fileInput = useRef<HTMLInputElement>(null);
@@ -132,7 +133,7 @@ const DocumentWorkspace = () => {
                     activeComment={comments.data?.data.find((c) => c.id === target?.key) ?? null}
                     onComment={chooseAnchor}
                     onSubmitComment={async (selected, body) => {
-                        await api(`/documents/${id}/comments`, {
+                        const result = await api<Resource<{ id: string }>>(`/documents/${id}/comments`, {
                             method: 'POST',
                             headers: { 'Idempotency-Key': crypto.randomUUID() },
                             body: JSON.stringify({
@@ -143,6 +144,7 @@ const DocumentWorkspace = () => {
                                 anchor_quote: selected.quote,
                             }),
                         });
+                        setNewCommentId(result.data.id);
                         await client.invalidateQueries({ queryKey: ['comments', id] });
                     }}
                 />
@@ -402,6 +404,9 @@ const DocumentWorkspace = () => {
                             comments={comments.data?.data ?? []}
                             error={comments.error}
                             anchor={anchor}
+                            newCommentId={newCommentId}
+                            onCommentCreated={setNewCommentId}
+                            onCommentShown={() => setNewCommentId(null)}
                             onClearAnchor={() => setAnchor(null)}
                             onJump={jumpToComment}
                         />

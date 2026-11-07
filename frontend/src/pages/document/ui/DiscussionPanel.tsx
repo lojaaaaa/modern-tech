@@ -1,9 +1,9 @@
-import { useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { MessageSquare, Send, X } from 'lucide-react';
 import type { TextAnchor } from '@/features/document-reader';
 import { api } from '@/shared/api/client';
-import type { CommentRecord } from '@/shared/api/types';
+import type { CommentRecord, Resource } from '@/shared/api/types';
 import { Button } from '@/shared/ui/button';
 import { ErrorMessage } from '@/shared/ui/error-message';
 import { formatDate } from '@/shared/lib/utils';
@@ -15,6 +15,9 @@ export const DiscussionPanel = ({
     comments,
     error,
     anchor,
+    newCommentId,
+    onCommentCreated,
+    onCommentShown,
     onClearAnchor,
     onJump,
 }: {
@@ -24,11 +27,31 @@ export const DiscussionPanel = ({
     comments: CommentRecord[];
     error: unknown;
     anchor: TextAnchor | null;
+    newCommentId: string | null;
+    onCommentCreated: (id: string) => void;
+    onCommentShown: () => void;
     onClearAnchor: () => void;
     onJump: (comment: CommentRecord) => void;
 }) => {
     const client = useQueryClient();
     const [openOnly, setOpenOnly] = useState(false);
+    const listRef = useRef<HTMLDivElement>(null);
+    const newCommentRef = useRef<HTMLElement>(null);
+    useLayoutEffect(() => {
+        const list = listRef.current;
+        const comment = newCommentRef.current;
+        if (!newCommentId || !list || !comment) {
+            return;
+        }
+        const listRect = list.getBoundingClientRect();
+        const commentRect = comment.getBoundingClientRect();
+        if (commentRect.top < listRect.top || commentRect.height > listRect.height) {
+            list.scrollTop += commentRect.top - listRect.top;
+        } else if (commentRect.bottom > listRect.bottom) {
+            list.scrollTop += commentRect.bottom - listRect.bottom;
+        }
+        onCommentShown();
+    }, [comments, newCommentId, onCommentShown]);
     const resolution = useMutation({
         mutationFn: (comment: CommentRecord) =>
             api(`/comments/${comment.id}/resolution`, {
@@ -49,12 +72,12 @@ export const DiscussionPanel = ({
                 Только открытые
             </label>
             <ErrorMessage error={resolution.error} />
-            <div className="comment-list">
+            <div className="comment-list" ref={listRef}>
                 {comments.length ? (
                     comments
                         .filter((c) => !openOnly || !c.resolved_at)
                         .map((c) => (
-                            <article key={c.id}>
+                            <article key={c.id} ref={c.id === newCommentId ? newCommentRef : null}>
                                 <div className="comment-meta">
                                     <span className="avatar tiny">{c.author_name.slice(0, 1)}</span>
                                     <strong>{c.author_name}</strong>
@@ -92,6 +115,7 @@ export const DiscussionPanel = ({
                     documentId={documentId}
                     versionId={versionId}
                     anchor={anchor}
+                    onCommentCreated={onCommentCreated}
                     onClearAnchor={onClearAnchor}
                 />
             )}
@@ -103,11 +127,13 @@ const CommentComposer = ({
     documentId,
     versionId,
     anchor,
+    onCommentCreated,
     onClearAnchor,
 }: {
     documentId: string;
     versionId: string;
     anchor: TextAnchor | null;
+    onCommentCreated: (id: string) => void;
     onClearAnchor: () => void;
 }) => {
     const client = useQueryClient();
@@ -115,7 +141,7 @@ const CommentComposer = ({
     const commentKey = useRef(crypto.randomUUID());
     const add = useMutation({
         mutationFn: () =>
-            api(`/documents/${documentId}/comments`, {
+            api<Resource<{ id: string }>>(`/documents/${documentId}/comments`, {
                 method: 'POST',
                 headers: { 'Idempotency-Key': commentKey.current },
                 body: JSON.stringify({
@@ -130,10 +156,11 @@ const CommentComposer = ({
                         : {}),
                 }),
             }),
-        onSuccess: async () => {
+        onSuccess: async (result) => {
             commentKey.current = crypto.randomUUID();
             setComment('');
             onClearAnchor();
+            onCommentCreated(result.data.id);
             await client.invalidateQueries({ queryKey: ['comments', documentId] });
         },
     });

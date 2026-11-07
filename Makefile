@@ -4,9 +4,9 @@ bootstrap:
 dependencies: bootstrap
 	docker run --rm -v "$(CURDIR)/backend:/app" -w /app composer:2 composer install --no-interaction --prefer-dist
 up: dependencies
-	docker compose up -d --build --wait --wait-timeout 180 postgres redis-queue redis-cache tika gotenberg clamav mailpit api web gateway
+	docker compose up -d --build --wait --wait-timeout 180 postgres redis-queue redis-cache tika gotenberg clamav mailpit api web
 	docker compose exec -T api php artisan migrate --force
-	docker compose up -d --build --wait --wait-timeout 180 worker worker-processing worker-transfers scheduler
+	docker compose up -d --build --wait --wait-timeout 180 gateway worker worker-processing worker-transfers scheduler
 migrate:
 	docker compose exec api php artisan migrate --force
 down:

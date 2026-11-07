@@ -21,6 +21,8 @@ backend/storage/framework/phpstan/
 
 # Local agent instructions and scratch artifacts
 agents/
+!docs/agents/
+!docs/agents/**
 .tmp/
 *.pyc
 __pycache__/

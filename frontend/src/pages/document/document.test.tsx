@@ -1,22 +1,44 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { DocumentPage } from './ui/DocumentPage';
+import type * as DocumentReader from '@/features/document-reader';
 
 const previewRender = vi.hoisted(() => vi.fn());
-vi.mock('@/features/document-reader', () => ({
+vi.mock('@/features/document-reader', async (importOriginal) => ({
+    ...(await importOriginal<typeof DocumentReader>()),
     FilePreview: () => {
         previewRender();
         return <div>Просмотр изображения</div>;
     },
-    TextReader: () => <div>Текст</div>,
 }));
 afterEach(() => {
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
     previewRender.mockClear();
 });
+
+const mockOverflowingComments = (list: HTMLElement) => {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 150, 300, 70));
+    Object.defineProperty(list, 'getBoundingClientRect', {
+        configurable: true,
+        value: () => new DOMRect(0, 0, 300, 100),
+    });
+};
+
+const existingComments = [1, 2].map((number) => ({
+    id: `old-${number}`,
+    author_id: 1,
+    author_name: 'Автор',
+    body: `Существующий комментарий ${number}`,
+    version_id: 'v1',
+    created_at: '2026-10-31T10:00:00Z',
+    anchor_quote: null,
+    resolved_at: null,
+    deleted_at: null,
+}));
 const renderDocument = () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const view = render(
@@ -85,4 +107,135 @@ it('aborts an unfinished document request when leaving the page', async () => {
     await waitFor(() => expect(requestSignal).toBeDefined());
     view.unmount();
     expect(requestSignal?.aborted).toBe(true);
+});
+
+it('brings a new comment into view in an overflowing discussion', async () => {
+    let saved = false;
+    const comment = {
+        id: 'comment-1',
+        author_id: 1,
+        author_name: 'Автор',
+        body: 'Новый комментарий',
+        version_id: 'v1',
+        created_at: '2026-10-31T10:00:00Z',
+        anchor_quote: null,
+        resolved_at: null,
+        deleted_at: null,
+    };
+    vi.stubGlobal(
+        'fetch',
+        vi.fn(async (url: string, init?: RequestInit) => {
+            if (url === '/api/v1/documents/image-1') {
+                return Response.json({
+                    data: {
+                        id: 'image-1',
+                        title: 'Фото.png',
+                        owner: { id: 1, name: 'Автор' },
+                        updated_at: '2026-10-31T10:00:00Z',
+                        processing_status: 'ready',
+                        permissions: { comment: true, edit: false, export: false, manage: false },
+                        version: {
+                            id: 'v1',
+                            number: 1,
+                            mime: 'image/png',
+                            status: 'ready',
+                            size: 1024,
+                            original_name: 'Фото.png',
+                        },
+                    },
+                });
+            }
+            if (url.endsWith('/comments')) {
+                if (init?.method === 'POST') {
+                    saved = true;
+                    return Response.json({ data: comment }, { status: 201 });
+                }
+                return Response.json({ data: saved ? [...existingComments, comment] : existingComments });
+            }
+            throw new Error('Unexpected request: ' + url);
+        })
+    );
+    renderDocument();
+    await screen.findByText('Существующий комментарий 2');
+    const list = document.querySelector<HTMLElement>('.comment-list')!;
+    mockOverflowingComments(list);
+    expect(list.scrollTop).toBe(0);
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText('Текст комментария'), comment.body);
+    await user.click(screen.getByRole('button', { name: 'Отправить' }));
+    expect(await screen.findByText(comment.body)).toBeInTheDocument();
+    await waitFor(() => expect(list.scrollTop).toBe(120));
+});
+
+it('brings a comment on selected text into view in an overflowing discussion', async () => {
+    let saved = false;
+    const comment = {
+        id: 'comment-1',
+        author_id: 1,
+        author_name: 'Автор',
+        body: 'Комментарий к фрагменту',
+        version_id: 'v1',
+        created_at: '2026-10-31T10:00:00Z',
+        anchor_start: 0,
+        anchor_end: 6,
+        anchor_quote: 'Важный',
+        resolved_at: null,
+        deleted_at: null,
+    };
+    vi.stubGlobal(
+        'fetch',
+        vi.fn(async (url: string, init?: RequestInit) => {
+            if (url === '/api/v1/documents/image-1') {
+                return Response.json({
+                    data: {
+                        id: 'image-1',
+                        title: 'Документ.txt',
+                        owner: { id: 1, name: 'Автор' },
+                        updated_at: '2026-10-31T10:00:00Z',
+                        processing_status: 'ready',
+                        permissions: { comment: true, edit: false, export: false, manage: false },
+                        version: {
+                            id: 'v1',
+                            number: 1,
+                            mime: 'text/plain',
+                            status: 'ready',
+                            size: 1024,
+                            original_name: 'Документ.txt',
+                        },
+                    },
+                });
+            }
+            if (url === '/api/v1/versions/v1/text') {
+                return Response.json({ data: { text: 'Важный фрагмент', status: 'ready' } });
+            }
+            if (url.endsWith('/comments')) {
+                if (init?.method === 'POST') {
+                    saved = true;
+                    return Response.json({ data: comment }, { status: 201 });
+                }
+                return Response.json({ data: saved ? [...existingComments, comment] : existingComments });
+            }
+            throw new Error('Unexpected request: ' + url);
+        })
+    );
+    renderDocument();
+    const user = userEvent.setup();
+    await screen.findByText('Существующий комментарий 2');
+    const list = document.querySelector<HTMLElement>('.comment-list')!;
+    mockOverflowingComments(list);
+    expect(list.scrollTop).toBe(0);
+    await user.click(await screen.findByRole('button', { name: 'Текст' }));
+    const content = await screen.findByText('Важный фрагмент');
+    const range = document.createRange();
+    range.setStart(content.firstChild!, 0);
+    range.setEnd(content.firstChild!, 6);
+    const selection = window.getSelection()!;
+    selection.removeAllRanges();
+    selection.addRange(range);
+    fireEvent.mouseUp(content);
+    await user.click(screen.getByRole('button', { name: 'Комментировать выделение' }));
+    await user.type(screen.getByLabelText('Комментарий к выделению'), comment.body);
+    await user.click(screen.getAllByRole('button', { name: 'Отправить' })[0]!);
+    expect(await screen.findByText(comment.body)).toBeInTheDocument();
+    await waitFor(() => expect(list.scrollTop).toBe(120));
 });
