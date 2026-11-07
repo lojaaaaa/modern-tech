@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('.', import.meta.url));
 const types = { docx: 'word', xlsx: 'cell', pptx: 'slide' };
 const names = { alice: 'Алиса Петрова', bob: 'Борис Иванов' };
+const validationPlugin = 'asc.{E78ECFB2-103D-4E2D-A0F3-24A0AB30E574}';
 
 function token(payload, secret) {
   const encoded = [ { alg: 'HS256', typ: 'JWT' }, payload ].map(value => Buffer.from(JSON.stringify(value)).toString('base64url')).join('.');
@@ -33,13 +34,14 @@ export async function createHarness(options = {}) {
   const internal = process.env.HARNESS_INTERNAL_URL ?? 'http://harness:8890';
   const office = process.env.OFFICE_INTERNAL_URL ?? 'http://documentserver';
   const officePublic = process.env.OFFICE_PUBLIC_URL ?? 'http://localhost:8891';
+  const publicBase = process.env.HARNESS_PUBLIC_URL ?? 'http://localhost:8890';
   await mkdir(data, { recursive: true });
   const stateFile = join(data, 'sessions.json');
   let sessions;
   try { sessions = JSON.parse(await readFile(stateFile, 'utf8')); } catch (error) { if (error.code !== 'ENOENT') throw error; sessions = {}; }
   const events = [];
   const persist = async () => { await writeFile(`${stateFile}.tmp`, JSON.stringify(sessions, null, 2)); await rename(`${stateFile}.tmp`, stateFile); };
-  const json = (res, status, body) => { res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(body)); };
+  const json = (res, status, body) => { res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': new URL(officePublic).origin }); res.end(JSON.stringify(body)); };
   const source = async name => {
     try { return await readFile(join(data, name)); } catch (error) { if (error.code !== 'ENOENT') throw error; return await readFile(join(corpus, name)); }
   };
@@ -70,8 +72,24 @@ export async function createHarness(options = {}) {
           document: { fileType: extension, key: sessions[file].key, title: file, url: `${internal}/files/${file}`, permissions: { edit: true, comment: true, download: true } },
           editorConfig: { mode: 'edit', lang: 'en', user: { id: user, name: names[user] }, callbackUrl: `${internal}/callback/${file}`, coEditing: { mode: 'fast', change: false }, customization: { autosave: true, forcesave: true, anonymous: { request: false }, help: false, feedback: false } },
         };
+        if (url.searchParams.get('validation') === '1') {
+          config.editorConfig.plugins = { autostart: [validationPlugin], pluginsData: [`${publicBase}/plugin/config.json?file=${file}&user=${user}`] };
+        }
         config.token = token(config, secret);
         return json(res, 200, config);
+      }
+      if (req.method === 'GET' && url.pathname === '/plugin/config.json') {
+        const file = url.searchParams.get('file');
+        const user = url.searchParams.get('user');
+        if (!validFile(file) || !names[user]) return json(res, 404, { error: 'Unknown validation context' });
+        return json(res, 200, { name: 'Office acceptance', guid: validationPlugin, version: '1.0', minVersion: '8.1.0', baseUrl: `${publicBase}/plugin/`, variations: [{ description: 'Office acceptance controls', url: `index.html?file=${file}&user=${user}`, EditorsSupport: ['word', 'cell', 'slide'], type: 'panelRight', isViewer: false, initDataType: 'none', initData: '', buttons: [], icons: ['icon.svg'] }] });
+      }
+      if (req.method === 'GET' && ['/plugin/index.html', '/plugin/code.js', '/plugin/icon.svg'].includes(url.pathname)) {
+        const path = join(root, 'web', url.pathname.slice(1));
+        const content = (await readFile(path, 'utf8')).replaceAll('__OFFICE_PUBLIC_URL__', officePublic);
+        const contentType = url.pathname.endsWith('.html') ? 'text/html; charset=utf-8' : url.pathname.endsWith('.js') ? 'text/javascript; charset=utf-8' : 'image/svg+xml';
+        res.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': new URL(officePublic).origin });
+        return res.end(content);
       }
       if (req.method === 'GET' && url.pathname.startsWith('/files/')) {
         const name = url.pathname.slice('/files/'.length);

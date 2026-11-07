@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Office acceptance controls</title>
+<style>body{margin:10px;font:13px system-ui}button,input,select{font:inherit;margin:3px 0;max-width:100%}button{display:block}pre{font:11px monospace;overflow-wrap:anywhere;white-space:pre-wrap}label{display:block}output{display:block;color:#345}</style>
+<h1 style="font-size:15px">Office acceptance controls</h1>
+<p>Free plugin · real native Office operations</p>
+<output id="status">Loading plugin API</output>
+<label>Operation<select id="operation"><option value="read">Read current document</option><option value="edit">Apply participant edit</option><option value="select">Move participant selection</option></select></label>
+<button id="run" disabled>Run native operation</button>
+<pre id="result" aria-live="polite"></pre>
+<script src="__OFFICE_PUBLIC_URL__/sdkjs-plugins/v1/plugins.js"></script>
+<script src="code.js"></script>
+</html>
