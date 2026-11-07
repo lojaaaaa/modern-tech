@@ -5,21 +5,19 @@ declare(strict_types=1);
 namespace App\Modules\Collaboration\Http;
 
 use App\Models\User;
-use App\Modules\Access\Services\DocumentAccess;
 use App\Modules\Audit\Services\Audit;
 use App\Modules\Documents\Models\Document;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 
 final class CommentController
 {
-    public function __construct(private DocumentAccess $access) {}
-
     public function index(Request $request, Document $document): JsonResponse
     {
-        $this->access->authorize($request->user(), $document, 'read');
+        Gate::authorize('read', $document);
         $comments = DB::table('document_comments')->join('users', 'users.id', '=', 'document_comments.author_id')->where('document_id', $document->id)->orderBy('document_comments.created_at')->get(['document_comments.*', 'users.name as author_name']);
         $comments->each(function ($c): void {
             if ($c->deleted_at) {
@@ -35,7 +33,7 @@ final class CommentController
 
     public function store(Request $request, Document $document): JsonResponse
     {
-        $this->access->authorize($request->user(), $document, 'comment');
+        Gate::authorize('comment', $document);
         $data = $request->validate(['body' => 'required|string|max:5000', 'version_id' => 'required|uuid', 'parent_id' => 'nullable|uuid', 'anchor_start' => 'nullable|integer|min:0|required_with:anchor_end,anchor_quote', 'anchor_end' => 'nullable|integer|gt:anchor_start|required_with:anchor_start,anchor_quote', 'anchor_quote' => 'nullable|string|max:2000|required_with:anchor_start,anchor_end']);
         $version = $document->versions()->whereKey($data['version_id'])->first();
         abort_unless($version !== null, 422);
@@ -84,7 +82,7 @@ final class CommentController
             $comment = DB::table('document_comments')->where('id', $id)->whereNull('deleted_at')->lockForUpdate()->first();
             abort_unless($comment !== null, 404);
             $document = Document::findOrFail($comment->document_id);
-            $this->access->authorize($request->user(), $document, 'comment');
+            Gate::authorize('comment', $document);
             abort_unless($comment->author_id === $request->user()->id, 403);
             abort_unless($comment->revision === $data['revision'], 409);
             DB::table('document_comments')->where('id', $id)->update(['body' => $data['body'], 'revision' => $comment->revision + 1, 'updated_at' => now()]);
@@ -101,8 +99,8 @@ final class CommentController
             $comment = DB::table('document_comments')->where('id', $id)->whereNull('deleted_at')->lockForUpdate()->first();
             abort_unless($comment !== null, 404);
             $document = Document::findOrFail($comment->document_id);
-            $this->access->authorize($request->user(), $document, 'comment');
-            abort_unless((int) $comment->author_id === $request->user()->id || $this->access->allows($request->user(), $document, 'manage'), 403);
+            Gate::authorize('comment', $document);
+            abort_unless((int) $comment->author_id === $request->user()->id || $request->user()->can('manage', $document), 403);
             DB::table('document_comments')->where('id', $id)->update(['resolved_at' => $data['resolved'] ? now() : null, 'updated_at' => now()]);
             Audit::record($request->user()->id, $data['resolved'] ? 'comment.resolved' : 'comment.reopened', $id);
         });
@@ -114,7 +112,7 @@ final class CommentController
     {
         $comment = DB::table('document_comments')->where('id', $id)->whereNull('deleted_at')->first();
         abort_unless($comment !== null, 404);
-        $this->access->authorize($request->user(), Document::findOrFail($comment->document_id), 'comment');
+        Gate::authorize('comment', Document::findOrFail($comment->document_id));
         abort_unless($comment->author_id === $request->user()->id || $request->user()->isAdministrator(), 403);
         DB::transaction(function () use ($request, $id): void {
             DB::table('document_comments')->where('id', $id)->update(['deleted_at' => now()]);

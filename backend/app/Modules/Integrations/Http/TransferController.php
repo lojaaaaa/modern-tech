@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Modules\Integrations\Http;
 
 use App\Models\User;
-use App\Modules\Access\Services\DocumentAccess;
 use App\Modules\Audit\Services\Audit;
 use App\Modules\Documents\Models\DocumentVersion;
 use App\Modules\Integrations\Models\CloudConnection;
@@ -14,6 +13,7 @@ use App\Modules\Integrations\Services\CloudHttp;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -24,7 +24,7 @@ final class TransferController
         return response()->json(['data' => CloudTransfer::where('initiator_id', $request->user()->id)->latest()->limit(100)->get()]);
     }
 
-    public function store(Request $request, DocumentAccess $access): JsonResponse
+    public function store(Request $request): JsonResponse
     {
         abort_if($request->user()->role === 'observer', 403);
         $data = $request->validate(['connection_id' => 'required|uuid', 'direction' => ['required', Rule::in(['import', 'export'])], 'path' => 'required|string|max:2048', 'filename' => 'required|string|max:255', 'version_id' => 'required_if:direction,export|uuid']);
@@ -40,7 +40,7 @@ final class TransferController
         if ($data['direction'] === 'export') {
             $version = DocumentVersion::findOrFail($data['version_id']);
             abort_unless($version->document !== null, 404);
-            $access->authorize($request->user(), $version->document, 'export');
+            Gate::authorize('export', $version->document);
             abort_unless($version->status === 'ready', 409);
             $filename = pathinfo($filename, PATHINFO_FILENAME).'-'.substr($id, 0, 8).'.'.pathinfo($version->original_name, PATHINFO_EXTENSION);
             $path = rtrim($path, '/').'/'.$filename;

@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace App\Modules\Documents\Http;
 
-use App\Modules\Access\Services\DocumentAccess;
 use App\Modules\Documents\Models\DocumentVersion;
 use App\Modules\Processing\Jobs\GeneratePreview;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 
 final class PreviewController
 {
-    public function show(Request $request, DocumentVersion $version, DocumentAccess $access)
+    public function show(Request $request, DocumentVersion $version)
     {
         abort_unless($version->document !== null, 404);
-        $access->authorize($request->user(), $version->document, 'read');
+        Gate::authorize('read', $version->document);
         abort_unless($version->status === 'ready', 409);
         $extension = strtolower(pathinfo($version->original_name, PATHINFO_EXTENSION));
         $native = in_array($version->mime, ['application/pdf', 'image/png', 'image/jpeg'], true);
