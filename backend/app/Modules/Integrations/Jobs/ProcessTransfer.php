@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Modules\Integrations\Jobs;
 
 use App\Models\User;
-use App\Modules\Access\Services\DocumentAccess;
 use App\Modules\Audit\Services\Audit;
 use App\Modules\Documents\Models\DocumentVersion;
 use App\Modules\Documents\Services\UploadDocument;
@@ -16,6 +15,7 @@ use App\Modules\Integrations\Services\ProviderFactory;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 
 final class ProcessTransfer implements ShouldQueue
@@ -32,7 +32,7 @@ final class ProcessTransfer implements ShouldQueue
         $this->onQueue('transfers');
     }
 
-    public function handle(ProviderFactory $providers, DocumentAccess $access, UploadDocument $uploads): void
+    public function handle(ProviderFactory $providers, UploadDocument $uploads): void
     {
         if (! CloudTransfer::whereKey($this->transferId)->where('status', 'queued')->update(['status' => 'running'])) {
             return;
@@ -52,7 +52,7 @@ final class ProcessTransfer implements ShouldQueue
                 if (! $version || ! $version->document || $version->status !== 'ready') {
                     throw new CloudFailure('VERSION_UNAVAILABLE');
                 }
-                $access->authorize($user, $version->document, 'export');
+                Gate::forUser($user)->authorize('export', $version->document);
                 $remoteWriteStarted = true;
                 $provider->upload($transfer->remote_path, Storage::disk('local')->path($version->storage_key));
             } else {

@@ -4,19 +4,17 @@ declare(strict_types=1);
 
 namespace App\Modules\Documents\Http;
 
-use App\Modules\Access\Services\DocumentAccess;
 use App\Modules\Audit\Services\Audit;
 use App\Modules\Documents\Models\Document;
 use App\Modules\Documents\Models\Folder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 
 final class LibraryController
 {
-    public function __construct(private DocumentAccess $access) {}
-
     public function folders(Request $request): JsonResponse
     {
         return response()->json(['data' => Folder::where('owner_id', $request->user()->id)->orderBy('name')->get()]);
@@ -51,7 +49,7 @@ final class LibraryController
 
     public function move(Request $request, Document $document): JsonResponse
     {
-        $this->access->authorize($request->user(), $document, 'manage');
+        Gate::authorize('manage', $document);
         $data = $request->validate(['folder_id' => 'nullable|uuid']);
         if ($data['folder_id'] ?? null) {
             abort_unless(Folder::whereKey($data['folder_id'])->where('owner_id', $document->owner_id)->exists(), 422);
@@ -66,7 +64,7 @@ final class LibraryController
 
     public function favorite(Request $request, Document $document): JsonResponse
     {
-        $this->access->authorize($request->user(), $document, 'read');
+        Gate::authorize('read', $document);
         $data = $request->validate(['favorite' => 'required|boolean']);
         $key = ['document_id' => $document->id, 'user_id' => $request->user()->id];
         if ($data['favorite']) {
@@ -87,7 +85,7 @@ final class LibraryController
 
     public function setTags(Request $request, Document $document): JsonResponse
     {
-        $this->access->authorize($request->user(), $document, 'edit');
+        Gate::authorize('edit', $document);
         $data = $request->validate(['tags' => 'required|array|max:20', 'tags.*' => 'required|string|max:40']);
         DB::transaction(function () use ($request, $document, $data): void {
             DB::table('document_tags')->where('document_id', $document->id)->delete();
