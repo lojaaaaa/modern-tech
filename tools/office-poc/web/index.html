@@ -13,7 +13,8 @@ html,body{height:100%;margin:0;font:14px system-ui;background:#f4f4f4}body{displ
 const params = new URLSearchParams(location.search);
 const file = params.get('file') || 'sample.docx';
 const user = params.get('user') || 'alice';
-const response = await fetch(`/config?file=${encodeURIComponent(file)}&user=${encodeURIComponent(user)}`);
+const validation = params.get('validation') === '1' ? '&validation=1' : '';
+const response = await fetch(`/config?file=${encodeURIComponent(file)}&user=${encodeURIComponent(user)}${validation}`);
 const config = await response.json();
 const state = document.querySelector('#status');
 document.querySelector('#identity').textContent = `${config.editorConfig?.user.name || user} · ${file}`;
