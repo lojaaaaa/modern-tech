@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Modules\Documents\Http;
 
 use App\Models\User;
-use App\Modules\Access\Services\DocumentAccess;
 use App\Modules\Audit\Services\Audit;
 use App\Modules\Documents\Models\Document;
 use App\Modules\Documents\Models\DocumentVersion;
@@ -14,12 +13,11 @@ use App\Modules\Documents\Services\UploadDocument;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 
 final class DocumentController
 {
-    public function __construct(private DocumentAccess $access) {}
-
     public function index(LibraryQueryRequest $request, DocumentListing $listing)
     {
         $data = $request->validated();
@@ -46,14 +44,14 @@ final class DocumentController
 
     public function show(Request $request, Document $document): DocumentResource
     {
-        $this->access->authorize($request->user(), $document, 'read');
+        Gate::authorize('read', $document);
 
         return new DocumentResource($document->load(['owner', 'publishedVersion', 'desiredVersion']));
     }
 
     public function update(Request $request, Document $document): DocumentResource
     {
-        $this->access->authorize($request->user(), $document, 'edit');
+        Gate::authorize('edit', $document);
         $data = $request->validate(['title' => 'required|string|max:255', 'revision' => 'required|integer']);
         DB::transaction(function () use ($request, $document, $data): void {
             $locked = Document::whereKey($document->id)->lockForUpdate()->firstOrFail();
@@ -67,7 +65,7 @@ final class DocumentController
 
     public function destroy(Request $request, Document $document): JsonResponse
     {
-        $this->access->authorize($request->user(), $document, 'manage');
+        Gate::authorize('manage', $document);
         DB::transaction(function () use ($document, $request): void {
             $document->update(['purge_after' => now()->addDays(30)]);
             $document->delete();
@@ -80,7 +78,7 @@ final class DocumentController
     public function restore(Request $request, string $id): DocumentResource
     {
         $document = Document::onlyTrashed()->findOrFail($id);
-        $this->access->authorize($request->user(), $document, 'manage');
+        Gate::authorize('manage', $document);
         DB::transaction(function () use ($document, $request): void {
             $document->restore();
             $document->update(['purge_after' => null]);
@@ -92,14 +90,14 @@ final class DocumentController
 
     public function versions(Request $request, Document $document): JsonResponse
     {
-        $this->access->authorize($request->user(), $document, 'read');
+        Gate::authorize('read', $document);
 
         return response()->json(['data' => $document->versions()->orderByDesc('number')->get(['id', 'number', 'original_name', 'mime', 'size', 'status', 'error_code', 'created_at'])]);
     }
 
     public function addVersion(UploadRequest $request, Document $document, UploadDocument $upload)
     {
-        $this->access->authorize($request->user(), $document, 'edit');
+        Gate::authorize('edit', $document);
         $key = $request->header('Idempotency-Key');
         abort_unless(is_string($key) && strlen($key) >= 8 && strlen($key) <= 100, 422);
 
@@ -109,7 +107,7 @@ final class DocumentController
     public function download(Request $request, DocumentVersion $version)
     {
         abort_unless($version->document !== null, 404);
-        $this->access->authorize($request->user(), $version->document, 'export');
+        Gate::authorize('export', $version->document);
         abort_unless($version->status === 'ready', 409, 'Файл ещё не прошёл обработку.');
 
         return Storage::disk('local')->download($version->storage_key, $version->original_name, ['X-Content-Type-Options' => 'nosniff', 'Cache-Control' => 'private, no-store']);
@@ -118,7 +116,7 @@ final class DocumentController
     public function entities(Request $request, DocumentVersion $version): JsonResponse
     {
         abort_unless($version->document !== null, 404);
-        $this->access->authorize($request->user(), $version->document, 'read');
+        Gate::authorize('read', $version->document);
 
         return response()->json(['data' => DB::table('document_entities')->where('version_id', $version->id)->orderBy('offset')->get()]);
     }
@@ -126,28 +124,28 @@ final class DocumentController
     public function text(Request $request, DocumentVersion $version): JsonResponse
     {
         abort_unless($version->document !== null, 404);
-        $this->access->authorize($request->user(), $version->document, 'read');
+        Gate::authorize('read', $version->document);
 
         return response()->json(['data' => ['text' => $version->extracted_text, 'status' => $version->status]]);
     }
 
     public function participants(Request $request, Document $document): JsonResponse
     {
-        $this->access->authorize($request->user(), $document, 'manage');
+        Gate::authorize('manage', $document);
 
         return response()->json(['data' => User::where('active', true)->where('id', '!=', $document->owner_id)->orderBy('name')->get(['id', 'name', 'role'])]);
     }
 
     public function grants(Request $request, Document $document): JsonResponse
     {
-        $this->access->authorize($request->user(), $document, 'manage');
+        Gate::authorize('manage', $document);
 
         return response()->json(['data' => $document->grants()->get()]);
     }
 
     public function setGrants(Request $request, Document $document): JsonResponse
     {
-        $this->access->authorize($request->user(), $document, 'manage');
+        Gate::authorize('manage', $document);
         $data = $request->validate(['grants' => 'required|array|max:100', 'grants.*.user_id' => 'required|integer|exists:users,id|distinct', 'grants.*.read' => 'required|boolean', 'grants.*.comment' => 'required|boolean', 'grants.*.edit' => 'required|boolean', 'grants.*.export' => 'required|boolean']);
         foreach ($data['grants'] as $grant) {
             $writer = $grant['comment'] || $grant['edit'] || $grant['export'];
