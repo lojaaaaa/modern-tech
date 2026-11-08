@@ -20,8 +20,9 @@ services:
       LEASE_MS: ${LEASE_MS:-30000}
       OFFICE_INTERNAL_URL: http://documentserver
       JWT_SECRET: ${JWT_SECRET:-local-office-demo-only}
+      POC_PUBLIC_PORT: ${POC_PORT:-8894}
     ports:
-      - 127.0.0.1:8894:8894
+      - 127.0.0.1:${POC_PORT:-8894}:8894
     volumes:
       - ./:/poc:ro
     depends_on:
