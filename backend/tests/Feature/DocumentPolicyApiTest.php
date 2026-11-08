@@ -102,13 +102,20 @@ class DocumentPolicyApiTest extends TestCase
         $owner = User::factory()->create();
         $shared = Document::create(['owner_id' => $owner->id, 'title' => 'Common visible']);
         $shared->grants()->create(['user_id' => $actor->id, 'read' => true]);
+        $published = DocumentVersion::create(['document_id' => $shared->id, 'creator_id' => $owner->id, 'number' => 1, 'storage_key' => 'public.pdf', 'original_name' => 'public.pdf', 'mime' => 'application/pdf', 'size' => 7, 'sha256' => hash('sha256', 'public'), 'status' => 'ready']);
+        $candidate = DocumentVersion::create(['document_id' => $shared->id, 'creator_id' => $owner->id, 'number' => 2, 'storage_key' => 'candidate.docx', 'original_name' => 'candidate.docx', 'mime' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'size' => 100, 'sha256' => hash('sha256', 'candidate'), 'status' => 'failed']);
+        $shared->update(['published_version_id' => $published->id, 'desired_version_id' => $candidate->id]);
+        Document::create(['owner_id' => $actor->id, 'title' => 'Common unpublished']);
         for ($i = 0; $i < 3; $i++) {
             Document::create(['owner_id' => $owner->id, 'title' => 'Common private '.$i]);
         }
 
         $this->actingAs($actor)->getJson('/api/v1/search?q=Common&per_page=1')
             ->assertOk()->assertJsonPath('meta.total', 1)->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.id', $shared->id)->assertJsonPath('data.0.snippet', null);
+            ->assertJsonPath('data.0.id', $shared->id)->assertJsonPath('data.0.snippet', null)
+            ->assertJsonPath('data.0.version.id', $published->id)->assertJsonPath('data.0.processing_status', 'ready');
+        $this->getJson('/api/v1/search?q=Common&format=docx')->assertOk()->assertJsonPath('meta.total', 0);
+        $this->getJson('/api/v1/search?q=Common&status=failed')->assertOk()->assertJsonPath('meta.total', 0);
         $this->getJson('/api/v1/search?q=Common&per_page=1&page=2')
             ->assertOk()->assertJsonPath('meta.total', 1)->assertJsonPath('data', []);
     }
