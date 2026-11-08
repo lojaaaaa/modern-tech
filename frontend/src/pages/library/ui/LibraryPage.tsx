@@ -217,9 +217,8 @@ export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boole
                 </div>
                 <div className="library-filters">
                     <div className="selection-actions">
-                        <span role="status">{selected.length ? `Выбрано: ${selected.length}` : ''}</span>
                         <details key={selected.join(',')} className="batch-actions-menu">
-                            <summary>Действия</summary>
+                            <summary>Действия{selected.length > 0 ? ` · ${selected.length}` : ''}</summary>
                             <div>
                                 <Button
                                     variant="ghost"
