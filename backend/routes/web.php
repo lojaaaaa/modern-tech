@@ -4,6 +4,7 @@ declare(strict_types=1);
 use App\Http\Middleware\EnsureActive;
 use App\Modules\Audit\Http\AuditController;
 use App\Modules\Collaboration\Http\CommentController;
+use App\Modules\Collaboration\Http\OfficeController;
 use App\Modules\Documents\Http\BatchController;
 use App\Modules\Documents\Http\DocumentController;
 use App\Modules\Documents\Http\LibraryController;
@@ -30,6 +31,8 @@ Route::get('/health/ready', function () {
     return response()->json(['status' => 'ready']);
 });
 Route::prefix('api/v1')->group(function (): void {
+    Route::get('/office/source/{capability}', [OfficeController::class, 'source'])->where('capability', '[A-Za-z0-9._-]+');
+    Route::post('/office/callback', [OfficeController::class, 'callback']);
     Route::post('/auth/register', [RegistrationController::class, 'store'])->middleware('throttle:registration');
     Route::post('/auth/forgot-password', [PasswordController::class, 'forgot'])->middleware('throttle:3,15');
     Route::post('/auth/reset-password', [PasswordController::class, 'reset'])->middleware('throttle:10,1');
@@ -62,6 +65,7 @@ Route::prefix('api/v1')->group(function (): void {
         Route::get('/documents', [DocumentController::class, 'index']);
         Route::get('/search', [DocumentController::class, 'index']);
         Route::post('/documents', [DocumentController::class, 'store']);
+        Route::post('/documents/{document}/editor/session', [OfficeController::class, 'session']);
         Route::get('/documents/{document}', [DocumentController::class, 'show']);
         Route::patch('/documents/{document}', [DocumentController::class, 'update']);
         Route::delete('/documents/{document}', [DocumentController::class, 'destroy']);

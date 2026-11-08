@@ -17,6 +17,7 @@ use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(web: __DIR__.'/../routes/web.php', commands: __DIR__.'/../routes/console.php', health: '/health/live')
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->validateCsrfTokens(except: ['api/v1/office/callback']);
         $middleware->append(RequestTelemetry::class);
         $middleware->append(PreventApiCaching::class);
         $middleware->trimStrings(except: ['anchor_quote']);
