@@ -58,7 +58,7 @@ export const UsersPage = () => {
                             <th>Пользователь</th>
                             <th>Роль</th>
                             <th>Статус</th>
-                            <th />
+                            <th aria-label="Действия" />
                         </tr>
                     </thead>
                     <tbody>
@@ -91,7 +91,7 @@ export const UsersPage = () => {
                                         disabled={toggle.isPending}
                                         onClick={() => toggle.mutate(u)}
                                     >
-                                        {u.active ? 'Заблокировать' : 'Активировать'}
+                                        {u.active ? 'Заблокировать' : 'Разблокировать'}
                                     </Button>
                                 </td>
                             </tr>
@@ -113,7 +113,7 @@ export const UsersPage = () => {
                         <input required value={name} onChange={(e) => setName(e.target.value)} maxLength={120} />
                     </label>
                     <label>
-                        Email
+                        Электронная почта
                         <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
                     </label>
                     <label>
@@ -141,7 +141,9 @@ export const UsersPage = () => {
                             ]}
                         />
                     </label>
-                    <Button disabled={create.isPending}>Создать пользователя</Button>
+                    <Button disabled={create.isPending}>
+                        {create.isPending ? 'Создаём…' : 'Создать пользователя'}
+                    </Button>
                 </form>
             </section>
         </>
@@ -205,7 +207,7 @@ export const AuditPage = () => {
                                             'document.moved': 'Документ перемещён',
                                             'document.tags.updated': 'Изменены теги',
                                         } as Record<string, string>
-                                    )[e.action] ?? 'Действие с документом'}
+                                    )[e.action] ?? 'Другое событие'}
                                 </td>
                                 <td>{e.actor_name ?? 'Система'}</td>
                                 <td>

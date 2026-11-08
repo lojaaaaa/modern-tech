@@ -46,11 +46,11 @@ it('separates connections, credentials and transfers by provider', async () => {
     );
     expect(await screen.findByText('yandex.txt')).toBeVisible();
     expect(screen.queryByText('mail.txt')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('OAuth-токен пользователя')).toBeVisible();
+    expect(screen.getByLabelText('Токен доступа Яндекс Диска')).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: /Облако Mail/ }));
     expect(screen.getByText('mail.txt')).toBeVisible();
     expect(screen.queryByText('yandex.txt')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Пароль приложения')).toBeVisible();
-    expect(screen.queryByLabelText('OAuth-токен пользователя')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Токен доступа Яндекс Диска')).not.toBeInTheDocument();
     client.clear();
 });

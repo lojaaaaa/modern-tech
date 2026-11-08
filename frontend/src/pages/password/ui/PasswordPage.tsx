@@ -32,6 +32,13 @@ export const PasswordPage = () => {
         <div className="password-page">
             <section className="content-panel form-panel">
                 <h1>{token ? 'Новый пароль' : 'Восстановление доступа'}</h1>
+                {!mutation.isSuccess && (
+                    <p className="muted">
+                        {token
+                            ? 'Используйте от 12 до 128 символов.'
+                            : 'Укажите почту аккаунта. Мы отправим ссылку для смены пароля.'}
+                    </p>
+                )}
                 <ErrorMessage error={mutation.error} />
                 {mutation.isSuccess ? (
                     <p role="status">
@@ -84,7 +91,9 @@ export const PasswordPage = () => {
                                 </label>
                             </>
                         )}
-                        <Button disabled={mutation.isPending}>{token ? 'Сохранить пароль' : 'Отправить ссылку'}</Button>
+                        <Button disabled={mutation.isPending}>
+                            {mutation.isPending ? 'Отправляем…' : token ? 'Сохранить пароль' : 'Отправить ссылку'}
+                        </Button>
                     </form>
                 )}
                 <a className="back-link" href="/">

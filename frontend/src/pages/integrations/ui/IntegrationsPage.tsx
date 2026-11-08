@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Cloud, Folder, FileText, ArrowUp, Download, Unplug } from 'lucide-react';
+import { Folder, FileText, ArrowUp, Download, Unplug } from 'lucide-react';
 import { api } from '@/shared/api/client';
 import type { Resource } from '@/shared/api/types';
 import { Button } from '@/shared/ui/button';
@@ -122,7 +122,6 @@ export const IntegrationsPage = () => {
                     <div className="breadcrumbs">Документы / Облачные диски</div>
                     <h1>Облачные диски</h1>
                 </div>
-                <Cloud size={30} />
             </div>
             <div className="provider-tabs" role="group" aria-label="Облачный сервис">
                 {(['yandex', 'mail'] as const).map((service) => (
@@ -156,7 +155,12 @@ export const IntegrationsPage = () => {
             />
             <section className="content-panel form-panel">
                 <h2>Мои подключения</h2>
-                {!providerConnections.some((c) => c.status === 'connected') && <p className="muted">Нет подключений</p>}
+                {connections.isPending && <p role="status">Загружаем подключения…</p>}
+                {!connections.isPending &&
+                    !connections.isError &&
+                    !providerConnections.some((c) => c.status === 'connected') && (
+                        <p className="muted">Подключите диск ниже, чтобы выбрать файлы для импорта.</p>
+                    )}
                 {providerConnections
                     .filter((c) => c.status === 'connected')
                     .map((c) => (
@@ -206,7 +210,10 @@ export const IntegrationsPage = () => {
                                 </Button>
                             ) : (
                                 <>
-                                    <small className="muted">{formatBytes(file.size)}</small>
+                                    <small className="muted">
+                                        {formatBytes(file.size)}
+                                        {file.size > 52_428_800 ? ' · больше лимита 50 МБ' : ''}
+                                    </small>
                                     <Button
                                         variant="secondary"
                                         disabled={importFile.isPending || file.size > 52_428_800}
@@ -241,12 +248,12 @@ export const IntegrationsPage = () => {
                     </label>
                     {provider === 'yandex' ? (
                         <label>
-                            OAuth-токен пользователя
+                            Токен доступа Яндекс Диска
                             <input
                                 type="password"
                                 autoComplete="off"
                                 required
-                                placeholder="Токен доступа, не Client ID / Client secret"
+                                aria-describedby="yandex-token-help"
                                 value={token}
                                 onChange={(e) => setToken(e.target.value)}
                             />
@@ -269,14 +276,18 @@ export const IntegrationsPage = () => {
                             </label>
                         </>
                     )}
-                    <Button disabled={create.isPending}>Подключить</Button>
+                    {provider === 'yandex' && (
+                        <p id="yandex-token-help" className="muted">
+                            Используйте токен своего аккаунта, а не Client ID или Client secret приложения.
+                        </p>
+                    )}
+                    <Button disabled={create.isPending}>{create.isPending ? 'Подключаем…' : 'Подключить'}</Button>
                 </form>
             </section>
             {providerTransfers.length > 0 && (
                 <section className="content-panel form-panel">
                     <h2>Передачи</h2>
 
-                    {providerTransfers.length === 0 && <p>Передач пока нет.</p>}
                     {providerTransfers.map((t) => (
                         <div className="integration-row" key={t.id}>
                             <span className="grow">

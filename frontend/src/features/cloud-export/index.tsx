@@ -65,9 +65,9 @@ export const CloudExport = ({ version }: { version: Version }) => {
                             }}
                         >
                             <label>
-                                Мой диск
+                                Подключённый диск
                                 <Select
-                                    label="Мой диск"
+                                    label="Подключённый диск"
                                     value={connection}
                                     onValueChange={setConnection}
                                     options={(connections.data?.data ?? [])
@@ -85,7 +85,9 @@ export const CloudExport = ({ version }: { version: Version }) => {
                                 />
                             </label>
                             <p className="muted">В папке появится отдельная копия с уникальным именем.</p>
-                            <Button disabled={transfer.isPending || !connection}>Экспортировать</Button>{' '}
+                            <Button disabled={transfer.isPending || !connection}>
+                                {transfer.isPending ? 'Добавляем в очередь…' : 'Экспортировать'}
+                            </Button>{' '}
                             <Link to="/integrations">Подключить диск</Link>
                         </form>
                     )}
