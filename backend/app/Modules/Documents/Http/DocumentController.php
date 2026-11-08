@@ -119,6 +119,10 @@ final class DocumentController
         abort_unless($version->document !== null, 404);
         Gate::authorize('read', $version->document);
 
+        // A ready candidate may never have been published. The current schema
+        // only records the current published version, not publication history.
+        abort_unless($version->status === 'ready' && $version->document->published_version_id === $version->id, 404);
+
         return response()->json(['data' => DB::table('document_entities')->where('version_id', $version->id)->orderBy('offset')->get()]);
     }
 

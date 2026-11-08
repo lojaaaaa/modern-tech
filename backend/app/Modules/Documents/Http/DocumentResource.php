@@ -13,7 +13,8 @@ class DocumentResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $version = $this->publishedVersion ?? $this->desiredVersion;
+        $isSearch = trim((string) $request->input('q', '')) !== '';
+        $version = $isSearch ? $this->publishedVersion : ($this->publishedVersion ?? $this->desiredVersion);
 
         $snippet = null;
         $matched = $this->resource->getAttribute('matched_text');
@@ -23,6 +24,6 @@ class DocumentResource extends JsonResource
             $snippet = mb_substr($matched, max(0, ($offset === false ? 0 : $offset) - 80), 240);
         }
 
-        return ['snippet' => $snippet, 'id' => $this->id, 'title' => $this->title, 'owner' => $this->owner?->only(['id', 'name', 'email']), 'revision' => $this->revision, 'created_at' => $this->created_at, 'updated_at' => $this->updated_at, 'deleted_at' => $this->deleted_at, 'version' => $version?->only(['id', 'number', 'original_name', 'mime', 'size', 'status', 'error_code']), 'processing_status' => $this->desiredVersion?->status, 'permissions' => ['read' => $request->user()->can('read', $this->resource), 'comment' => $request->user()->can('comment', $this->resource), 'edit' => $request->user()->can('edit', $this->resource), 'export' => $request->user()->can('export', $this->resource), 'manage' => $request->user()->can('manage', $this->resource)]];
+        return ['snippet' => $snippet, 'id' => $this->id, 'title' => $this->title, 'owner' => $this->owner?->only(['id', 'name', 'email']), 'revision' => $this->revision, 'created_at' => $this->created_at, 'updated_at' => $this->updated_at, 'deleted_at' => $this->deleted_at, 'version' => $version?->only(['id', 'number', 'original_name', 'mime', 'size', 'status', 'error_code']), 'processing_status' => $isSearch ? $this->publishedVersion?->status : $this->desiredVersion?->status, 'permissions' => ['read' => $request->user()->can('read', $this->resource), 'comment' => $request->user()->can('comment', $this->resource), 'edit' => $request->user()->can('edit', $this->resource), 'export' => $request->user()->can('export', $this->resource), 'manage' => $request->user()->can('manage', $this->resource)]];
     }
 }

@@ -9,12 +9,30 @@ use App\Modules\Documents\Models\Document;
 use App\Modules\Documents\Models\DocumentVersion;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class DocumentPolicyApiTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_entities_are_limited_to_the_current_published_version(): void
+    {
+        $owner = User::factory()->create();
+        $stranger = User::factory()->create();
+        $document = Document::create(['owner_id' => $owner->id, 'title' => 'Private']);
+        $attrs = ['document_id' => $document->id, 'creator_id' => $owner->id, 'storage_key' => 'file.txt', 'original_name' => 'file.txt', 'mime' => 'text/plain', 'size' => 4, 'sha256' => hash('sha256', 'text'), 'status' => 'ready'];
+        $published = DocumentVersion::create($attrs + ['number' => 1]);
+        $candidate = DocumentVersion::create($attrs + ['number' => 2]);
+        $document->update(['published_version_id' => $published->id, 'desired_version_id' => $candidate->id]);
+        foreach ([$published, $candidate] as $version) {
+            DB::table('document_entities')->insert(['version_id' => $version->id, 'type' => 'email', 'value' => 'person@example.com', 'offset' => 0, 'length' => 18, 'source' => 'rules-v1']);
+        }
+        $this->actingAs($owner)->getJson('/api/v1/versions/'.$published->id.'/entities')->assertOk()->assertJsonPath('data.0.value', 'person@example.com');
+        $this->getJson('/api/v1/versions/'.$candidate->id.'/entities')->assertNotFound();
+        $this->actingAs($stranger)->getJson('/api/v1/versions/'.$published->id.'/entities')->assertNotFound();
+    }
 
     #[DataProvider('roles')]
     public function test_current_document_permissions_apply_to_the_card_and_version_resources(string $role, bool $owner, array $grants, array $permissions, int $readStatus, bool $active = true): void
@@ -102,13 +120,20 @@ class DocumentPolicyApiTest extends TestCase
         $owner = User::factory()->create();
         $shared = Document::create(['owner_id' => $owner->id, 'title' => 'Common visible']);
         $shared->grants()->create(['user_id' => $actor->id, 'read' => true]);
+        $published = DocumentVersion::create(['document_id' => $shared->id, 'creator_id' => $owner->id, 'number' => 1, 'storage_key' => 'public.pdf', 'original_name' => 'public.pdf', 'mime' => 'application/pdf', 'size' => 7, 'sha256' => hash('sha256', 'public'), 'status' => 'ready']);
+        $candidate = DocumentVersion::create(['document_id' => $shared->id, 'creator_id' => $owner->id, 'number' => 2, 'storage_key' => 'candidate.docx', 'original_name' => 'candidate.docx', 'mime' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'size' => 100, 'sha256' => hash('sha256', 'candidate'), 'status' => 'failed']);
+        $shared->update(['published_version_id' => $published->id, 'desired_version_id' => $candidate->id]);
+        Document::create(['owner_id' => $actor->id, 'title' => 'Common unpublished']);
         for ($i = 0; $i < 3; $i++) {
             Document::create(['owner_id' => $owner->id, 'title' => 'Common private '.$i]);
         }
 
         $this->actingAs($actor)->getJson('/api/v1/search?q=Common&per_page=1')
             ->assertOk()->assertJsonPath('meta.total', 1)->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.id', $shared->id)->assertJsonPath('data.0.snippet', null);
+            ->assertJsonPath('data.0.id', $shared->id)->assertJsonPath('data.0.snippet', null)
+            ->assertJsonPath('data.0.version.id', $published->id)->assertJsonPath('data.0.processing_status', 'ready');
+        $this->getJson('/api/v1/search?q=Common&format=docx')->assertOk()->assertJsonPath('meta.total', 0);
+        $this->getJson('/api/v1/search?q=Common&status=failed')->assertOk()->assertJsonPath('meta.total', 0);
         $this->getJson('/api/v1/search?q=Common&per_page=1&page=2')
             ->assertOk()->assertJsonPath('meta.total', 1)->assertJsonPath('data', []);
     }

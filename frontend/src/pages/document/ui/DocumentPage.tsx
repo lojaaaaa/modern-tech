@@ -311,6 +311,7 @@ const DocumentWorkspace = () => {
                             {tab === 'text' && reader}
                             {tab === 'entities' && !isImage && (
                                 <div className="access-editor">
+                                    <p>Сущности определяются по простым правилам: даты, email, суммы и некоторые названия российских организаций. Возможны пропуски и ложные совпадения; результат не является полноценным распознаванием имён и организаций.</p>
                                     <ErrorMessage error={entities.error} />
                                     {entities.isPending ? (
                                         <p>Загрузка…</p>
