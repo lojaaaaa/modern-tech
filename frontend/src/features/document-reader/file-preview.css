@@ -1,0 +1,8 @@
+.pdf-comment-notice {
+    flex: 0 0 auto;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.5;
+}

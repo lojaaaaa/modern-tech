@@ -1,7 +1,7 @@
 services:
   api:
     environment:
-      OFFICE_PUBLIC_URL: http://localhost:8895
+      OFFICE_PUBLIC_URL: ${OFFICE_PUBLIC_URL:-http://localhost:8895}
       OFFICE_INTERNAL_URL: http://office-documentserver
       OFFICE_APP_INTERNAL_URL: http://gateway
       OFFICE_JWT_SECRET: ${OFFICE_JWT_SECRET:?Set OFFICE_JWT_SECRET for the local Office editor}
