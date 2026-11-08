@@ -31,11 +31,15 @@ if (discussionEnabled) {
  const status = document.querySelector('#discussion-status');
  const list = document.querySelector('#comments');
  const pending = new Map();
+ // Ephemeral, read-only observations; the editor remains the sole writable
+ // source. A missing entry is not proof of a deleted thread or fragment.
+ const observations = new Map();
  let bridge, sequence = 0, refreshInProgress = false, refreshAgain = false;
  disconnectDiscussion = () => {
   bridge = null;
   for (const item of pending.values()) { clearTimeout(item.timer); item.reject(new Error('Редактор закрыт')); }
   pending.clear();
+  observations.clear();
   status.textContent = 'Редактор закрыт; обсуждение недоступно';
   list.replaceChildren();
  };
@@ -64,17 +68,41 @@ if (discussionEnabled) {
   return { name: display, key: userId };
  }
  function render(comments) {
-  list.replaceChildren();
+  if (!Array.isArray(comments)) throw new Error('Редактор не вернул список обсуждений');
+  const ids = new Set();
+  const incoming = [];
   for (const comment of comments) {
-   if (!comment || !comment.Data || !comment.Id) continue;
-   const data = comment.Data, article = document.createElement('article');
-   article.dataset.nativeId = String(comment.Id);
+   const data = comment?.Data, id = String(comment?.Id || '');
+   if (!data || typeof data !== 'object' || Array.isArray(data) || !id || ids.has(id) || (data.Replies && (!Array.isArray(data.Replies) || data.Replies.some(reply => !reply || typeof reply !== 'object' || Array.isArray(reply))))) throw new Error('Редактор вернул неполный список обсуждений');
+   ids.add(id);
+   incoming.push({ id, data: JSON.parse(JSON.stringify(data)) });
+  }
+  for (const { id, data } of incoming) {
+   const previous = observations.get(id);
+   const originalQuote = previous?.originalQuote || (typeof data.QuoteText === 'string' ? data.QuoteText : '');
+   observations.set(id, { data, originalQuote, present: true });
+  }
+  for (const [id, item] of observations) if (!ids.has(id)) item.present = false;
+  list.replaceChildren();
+  for (const [id, item] of observations) {
+   const { data, originalQuote, present } = item, article = document.createElement('article');
+   article.dataset.nativeId = id;
+   if (!present) {
+    const note = document.createElement('small');
+    note.textContent = 'Ветка не найдена в последнем списке; причина неизвестна. Последнее наблюдаемое состояние доступно только для чтения.';
+    article.append(note);
+   }
    const author = document.createElement('strong');
    const original = authorIdentity(data);
    author.textContent = original.name;
    author.style.color = color(original.key);
    article.append(author);
-   if (data.QuoteText) { const quote = document.createElement('blockquote'); quote.textContent = data.QuoteText; article.append(quote); }
+   const currentQuote = typeof data.QuoteText === 'string' ? data.QuoteText : '';
+   if (currentQuote) { const quote = document.createElement('blockquote'); quote.textContent = currentQuote; article.append(quote); }
+   if (originalQuote && originalQuote !== currentQuote) {
+    const note = document.createElement('small'); note.textContent = 'Цитата при первом наблюдении; текущая привязка не подтверждена.'; article.append(note);
+    const quote = document.createElement('blockquote'); quote.textContent = originalQuote; article.append(quote);
+   }
    const text = document.createElement('p'); text.textContent = data.Text || ''; article.append(text);
    for (const reply of data.Replies || []) {
     const line = document.createElement('p'), name = document.createElement('strong');
@@ -83,10 +111,10 @@ if (discussionEnabled) {
     name.style.color = color(identity.key);
     line.append(name, document.createTextNode(reply.Text || '')); article.append(line);
    }
-   if (file.endsWith('.docx')) {
+   if (present && file.endsWith('.docx') && !(originalQuote && !currentQuote)) {
     const move = document.createElement('button'); move.type = 'button'; move.textContent = 'Перейти к фрагменту';
-    move.onclick = () => request('move', String(comment.Id)).catch(error => { status.textContent = error.message; }); article.append(move);
-   } else { const note = document.createElement('small'); note.textContent = 'Переход к фрагменту для этого формата не подтверждён'; article.append(note); }
+    move.onclick = () => request('move', id).catch(error => { status.textContent = error.message; }); article.append(move);
+   } else if (present) { const note = document.createElement('small'); note.textContent = 'Переход к фрагменту не подтверждён'; article.append(note); }
    list.append(article);
   }
  }
