@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Middleware\PreventApiCaching;
 use App\Http\Middleware\RequestTelemetry;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
@@ -17,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(web: __DIR__.'/../routes/web.php', commands: __DIR__.'/../routes/console.php', health: '/health/live')
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(RequestTelemetry::class);
+        $middleware->append(PreventApiCaching::class);
         $middleware->trimStrings(except: ['anchor_quote']);
         $middleware->redirectGuestsTo(fn (Request $request) => null);
     })

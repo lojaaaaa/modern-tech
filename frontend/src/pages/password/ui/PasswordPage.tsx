@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { replaceSession } from '@/features/session';
 import { api, initializeCsrf } from '@/shared/api/client';
 import { Button } from '@/shared/ui/button';
 import { ErrorMessage } from '@/shared/ui/error-message';
 export const PasswordPage = () => {
+    const client = useQueryClient();
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
     const [email, setEmail] = useState(params.get('email') ?? '');
@@ -20,6 +22,11 @@ export const PasswordPage = () => {
                 }),
             });
         },
+        onSuccess: () => {
+            if (token) {
+                replaceSession(client, null);
+            }
+        },
     });
     return (
         <div className="password-page">
@@ -28,7 +35,9 @@ export const PasswordPage = () => {
                 <ErrorMessage error={mutation.error} />
                 {mutation.isSuccess ? (
                     <p role="status">
-                        {token ? 'Пароль обновлён.' : 'Если учётная запись существует, письмо отправлено.'}
+                        {token
+                            ? 'Пароль обновлён. Войдите с новым паролем на всех устройствах.'
+                            : 'Если учётная запись существует, письмо отправлено.'}
                     </p>
                 ) : (
                     <form

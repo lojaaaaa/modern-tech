@@ -4,34 +4,34 @@ declare(strict_types=1);
 
 namespace App\Modules\Identity\Http;
 
-use App\Models\User;
+use App\Modules\Identity\Actions\RequestPasswordReset;
+use App\Modules\Identity\Actions\ResetUserPassword;
+use Dedoc\Scramble\Attributes\Response;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Auth;
 
 final class PasswordController
 {
-    public function forgot(Request $request): JsonResponse
+    public function __construct(private RequestPasswordReset $requestReset, private ResetUserPassword $resetPassword) {}
+
+    #[Response(419, description: 'The CSRF session token is missing or expired.')]
+    #[Response(429, description: 'Password recovery requests are rate limited.')]
+    public function forgot(ForgotPasswordRequest $request): JsonResponse
     {
-        $data = $request->validate(['email' => 'required|email|max:255']);
-        Password::sendResetLink(['email' => mb_strtolower($data['email']), 'active' => true]);
+        $this->requestReset->handle($request->validated('email'));
 
         return response()->json(['data' => ['message' => 'Если учётная запись существует, письмо с инструкцией отправлено.']]);
     }
 
-    public function reset(Request $request): JsonResponse
+    #[Response(419, description: 'The CSRF session token is missing or expired.')]
+    #[Response(422, description: 'Invalid, expired, or already consumed reset token, or invalid password.')]
+    #[Response(429, description: 'Password reset requests are rate limited.')]
+    public function reset(ResetPasswordRequest $request): JsonResponse
     {
-        $data = $request->validate(['email' => 'required|email|max:255', 'token' => 'required|string', 'password' => 'required|string|min:12|max:128|confirmed']);
-        $status = Password::reset($data, function (User $user, string $password): void {
-            abort_unless($user->active, 422, 'Ссылка недействительна.');
-            DB::transaction(function () use ($user, $password): void {
-                $user->forceFill(['password' => $password, 'remember_token' => Str::random(60)])->save();
-                DB::table('sessions')->where('user_id', $user->id)->delete();
-            });
-        });
-        abort_unless($status === Password::PASSWORD_RESET, 422, 'Ссылка недействительна или срок её действия истёк.');
+        $this->resetPassword->handle($request->validated('email'), $request->validated('token'), $request->validated('password'));
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
         return response()->json(['data' => ['message' => 'Пароль обновлён. Войдите с новым паролем.']]);
     }

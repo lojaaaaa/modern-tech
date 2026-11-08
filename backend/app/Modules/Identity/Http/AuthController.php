@@ -4,29 +4,25 @@ declare(strict_types=1);
 
 namespace App\Modules\Identity\Http;
 
+use App\Modules\Identity\Actions\AuthenticateUser;
+use Dedoc\Scramble\Attributes\Response;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Validation\ValidationException;
 
 final class AuthController
 {
-    public function login(Request $request): JsonResponse
+    public function __construct(private AuthenticateUser $authenticate) {}
+
+    #[Response(419, description: 'The CSRF session token is missing or expired.')]
+    #[Response(422, description: 'Invalid credentials, including blocked accounts.')]
+    #[Response(429, description: 'Five failed attempts per email and IP per minute; Retry-After indicates the delay.')]
+    public function login(LoginRequest $request): JsonResponse
     {
-        $data = $request->validate(['email' => ['required', 'email', 'max:255'], 'password' => ['required', 'string', 'max:128']]);
-        $key = hash('sha256', mb_strtolower($data['email']).'|'.$request->ip());
-        if (RateLimiter::tooManyAttempts($key, 5)) {
-            abort(429, 'Слишком много попыток. Попробуйте через минуту.');
-        }
-        if (! Auth::attempt(['email' => mb_strtolower($data['email']), 'password' => $data['password'], 'active' => true])) {
-            RateLimiter::hit($key, 60);
-            throw ValidationException::withMessages(['email' => 'Неверный email или пароль.']);
-        }
-        RateLimiter::clear($key);
+        $user = $this->authenticate->handle($request->validated('email'), $request->validated('password'), $request->ip() ?? 'unknown');
         $request->session()->regenerate();
 
-        return response()->json(['data' => $request->user()]);
+        return response()->json(['data' => $user]);
     }
 
     public function me(Request $request): JsonResponse
