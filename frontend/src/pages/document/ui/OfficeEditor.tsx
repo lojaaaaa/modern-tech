@@ -96,6 +96,7 @@ export const OfficeEditor = ({ documentId }: { documentId: string }) => {
             <p role="status" className="muted">
                 {status}
             </p>
+            <p className="muted">Комментарии доступны в панели редактора слева. Для сохранения черновика закройте редактор у всех участников.</p>
             <ErrorMessage error={error} />
             <div id={elementId} className="office-editor-frame" />
         </div>
