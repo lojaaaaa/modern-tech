@@ -26,13 +26,20 @@ export const VersionCompare = ({ versions }: { versions: Version[] }) => {
     );
     return (
         <div className="version-compare">
+            <p className="muted">
+                Сравнивается извлечённый текст. Оформление, изображения и расположение элементов не учитываются.
+            </p>
             <div className="compare-pickers">
                 <Select label="Исходная версия" value={left} onValueChange={setLeft} options={options} />
                 <Select label="Новая версия" value={right} onValueChange={setRight} options={options} />
             </div>
             <ErrorMessage error={before.error || after.error} />
             {before.isFetching || after.isFetching ? (
-                <p>Загрузка…</p>
+                <p role="status">Загружаем тексты версий…</p>
+            ) : before.isError || after.isError ? null : !left || !right ? (
+                <p className="empty-state">Для сравнения нужны две версии документа.</p>
+            ) : !before.data?.data.text && !after.data?.data.text ? (
+                <p className="empty-state">В выбранных версиях нет извлечённого текста.</p>
             ) : (
                 <div className="compare-columns">
                     <pre aria-label="Исходный текст">
