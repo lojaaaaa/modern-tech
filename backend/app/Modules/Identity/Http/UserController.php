@@ -10,6 +10,7 @@ use App\Modules\Identity\Actions\UpdateManagedUser;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 final class UserController
@@ -24,6 +25,9 @@ final class UserController
     public function store(Request $request, CreateManagedUser $create): JsonResponse
     {
         Gate::authorize('create', User::class);
+        if (is_string($request->input('email'))) {
+            $request->merge(['email' => Str::lower(trim($request->input('email')))]);
+        }
         $data = $request->validate(['name' => 'required|string|max:120', 'email' => 'required|email|unique:users|max:255', 'password' => 'required|string|min:12|max:128', 'role' => ['required', Rule::in(['admin', 'employee', 'observer'])]]);
         $user = $create->handle($request->user()->id, $data['name'], $data['email'], $data['password'], $data['role']);
 
