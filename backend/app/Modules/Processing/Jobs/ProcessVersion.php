@@ -52,18 +52,26 @@ final class ProcessVersion implements ShouldQueue
             if ($version->processing_attempts >= 5) {
                 return;
             }
-            $version->increment('processing_attempts');
-            $version->update(['status' => 'scanning', 'error_code' => null, 'processing_started_at' => now()]);
+            $attempt = $version->processing_attempts + 1;
+            $claimed = DocumentVersion::whereKey($version->id)
+                ->where('processing_attempts', $version->processing_attempts)
+                ->where('status', $version->status)
+                ->update(['processing_attempts' => $attempt, 'status' => 'scanning', 'error_code' => null, 'processing_started_at' => now()]);
+            if ($claimed !== 1) {
+                return;
+            }
             $scanner->assertClean($path);
-            $version->update(['status' => 'extracting']);
+            if (DocumentVersion::whereKey($version->id)->where('processing_attempts', $attempt)->where('status', 'scanning')->update(['status' => 'extracting']) !== 1) {
+                return;
+            }
             $text = $extractor->extract($path, $version->mime);
-            DB::transaction(function () use ($version, $text): void {
+            DB::transaction(function () use ($version, $text, $attempt): void {
                 $document = Document::whereKey($version->document_id)->lockForUpdate()->first();
                 if (! $document) {
                     return;
                 }
-                $version->refresh();
-                if ($version->status === 'cancelled') {
+                $version = DocumentVersion::whereKey($version->id)->lockForUpdate()->first();
+                if (! $version || $version->status !== 'extracting' || (int) $version->processing_attempts !== $attempt) {
                     return;
                 }
                 app(EntityExtractor::class)->replace($version->id, $text);
@@ -76,7 +84,11 @@ final class ProcessVersion implements ShouldQueue
         } catch (Throwable $error) {
             $safeCodes = ['FILE_INFECTED', 'SCAN_FAILED', 'SCANNER_UNAVAILABLE', 'ORIGINAL_UNAVAILABLE', 'EXTRACTION_FAILED', 'EXTRACTED_TEXT_TOO_LARGE'];
             $code = in_array($error->getMessage(), $safeCodes, true) ? $error->getMessage() : 'PROCESSING_FAILED';
-            DocumentVersion::whereKey($this->versionId)->update(['status' => $code === 'FILE_INFECTED' ? 'rejected' : 'failed', 'error_code' => $code]);
+            if (isset($attempt)) {
+                DocumentVersion::whereKey($this->versionId)->where('processing_attempts', $attempt)
+                    ->whereIn('status', ['scanning', 'extracting'])
+                    ->update(['status' => $code === 'FILE_INFECTED' ? 'rejected' : 'failed', 'error_code' => $code]);
+            }
             if ($code !== 'FILE_INFECTED') {
                 throw $error;
             }
