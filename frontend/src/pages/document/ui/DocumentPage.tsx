@@ -139,6 +139,11 @@ const DocumentWorkspace = () => {
                     canComment={!!d?.permissions.comment}
                     target={target}
                     activeComment={comments.data?.data.find((c) => c.id === target?.key) ?? null}
+                    comments={(comments.data?.data ?? []).filter((comment) => comment.version_id === activeVersionId)}
+                    onSelectComment={(comment) => {
+                        setDiscussionOpen(true);
+                        jumpToComment(comment);
+                    }}
                     onComment={chooseAnchor}
                     onSubmitComment={async (selected, body) => {
                         const result = await api<Resource<{ id: string }>>(`/documents/${id}/comments`, {

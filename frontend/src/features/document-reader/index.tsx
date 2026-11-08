@@ -21,11 +21,15 @@ export const TextReader = ({
     onComment,
     onSubmitComment,
     activeComment,
+    comments = [],
+    onSelectComment,
 }: {
     text: string;
     canComment: boolean;
     target: AnchorTarget | null;
     activeComment?: CommentRecord | null;
+    comments?: CommentRecord[];
+    onSelectComment?: (comment: CommentRecord) => void;
     onComment: (anchor: TextAnchor) => void;
     onSubmitComment?: (anchor: TextAnchor, body: string) => Promise<void>;
 }) => {
@@ -196,7 +200,47 @@ export const TextReader = ({
                         {text.slice(target.end)}
                     </>
                 ) : (
-                    text
+                    (() => {
+                        const anchors = comments
+                            .filter(
+                                (comment) =>
+                                    !comment.deleted_at &&
+                                    comment.anchor_start !== null &&
+                                    comment.anchor_end !== null &&
+                                    !!comment.anchor_quote &&
+                                    text.slice(comment.anchor_start, comment.anchor_end) === comment.anchor_quote
+                            )
+                            .sort((a, b) => (a.anchor_start ?? 0) - (b.anchor_start ?? 0));
+                        const parts: React.ReactNode[] = [];
+                        let offset = 0;
+                        for (const comment of anchors) {
+                            const start = comment.anchor_start!;
+                            const end = comment.anchor_end!;
+                            if (start < offset || end <= start) continue;
+                            parts.push(text.slice(offset, start));
+                            parts.push(
+                                <mark
+                                    key={comment.id}
+                                    className="comment-mark"
+                                    tabIndex={0}
+                                    role="button"
+                                    aria-label={`Открыть комментарий ${comment.author_name}`}
+                                    onClick={() => onSelectComment?.(comment)}
+                                    onKeyDown={(event) => {
+                                        if (event.key === 'Enter' || event.key === ' ') {
+                                            event.preventDefault();
+                                            onSelectComment?.(comment);
+                                        }
+                                    }}
+                                >
+                                    {text.slice(start, end)}
+                                </mark>
+                            );
+                            offset = end;
+                        }
+                        parts.push(text.slice(offset));
+                        return parts;
+                    })()
                 )}
             </div>
         </div>
@@ -276,8 +320,8 @@ export const FilePreview = ({ versionId, fallback }: { versionId: string; fallba
     return (
         <>
             <p className="pdf-comment-notice" role="note">
-                Пометки в PDF-просмотрщике браузера не сохраняются в обсуждении. Чтобы добавить комментарий,
-                откройте вкладку «Текст» и выделите фрагмент.
+                Пометки в PDF-просмотрщике браузера не сохраняются в обсуждении. Чтобы добавить комментарий, откройте
+                вкладку «Текст» и выделите фрагмент.
             </p>
             <iframe className="pdf-reader" title="Предпросмотр PDF" src={`${url}#view=FitH`} />
         </>
