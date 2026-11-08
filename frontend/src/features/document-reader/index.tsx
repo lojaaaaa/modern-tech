@@ -45,7 +45,7 @@ export const TextReader = ({
         if (!target || text.slice(target.start, target.end) !== target.quote) {
             return;
         }
-        const mark = root.current?.querySelector('mark');
+        const mark = root.current?.querySelector('mark[data-selected="true"]');
         mark?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         if (mark instanceof HTMLElement) {
             mark.focus({ preventScroll: true });
@@ -184,64 +184,66 @@ export const TextReader = ({
                 </div>
             )}
             <div ref={root} className="selectable-text" onMouseUp={capture} onKeyUp={capture} onTouchEnd={capture}>
-                {valid ? (
-                    <>
-                        {text.slice(0, target.start)}
-                        <mark
-                            tabIndex={0}
-                            className="comment-mark"
-                            onMouseEnter={() => setHovered(true)}
-                            onMouseLeave={() => setHovered(false)}
-                            onFocus={() => setHovered(true)}
-                            onBlur={() => setHovered(false)}
-                        >
-                            {text.slice(target.start, target.end)}
-                        </mark>
-                        {text.slice(target.end)}
-                    </>
-                ) : (
-                    (() => {
-                        const anchors = comments
-                            .filter(
-                                (comment) =>
-                                    !comment.deleted_at &&
-                                    comment.anchor_start !== null &&
-                                    comment.anchor_end !== null &&
-                                    !!comment.anchor_quote &&
-                                    text.slice(comment.anchor_start, comment.anchor_end) === comment.anchor_quote
-                            )
-                            .sort((a, b) => (a.anchor_start ?? 0) - (b.anchor_start ?? 0));
-                        const parts: React.ReactNode[] = [];
-                        let offset = 0;
-                        for (const comment of anchors) {
-                            const start = comment.anchor_start!;
-                            const end = comment.anchor_end!;
-                            if (start < offset || end <= start) continue;
-                            parts.push(text.slice(offset, start));
-                            parts.push(
-                                <mark
-                                    key={comment.id}
-                                    className="comment-mark"
-                                    tabIndex={0}
-                                    role="button"
-                                    aria-label={`Открыть комментарий ${comment.author_name}`}
-                                    onClick={() => onSelectComment?.(comment)}
-                                    onKeyDown={(event) => {
-                                        if (event.key === 'Enter' || event.key === ' ') {
-                                            event.preventDefault();
-                                            onSelectComment?.(comment);
-                                        }
-                                    }}
-                                >
-                                    {text.slice(start, end)}
-                                </mark>
-                            );
-                            offset = end;
-                        }
-                        parts.push(text.slice(offset));
-                        return parts;
-                    })()
-                )}
+                {(() => {
+                    const anchors = comments
+                        .filter(
+                            (comment) =>
+                                !comment.deleted_at &&
+                                comment.anchor_start !== null &&
+                                comment.anchor_end !== null &&
+                                !!comment.anchor_quote &&
+                                text.slice(comment.anchor_start, comment.anchor_end) === comment.anchor_quote
+                        )
+                        .sort((a, b) => (a.anchor_start ?? 0) - (b.anchor_start ?? 0));
+                    if (valid && !anchors.some((comment) => comment.id === target.key)) {
+                        anchors.push({
+                            id: target.key,
+                            anchor_start: target.start,
+                            anchor_end: target.end,
+                            anchor_quote: target.quote,
+                            author_name: activeComment?.author_name ?? 'участника',
+                        } as CommentRecord);
+                        anchors.sort((a, b) => (a.anchor_start ?? 0) - (b.anchor_start ?? 0));
+                    }
+                    const parts: React.ReactNode[] = [];
+                    let offset = 0;
+                    for (const comment of anchors) {
+                        const start = comment.anchor_start!;
+                        const end = comment.anchor_end!;
+                        if (start < offset || end <= start) continue;
+                        parts.push(text.slice(offset, start));
+                        parts.push(
+                            <mark
+                                key={comment.id}
+                                className={`comment-mark ${target?.key === comment.id ? 'comment-mark-selected' : ''}`}
+                                data-selected={target?.key === comment.id ? 'true' : undefined}
+                                tabIndex={0}
+                                role="button"
+                                aria-label={`Открыть комментарий ${comment.author_name}`}
+                                onClick={() => onSelectComment?.(comment)}
+                                onMouseEnter={() => {
+                                    if (target?.key === comment.id) setHovered(true);
+                                }}
+                                onMouseLeave={() => setHovered(false)}
+                                onFocus={() => {
+                                    if (target?.key === comment.id) setHovered(true);
+                                }}
+                                onBlur={() => setHovered(false)}
+                                onKeyDown={(event) => {
+                                    if (event.key === 'Enter' || event.key === ' ') {
+                                        event.preventDefault();
+                                        onSelectComment?.(comment);
+                                    }
+                                }}
+                            >
+                                {text.slice(start, end)}
+                            </mark>
+                        );
+                        offset = end;
+                    }
+                    parts.push(text.slice(offset));
+                    return parts;
+                })()}
             </div>
         </div>
     );

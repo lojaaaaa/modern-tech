@@ -2834,6 +2834,7 @@ main:has(.document-heading) {
 .comment-mark {
     cursor: pointer;
 }
+.comment-mark-selected { outline: 2px solid #b27b13; outline-offset: 1px; }
 .dark .selectable-text mark {
     background: #615025;
     color: #fff1bb;
