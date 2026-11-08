@@ -50,9 +50,19 @@ if (discussionEnabled) {
   });
  }
  function color(author) {
+  if (!author) return '#555';
   let hash = 2166136261;
   for (const char of `${file}\0${author}`) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619);
   return ['#19569a','#8b3260','#306339','#8c4b14','#57459b','#006b70'][Math.abs(hash % 6)];
+ }
+ function authorIdentity(data) {
+  const display = data.UserName || 'Неизвестный автор';
+  const fixtures = { alice: 'Алиса Петрова', bob: 'Борис Иванов' };
+  const marker = Object.entries(fixtures).find(([id, name]) => display === `${name} [PoC:${id}]`);
+  const userId = typeof data.UserId === 'string' && data.UserId ? data.UserId : null;
+  // Do not guess identity from an unmarked display name or override a supplied ID.
+  if (marker && (!userId || userId === marker[0])) return { name: marker[1], key: userId || marker[0] };
+  return { name: display, key: userId };
  }
  function render(comments) {
   const active = document.activeElement;
@@ -64,15 +74,17 @@ if (discussionEnabled) {
    const data = comment.Data, article = document.createElement('article');
    article.dataset.nativeId = String(comment.Id);
    const author = document.createElement('strong');
-   author.textContent = data.UserName || 'Неизвестный автор';
-   author.style.color = color(data.UserId || data.UserName || 'unknown');
+   const original = authorIdentity(data);
+   author.textContent = original.name;
+   author.style.color = color(original.key);
    article.append(author);
    if (data.QuoteText) { const quote = document.createElement('blockquote'); quote.textContent = data.QuoteText; article.append(quote); }
    const text = document.createElement('p'); text.textContent = data.Text || ''; article.append(text);
    for (const reply of data.Replies || []) {
     const line = document.createElement('p'), name = document.createElement('strong');
-    name.textContent = `${reply.UserName || 'Неизвестный автор'}: `;
-    name.style.color = color(reply.UserId || reply.UserName || 'unknown');
+    const identity = authorIdentity(reply);
+    name.textContent = `${identity.name}: `;
+    name.style.color = color(identity.key);
     line.append(name, document.createTextNode(reply.Text || '')); article.append(line);
    }
    const id = String(comment.Id), form = document.createElement('form'), input = document.createElement('textarea'), submit = document.createElement('button');
