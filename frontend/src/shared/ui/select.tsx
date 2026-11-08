@@ -6,12 +6,14 @@ export const Select = ({
     onValueChange,
     options,
     label,
+    disabled = false,
     placeholder = 'Выберите…',
 }: {
     value: string;
     onValueChange: (value: string) => void;
     options: { value: string; label: string }[];
     label: string;
+    disabled?: boolean;
     placeholder?: string;
 }) => {
     const [open, setOpen] = useState(false);
@@ -62,6 +64,7 @@ export const Select = ({
             <button
                 ref={trigger}
                 type="button"
+                disabled={disabled}
                 role="combobox"
                 aria-label={label}
                 aria-expanded={open}

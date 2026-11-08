@@ -29,7 +29,18 @@ export const UsersPage = () => {
     const toggle = useMutation({
         mutationFn: (u: User) =>
             api(`/users/${u.id}`, { method: 'PATCH', body: JSON.stringify({ active: !u.active }) }),
-        onSuccess: () => client.invalidateQueries({ queryKey: ['users'] }),
+        onSuccess: async () => {
+            await client.invalidateQueries({ queryKey: ['session'] });
+            await client.invalidateQueries({ queryKey: ['users'] });
+        },
+    });
+    const changeRole = useMutation({
+        mutationFn: ({ user, role }: { user: User; role: Role }) =>
+            api(`/users/${user.id}`, { method: 'PATCH', body: JSON.stringify({ role }) }),
+        onSuccess: async () => {
+            await client.invalidateQueries({ queryKey: ['session'] });
+            await client.invalidateQueries({ queryKey: ['users'] });
+        },
     });
     return (
         <>
@@ -39,7 +50,7 @@ export const UsersPage = () => {
                     <h1>Пользователи</h1>
                 </div>
             </div>
-            <ErrorMessage error={query.error || create.error || toggle.error} />
+            <ErrorMessage error={query.error || create.error || toggle.error || changeRole.error} />
             <section className="content-panel table-scroll">
                 <table className="documents-table">
                     <thead>
@@ -60,7 +71,17 @@ export const UsersPage = () => {
                                     </small>
                                 </td>
                                 <td>
-                                    {{ admin: 'Администратор', employee: 'Сотрудник', observer: 'Наблюдатель' }[u.role]}
+                                    <Select
+                                        label={`Роль пользователя ${u.name}`}
+                                        value={u.role}
+                                        disabled={changeRole.isPending || toggle.isPending}
+                                        onValueChange={(value) => changeRole.mutate({ user: u, role: value as Role })}
+                                        options={[
+                                            { value: 'employee', label: 'Сотрудник' },
+                                            { value: 'observer', label: 'Наблюдатель' },
+                                            { value: 'admin', label: 'Администратор' },
+                                        ]}
+                                    />
                                 </td>
                                 <td>{u.active ? 'Активен' : 'Заблокирован'}</td>
                                 <td>
