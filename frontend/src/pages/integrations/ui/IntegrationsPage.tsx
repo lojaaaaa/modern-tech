@@ -248,15 +248,19 @@ export const IntegrationsPage = () => {
                     </label>
                     {provider === 'yandex' ? (
                         <label>
-                            Токен доступа Яндекс Диска
+                            <span id="yandex-token-label">Токен доступа Яндекс Диска</span>
                             <input
                                 type="password"
                                 autoComplete="off"
                                 required
                                 aria-describedby="yandex-token-help"
+                                aria-labelledby="yandex-token-label"
                                 value={token}
                                 onChange={(e) => setToken(e.target.value)}
                             />
+                            <small id="yandex-token-help" className="muted field-hint">
+                                Токен вашего аккаунта. Client ID и Client secret приложения здесь не подходят.
+                            </small>
                         </label>
                     ) : (
                         <>
@@ -275,11 +279,6 @@ export const IntegrationsPage = () => {
                                 />
                             </label>
                         </>
-                    )}
-                    {provider === 'yandex' && (
-                        <p id="yandex-token-help" className="muted">
-                            Используйте токен своего аккаунта, а не Client ID или Client secret приложения.
-                        </p>
                     )}
                     <Button disabled={create.isPending}>{create.isPending ? 'Подключаем…' : 'Подключить'}</Button>
                 </form>
