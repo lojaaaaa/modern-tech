@@ -51,6 +51,8 @@ function redisCommand(args) {
     let data = Buffer.alloc(0);
     socket.setTimeout(3000, () => socket.destroy(new Error('Redis timeout')));
     socket.on('error', reject);
+    socket.on('end', () => reject(new Error('Redis disconnected before reply')));
+    socket.on('close', () => reject(new Error('Redis connection closed before reply')));
     socket.on('connect', () => socket.write(`*${args.length}\r\n` + args.map(arg => `$${Buffer.byteLength(String(arg))}\r\n${arg}\r\n`).join('')));
     socket.on('data', chunk => {
       data = Buffer.concat([data, chunk]);
@@ -138,7 +140,7 @@ const server = http.createServer(async (req, res) => {
       if (input.password !== secret || !validId(input.doc) || !validId(input.user)) return json(res, 401, {error: 'unauthorized'});
       const rights = rightsFor(input.doc, input.user);
       if (!rights.read || rights.blocked) return json(res, 403, {error: 'forbidden'});
-      const session = {id: randomUUID(), token: randomBytes(32).toString('base64url'), launchCode: randomBytes(32).toString('base64url'), doc: input.doc, user: input.user, active: true, seated: false, deadline: Date.now() + lease, streams: new Set()};
+      const session = {id: randomUUID(), token: randomBytes(32).toString('base64url'), sourceCapability: randomBytes(32).toString('base64url'), launchCode: randomBytes(32).toString('base64url'), doc: input.doc, user: input.user, active: true, seated: false, deadline: Date.now() + lease, streams: new Set()};
       sessions.set(session.token, session);
       try { if (rights.edit) await reserve(session); } catch (error) { await invalidate(session); throw error; }
       if (!session.active || rightsFor(session.doc, session.user) !== rights) { await invalidate(session); return json(res, 403, {error: 'permission changed'}); }

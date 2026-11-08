@@ -1,0 +1,64 @@
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import http from 'node:http';
+import { createHmac } from 'node:crypto';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+test('подписанное сохранение разделяет документы, проверяет DOCX и заменяет ключ после закрытия', async t => {
+  const fixture = await readFile(new URL('./sample.docx', import.meta.url));
+  const saved = Buffer.concat([fixture, Buffer.from('saved')]);
+  saved.writeUInt16LE(5, fixture.length - 2); // Legal ZIP comment makes the saved bytes distinct.
+  let output = saved;
+  const upstream = http.createServer((req, res) => { res.writeHead(200); res.end(output); });
+  await new Promise(resolve => upstream.listen(0, '127.0.0.1', resolve));
+  t.after(() => upstream.close());
+  const port = upstream.address().port;
+  const dir = await mkdtemp(join(tmpdir(), 'office-seats-save-'));
+  t.after(() => rm(dir, {recursive:true, force:true}));
+  process.env.OFFICE_INTERNAL_URL = `http://127.0.0.1:${port}`;
+  process.env.OFFICE_DATA_DIR = dir;
+  process.env.JWT_SECRET = 'test-secret';
+  const {createOfficeBridge} = await import('./office-bridge.mjs');
+  const makeSession = (doc, token, capability) => ({id:token, doc, token, sourceCapability:capability, user:'alice', seated:true, active:true, deadline:Date.now()+60000, streams:new Set()});
+  const first = makeSession('doc-a', 'session-a', 'source-a');
+  const other = makeSession('doc-b', 'session-b', 'source-b');
+  const sessions = new Map([[first.token, first], [other.token, other]]);
+  const bridge = createOfficeBridge({sessionFor: req => sessions.get(req.headers.authorization?.replace('Bearer ', '')), rightsFor: () => ({read:true, edit:true, comment:true, blocked:false}), lease:30000, sessions});
+  const gateway = http.createServer((req, res) => bridge.handle(req, res).catch(() => { res.writeHead(500); res.end(); }));
+  await new Promise(resolve => gateway.listen(0, '127.0.0.1', resolve));
+  t.after(() => gateway.close());
+  const base = `http://127.0.0.1:${gateway.address().port}`;
+  const get = (path, token) => fetch(base+path, {headers: token ? {authorization:`Bearer ${token}`} : {}});
+  const config = await (await get('/office-config', first.token)).json();
+  const otherConfig = await (await get('/office-config', other.token)).json();
+  assert.notEqual(config.document.key, otherConfig.document.key);
+  assert.ok(!config.document.url.includes(first.token));
+  assert.match(config.document.url, /source-a/);
+  assert.equal((await get('/office-config', 'source-a')).status, 403);
+  const signed = payload => {
+    const part = [ {alg:'HS256', typ:'JWT'}, payload ].map(x => Buffer.from(JSON.stringify(x)).toString('base64url')).join('.');
+    return `${part}.${createHmac('sha256', 'test-secret').update(part).digest('base64url')}`;
+  };
+  const callback = async token => {
+    const res = await fetch(base+'/office-callback', {method:'POST', body:JSON.stringify({token})});
+    return {status:res.status, value:await res.json()};
+  };
+  const payload = {key:config.document.key, status:2, url:`http://127.0.0.1:${port}/cache/saved.docx`};
+  assert.equal((await callback('invalid')).status, 403);
+  assert.equal((await callback(signed({...payload, url:'http://example.com/cache/saved.docx'}))).value.error, 1);
+  assert.equal((await callback(signed({...payload, url:'http://session-b.localhost:8894/cache/saved.docx'}))).value.error, 1);
+  output = Buffer.from(saved); output[0] ^= 1;
+  assert.equal((await callback(signed(payload))).value.error, 1);
+  assert.deepEqual(Buffer.from(await (await get('/office-source/source-a.docx')).arrayBuffer()), fixture);
+  output = saved;
+  assert.equal((await callback(signed({...payload, url:'http://session-a.localhost:8894/cache/saved.docx'}))).value.error, 0);
+  assert.deepEqual(Buffer.from(await (await get('/office-source/source-a.docx')).arrayBuffer()), saved);
+  assert.deepEqual(Buffer.from(await (await get('/office-source/source-b.docx')).arrayBuffer()), fixture);
+  assert.equal((await callback(signed(payload))).status, 409);
+  const reopened = await (await get('/office-config', first.token)).json();
+  assert.notEqual(reopened.document.key, config.document.key);
+  sessions.delete(first.token); first.active = false;
+  assert.equal((await get('/office-source/source-a.docx')).status, 403);
+});

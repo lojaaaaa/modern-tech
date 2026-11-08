@@ -21,10 +21,12 @@ services:
       OFFICE_INTERNAL_URL: http://documentserver
       JWT_SECRET: ${JWT_SECRET:-local-office-demo-only}
       POC_PUBLIC_PORT: ${POC_PORT:-8894}
+      OFFICE_DATA_DIR: /office-data
     ports:
       - 127.0.0.1:${POC_PORT:-8894}:8894
     volumes:
       - ./:/poc:ro
+      - office-files:/office-data
     depends_on:
       redis:
         condition: service_healthy
@@ -47,3 +49,4 @@ volumes:
   office-cache:
   office-logs:
   seats-redis:
+  office-files:
