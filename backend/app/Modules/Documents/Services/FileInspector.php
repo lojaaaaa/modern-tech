@@ -25,7 +25,8 @@ final class FileInspector
         }
         if (in_array($ext, ['png', 'jpg', 'jpeg'], true)) {
             $dimensions = @getimagesize($file->getPathname());
-            if (! $dimensions || $dimensions[0] * $dimensions[1] > 40_000_000) {
+            $expectedType = $ext === 'png' ? IMAGETYPE_PNG : IMAGETYPE_JPEG;
+            if (! $dimensions || $dimensions[2] !== $expectedType || $dimensions[0] * $dimensions[1] > 40_000_000) {
                 $this->reject('Изображение повреждено или превышает 40 мегапикселей.');
             }
         }
@@ -39,6 +40,14 @@ final class FileInspector
         try {
             if ($zip->numFiles > 10000 || $zip->locateName('[Content_Types].xml') === false) {
                 $this->reject('Неподдерживаемая структура Office.');
+            }
+            $mainPart = match ($ext) {
+                'docx' => 'word/document.xml',
+                'xlsx' => 'xl/workbook.xml',
+                'pptx' => 'ppt/presentation.xml',
+            };
+            if ($zip->locateName($mainPart) === false) {
+                $this->reject('Содержимое не соответствует формату Office.');
             }
             $total = 0;
             for ($i = 0; $i < $zip->numFiles; $i++) {
