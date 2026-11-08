@@ -68,6 +68,14 @@ final class ProcessTransfer implements ShouldQueue
                 if ($size === false || $size === 0 || $size > 52_428_800) {
                     throw new CloudFailure('INVALID_FILE_SIZE');
                 }
+                // Downloading can take a long time: do not import a file after
+                // the owner or their connection was disabled in the meantime.
+                $user = User::find($transfer->initiator_id);
+                $connection = CloudConnection::find($transfer->connection_id);
+                if (! $user || ! $user->active || $user->role === 'observer' || ! $user->hasVerifiedEmail()
+                    || ! $connection || $connection->owner_id !== $user->id || $connection->status !== 'connected') {
+                    throw new CloudFailure('ACCESS_REVOKED');
+                }
                 // Imported files enter exactly the same quarantine as browser uploads.
                 $document = $uploads->execute($user, new IncomingFile($temporary, $transfer->filename), null, 'transfer:'.$transfer->id);
                 $transfer->document_id = $document->id;
