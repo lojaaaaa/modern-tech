@@ -30,7 +30,14 @@ test('одноразовый запуск выдаёт cookie только на�
   assert.equal((await bootstrap(target.host, target.origin)).statusCode, 403);
   assert.equal((await withHost('/office-config', target.host, {cookie})).statusCode, 200);
   assert.equal((await withHost('/office-config', 'other.localhost:8894', {cookie})).statusCode, 401);
+  const configuration = (await request('/office-config', {token: session.token})).value;
+  const source = new URL(configuration.document.url).pathname;
+  const capability = source.split('/').pop().replace(/\.docx$/, '');
+  assert.notEqual(capability, session.token);
+  assert.equal((await request('/draft', {token:capability})).status, 401);
+  assert.equal((await fetch(base + source)).status, 200);
   await request('/close', {token: session.token, body: {}});
+  assert.equal((await fetch(base + source)).status, 403);
 });
 
 test('последнее место атомарно, вкладки учитываются отдельно и открытый поток закрывается при отзыве', async () => {
