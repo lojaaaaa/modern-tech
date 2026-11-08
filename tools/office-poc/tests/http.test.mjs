@@ -65,3 +65,17 @@ test('real-client validation explicitly loads the free plugin with the correct f
   assert.equal(sdkConfig.status, 200, 'The native plugin SDK re-fetches bare config.json during startup');
   assert.equal((await sdkConfig.json()).guid, plugin.guid);
 });
+
+test('discussion mode loads the native bridge for the selected participant', async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), 'office-discussion-'));
+  await writeFile(join(directory, 'sample.docx'), Buffer.from('fixture'));
+  const harness = await createHarness({ corpus: directory, data: directory, secret: 'test-only-secret' });
+  await new Promise(resolve => harness.listen(0, '127.0.0.1', resolve));
+  t.after(async () => { await new Promise(resolve => harness.close(resolve)); await rm(directory, { recursive: true }); });
+  const origin = `http://127.0.0.1:${harness.address().port}`;
+  const config = await (await fetch(`${origin}/config?file=sample.docx&user=alice&discussion=1`)).json();
+  const pluginUrl = new URL(config.editorConfig.plugins.pluginsData[0]);
+  const plugin = await (await fetch(`${origin}${pluginUrl.pathname}${pluginUrl.search}`)).json();
+  assert.equal(plugin.guid, config.editorConfig.plugins.autostart[0]);
+  assert.equal(plugin.variations[0].url, 'alice/sample.docx/index.html');
+});

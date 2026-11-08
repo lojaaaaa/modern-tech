@@ -4,6 +4,61 @@
   const user = context?.[1];
   const file = context?.[2];
   let busy = false;
+  const authorNames = { alice: 'Алиса Петрова', bob: 'Борис Иванов' };
+  let methods = Promise.resolve();
+  let methodFailed = false;
+
+  // executeMethod uses an SDK callback slot. Serialize calls so responses cannot be
+  // attributed to the wrong request; after a timeout a reload is required.
+  function method(name, args) {
+    const call = methods.then(function () {
+      if (methodFailed) throw new Error('Связь с редактором потеряна; перезагрузите страницу');
+      return new Promise(function (resolve, reject) {
+        const timer = setTimeout(function () {
+          methodFailed = true;
+          reject(new Error('Редактор не ответил; перезагрузите страницу'));
+        }, 12000);
+        Asc.plugin.executeMethod(name, args, function (result) {
+          clearTimeout(timer);
+          resolve(result);
+        });
+      });
+    });
+    methods = call.catch(function () {});
+    return call;
+  }
+
+  function notify(kind, extra) {
+    window.top.postMessage(Object.assign({ channel: 'office-discussion-v1', kind: kind, user: user, file: file }, extra), location.origin);
+  }
+
+  async function discussion(op, value) {
+    if (op === 'list') {
+      const comments = await method('GetAllComments', []);
+      if (!Array.isArray(comments)) throw new Error('Редактор не вернул список обсуждений');
+      return comments;
+    }
+    if (op === 'add') {
+      if (typeof value !== 'string' || !value.trim() || value.length > 5000) throw new Error('Введите текст замечания (до 5000 символов)');
+      const id = await method('AddComment', [{ UserId: user, UserName: authorNames[user], Text: value.trim(), Time: String(Date.now()), Solved: false, Replies: [] }]);
+      if (!id) throw new Error('Редактор не создал замечание; проверьте выделение');
+      return id;
+    }
+    if (op === 'move' && Asc.plugin.info.editorType === 'word') {
+      if (typeof value !== 'string' || !value) throw new Error('Не указан идентификатор обсуждения');
+      await method('MoveToComment', [value]);
+      return true;
+    }
+    throw new Error('Операция не поддерживается для этого редактора');
+  }
+
+  window.addEventListener('message', function (event) {
+    const request = event.data;
+    if (event.origin !== location.origin || event.source !== window.top || !request || request.channel !== 'office-discussion-v1' || request.user !== user || request.file !== file || request.kind !== 'request') return;
+    discussion(request.op, request.value).then(function (result) {
+      notify('response', { id: request.id, result: result });
+    }, function (error) { notify('response', { id: request.id, error: error.message }); });
+  });
 
   function run(action) {
     if (busy) return Promise.reject(new Error('Wait for the previous native operation'));
@@ -77,6 +132,12 @@
   Asc.plugin.init = function () {
     if (!user || !file) throw new Error('Missing native validation participant context');
     window.pocPlugin = { run: run, editorType: Asc.plugin.info.editorType, user: user, file: file };
+    if (Asc.plugin.info.editorType === 'word') {
+      ['onAddComment', 'onChangeCommentData', 'onRemoveComment'].forEach(function (event) {
+        Asc.plugin.attachEditorEvent(event, function () { notify('changed'); });
+      });
+    }
+    notify('ready', { editorType: Asc.plugin.info.editorType });
     document.querySelector('#status').textContent = 'Plugin ready: ' + Asc.plugin.info.editorType + ' · ' + user;
     document.querySelector('#run').disabled = false;
   };
