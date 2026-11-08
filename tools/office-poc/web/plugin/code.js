@@ -6,6 +6,7 @@
   let busy = false;
   const authorNames = { alice: 'Алиса Петрова', bob: 'Борис Иванов' };
   let methods = Promise.resolve();
+  let discussionOperations = Promise.resolve();
   let methodFailed = false;
 
   // executeMethod uses an SDK callback slot. Serialize calls so responses cannot be
@@ -44,6 +45,28 @@
       if (!id) throw new Error('Редактор не создал замечание; проверьте выделение');
       return id;
     }
+    if (op === 'reply') {
+      if (!value || typeof value.id !== 'string' || !value.id || typeof value.text !== 'string' || !value.text.trim() || Array.from(value.text.trim()).length > 5000) throw new Error('Введите ответ (до 5000 символов Unicode)');
+      // Fetch the editor's current thread, never a copy supplied by the panel.
+      // ChangeComment replaces the whole thread: a concurrent writer in another
+      // client can still race this read. This is an experimental limitation.
+      const comments = await method('GetAllComments', []);
+      if (!Array.isArray(comments)) throw new Error('Редактор не вернул список обсуждений');
+      const comment = comments.find(function (item) { return item && String(item.Id) === value.id && item.Data; });
+      if (!comment || (comment.Data.Replies && !Array.isArray(comment.Data.Replies))) throw new Error('Ветка недоступна; обновите список');
+      const reply = { UserId: user, UserName: authorNames[user], Text: value.text.trim(), Time: String(Date.now()), Solved: false };
+      const updated = Object.assign({}, comment.Data, { Replies: (comment.Data.Replies || []).concat([reply]) });
+      const result = await method('ChangeComment', [value.id, updated]);
+      if (result === false) throw new Error('Редактор отклонил ответ');
+      const after = await method('GetAllComments', []);
+      if (!Array.isArray(after) || !after.some(function (item) {
+        return item && String(item.Id) === value.id && Array.isArray(item.Data?.Replies) && item.Data.Replies.some(function (candidate) {
+          // DOCX normalizes replies and omits UserId from GetAllComments.
+          return candidate.UserName === reply.UserName && candidate.Time === reply.Time && candidate.Text === reply.Text;
+        });
+      })) throw new Error('Ответ не подтверждён редактором; проверьте ветку перед повтором');
+      return true;
+    }
     if (op === 'move' && Asc.plugin.info.editorType === 'word') {
       if (typeof value !== 'string' || !value) throw new Error('Не указан идентификатор обсуждения');
       await method('MoveToComment', [value]);
@@ -55,7 +78,9 @@
   window.addEventListener('message', function (event) {
     const request = event.data;
     if (event.origin !== location.origin || event.source !== window.top || !request || request.channel !== 'office-discussion-v1' || request.user !== user || request.file !== file || request.kind !== 'request') return;
-    discussion(request.op, request.value).then(function (result) {
+    const operation = discussionOperations.then(function () { return discussion(request.op, request.value); });
+    discussionOperations = operation.catch(function () {});
+    operation.then(function (result) {
       notify('response', { id: request.id, result: result });
     }, function (error) { notify('response', { id: request.id, error: error.message }); });
   });
