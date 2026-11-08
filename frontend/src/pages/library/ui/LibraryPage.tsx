@@ -206,7 +206,7 @@ export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boole
                                 maxLength={40}
                                 value={viewName}
                                 onChange={(e) => setViewName(e.target.value)}
-                                placeholder="Например, договоры за месяц"
+                                placeholder="Название фильтра"
                             />
                             <Button size="small">Сохранить</Button>
                         </form>
