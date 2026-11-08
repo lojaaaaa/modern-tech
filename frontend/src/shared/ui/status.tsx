@@ -1,4 +1,4 @@
-import { Check, LoaderCircle, ShieldAlert } from 'lucide-react';
+import { Check, Clock3, LoaderCircle, ShieldAlert, X } from 'lucide-react';
 const labels: Record<string, string> = {
     ready: 'Готово',
     pending: 'Ожидание',
@@ -16,8 +16,12 @@ const labels: Record<string, string> = {
 export const Status = ({ value }: { value: string }) => {
     return (
         <span className={`status status-${value}`}>
-            {value === 'ready' ? (
+            {['ready', 'completed'].includes(value) ? (
                 <Check size={12} />
+            ) : value === 'cancelled' ? (
+                <X size={12} />
+            ) : ['pending', 'quarantined'].includes(value) ? (
+                <Clock3 size={12} />
             ) : ['failed', 'rejected'].includes(value) ? (
                 <ShieldAlert size={12} />
             ) : (

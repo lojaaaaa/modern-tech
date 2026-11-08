@@ -26,8 +26,8 @@ export const UploadPanel = ({ onClose }: { onClose: () => void }) => {
             return;
         }
         const next = Array.from(values);
-        if (next.length > 20 || next.some((f) => f.size > 50 * 1024 * 1024 || f.size === 0)) {
-            setError('Выберите до 20 непустых файлов, каждый не больше 50 МБ.');
+        if (!next.length || next.length > 20 || next.some((f) => f.size > 50 * 1024 * 1024 || f.size === 0)) {
+            setError('Выберите от 1 до 20 файлов размером до 50 МБ каждый. Пустые файлы загрузить нельзя.');
             return;
         }
         setFiles(next);
@@ -65,7 +65,7 @@ export const UploadPanel = ({ onClose }: { onClose: () => void }) => {
                     body: data,
                     headers: { 'Idempotency-Key': crypto.randomUUID() },
                 });
-                completed.push({ name: file.name, ok: true, message: 'Принят на обработку' });
+                completed.push({ name: file.name, ok: true, message: 'Загружен. Ожидает проверки и обработки' });
             } catch (e) {
                 completed.push({
                     name: file.name,
@@ -82,7 +82,7 @@ export const UploadPanel = ({ onClose }: { onClose: () => void }) => {
         <Modal titleId="upload-title" onClose={onClose} busy={busy}>
             {duplicate && (
                 <section className="duplicate-choice">
-                    <strong>Такой файл уже есть: {duplicate.title}</strong>
+                    <strong>Файл совпадает с документом «{duplicate.title}»</strong>
                     <div>
                         <Button
                             variant="secondary"
@@ -107,7 +107,7 @@ export const UploadPanel = ({ onClose }: { onClose: () => void }) => {
             )}
             <header>
                 <div>
-                    <span className="eyebrow">БИБЛИОТЕКА</span>
+                    <span className="eyebrow">Загрузка файлов</span>
                     <h2 id="upload-title">Загрузить документы</h2>
                 </div>
                 <Button variant="ghost" size="icon" aria-label="Закрыть загрузку" onClick={onClose} disabled={busy}>
@@ -129,7 +129,7 @@ export const UploadPanel = ({ onClose }: { onClose: () => void }) => {
                 </span>
                 <strong>Перетащите файлы сюда</strong>
                 <span>или нажмите, чтобы выбрать</span>
-                <small>PDF, Office, текст и изображения · до 50 МБ</small>
+                <small>До 20 файлов, до 50 МБ каждый: PDF, DOCX, XLSX, PPTX, TXT, MD, CSV, PNG, JPG.</small>
             </button>
             <input
                 ref={input}
@@ -141,7 +141,7 @@ export const UploadPanel = ({ onClose }: { onClose: () => void }) => {
                 onChange={(e) => choose(e.target.files)}
             />
             {error && <ErrorMessage error={new Error(error)} />}
-            <div className="upload-files">
+            <div className="upload-files" aria-live="polite" aria-relevant="additions text">
                 {files.map((file, i) => (
                     <div key={`${file.name}-${i}`}>
                         <span>{file.name}</span>
@@ -167,7 +167,7 @@ export const UploadPanel = ({ onClose }: { onClose: () => void }) => {
                     ) : (
                         <Upload size={16} />
                     )}{' '}
-                    {busy ? `Загрузка ${results.length + 1} из ${files.length}` : 'Загрузить'}
+                    {busy ? (duplicate ? 'Выберите действие для совпавшего файла' : `Загрузка ${Math.min(results.length + 1, files.length)} из ${files.length}`) : 'Загрузить'}
                 </Button>
             </footer>
         </Modal>
