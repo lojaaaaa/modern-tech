@@ -1,8 +1,9 @@
 import type { components } from './schema';
 export type Role = 'admin' | 'employee' | 'observer';
-export type User = Pick<components['schemas']['User'], 'id' | 'name' | 'email' | 'active'> & {
+export type User = Pick<components['schemas']['User'], 'id' | 'name' | 'email' | 'active' | 'email_verified_at'> & {
     role: Role;
 };
+export type RegistrationInput = components['schemas']['RegisterRequest'];
 export type DocumentRecord = components['schemas']['DocumentResource'] & { snippet?: string | null };
 export type Version = NonNullable<DocumentRecord['version']>;
 export type CloudConnection = components['schemas']['CloudConnection'];

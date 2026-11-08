@@ -9,7 +9,9 @@ use App\Modules\Documents\Http\DocumentController;
 use App\Modules\Documents\Http\LibraryController;
 use App\Modules\Documents\Http\PreviewController;
 use App\Modules\Identity\Http\AuthController;
+use App\Modules\Identity\Http\EmailVerificationController;
 use App\Modules\Identity\Http\PasswordController;
+use App\Modules\Identity\Http\RegistrationController;
 use App\Modules\Identity\Http\UserController;
 use App\Modules\Integrations\Http\ConnectionController;
 use App\Modules\Integrations\Http\TransferController;
@@ -28,10 +30,13 @@ Route::get('/health/ready', function () {
     return response()->json(['status' => 'ready']);
 });
 Route::prefix('api/v1')->group(function (): void {
+    Route::post('/auth/register', [RegistrationController::class, 'store'])->middleware('throttle:registration');
     Route::post('/auth/forgot-password', [PasswordController::class, 'forgot'])->middleware('throttle:3,15');
     Route::post('/auth/reset-password', [PasswordController::class, 'reset'])->middleware('throttle:10,1');
     Route::post('/auth/login', [AuthController::class, 'login']);
     Route::middleware(['auth', EnsureActive::class])->group(function (): void {
+        Route::post('/auth/verification-notification', [EmailVerificationController::class, 'store'])->middleware('throttle:email-verification');
+        Route::get('/auth/verify-email/{id}/{hash}', [EmailVerificationController::class, 'show'])->whereNumber('id')->middleware('signed')->name('verification.verify');
         Route::get('/admin/metrics', MetricsController::class);
         Route::get('/connections', [ConnectionController::class, 'index']);
         Route::post('/connections', [ConnectionController::class, 'store']);

@@ -18,6 +18,7 @@ final class UploadDocument
 {
     public function execute(User $user, UploadedFile $file, ?string $title, string $key, ?Document $existing = null): Document
     {
+        $this->ensureVerifiedUploader($user);
         $extension = strtolower($file->getClientOriginalExtension());
         if (! in_array($extension, ['pdf', 'docx', 'xlsx', 'pptx', 'txt', 'md', 'csv', 'png', 'jpg', 'jpeg'], true)) {
             throw ValidationException::withMessages(['file' => 'Этот формат не поддерживается.']);
@@ -30,7 +31,8 @@ final class UploadDocument
         try {
             return DB::transaction(function () use ($user, $file, $title, $key, $existing, $sha, $scope, $hash, $path): Document {
                 // Serializes retries for an actor before checking the idempotency key.
-                User::whereKey($user->id)->lockForUpdate()->firstOrFail();
+                $actor = User::whereKey($user->id)->lockForUpdate()->firstOrFail();
+                $this->ensureVerifiedUploader($actor);
                 $prior = DB::table('idempotency_records')->where(['user_id' => $user->id, 'scope' => $scope, 'key' => $key])->first();
                 if ($prior) {
                     abort_if($prior->request_hash !== $hash, 409, 'Ключ уже использован для другого файла.');
@@ -51,5 +53,11 @@ final class UploadDocument
             Storage::disk('local')->delete($path);
             throw $error;
         }
+    }
+
+    private function ensureVerifiedUploader(User $user): void
+    {
+        abort_unless($user->active && $user->role !== 'observer', 403, 'Загрузка недоступна для этой учётной записи.');
+        abort_unless($user->hasVerifiedEmail(), 403, 'Подтвердите электронную почту перед загрузкой документов.');
     }
 }

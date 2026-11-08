@@ -43,6 +43,9 @@ final class DocumentPolicy
         if ($read->denied()) {
             return $read;
         }
+        if (in_array($permission, ['edit', 'comment', 'manage'], true) && ! $user->hasVerifiedEmail()) {
+            return Response::deny('Подтвердите электронную почту перед изменением документа.');
+        }
 
         return $this->allows($user, $document, $permission)
             ? Response::allow()

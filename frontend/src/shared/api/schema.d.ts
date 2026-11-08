@@ -203,7 +203,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations['modules.documents.document.index_25'];
+        get: operations['modules.documents.document.index_28'];
         put?: never;
         post: operations['document.store'];
         delete?: never;
@@ -219,7 +219,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations['modules.documents.document.index_26'];
+        get: operations['modules.documents.document.index_29'];
         put?: never;
         post?: never;
         delete?: never;
@@ -349,6 +349,38 @@ export interface paths {
         };
         get: operations['document.grants'];
         put: operations['document.setGrants'];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/auth/verification-notification': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations['emailVerification.store'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/auth/verify-email/{id}/{hash}': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations['verification.verify'];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -516,6 +548,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    '/v1/auth/register': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations['registration.store'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     '/v1/transfers': {
         parameters: {
             query?: never;
@@ -584,6 +632,18 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** ApiError */
+        ApiError: {
+            error: {
+                code: string;
+                message: string;
+                details: {
+                    [key: string]: string[];
+                };
+                /** Format: uuid */
+                request_id: string;
+            };
+        };
         /** CloudConnection */
         CloudConnection: {
             id: string;
@@ -713,6 +773,14 @@ export interface components {
             to: number | null;
             total: number;
         };
+        /** RegisterRequest */
+        RegisterRequest: {
+            name: string;
+            /** Format: email */
+            email: string;
+            password: string;
+            password_confirmation: string;
+        };
         /** UploadRequest */
         UploadRequest: {
             /**
@@ -744,14 +812,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                'application/json': {
-                    /** @description Errors overview. */
-                    message: string;
-                    /** @description A detailed description of each field that failed validation. */
-                    errors: {
-                        [key: string]: string[];
-                    };
-                };
+                'application/json': components['schemas']['ApiError'];
             };
         };
         /** @description Unauthenticated */
@@ -760,10 +821,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                'application/json': {
-                    /** @description Error overview. */
-                    message: string;
-                };
+                'application/json': components['schemas']['ApiError'];
             };
         };
         /** @description Not found */
@@ -772,10 +830,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                'application/json': {
-                    /** @description Error overview. */
-                    message: string;
-                };
+                'application/json': components['schemas']['ApiError'];
             };
         };
         /** @description Authorization error */
@@ -784,10 +839,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                'application/json': {
-                    /** @description Error overview. */
-                    message: string;
-                };
+                'application/json': components['schemas']['ApiError'];
             };
         };
     };
@@ -825,13 +877,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    'application/json': {
-                        /**
-                         * @description Error overview.
-                         * @example
-                         */
-                        message: string;
-                    };
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
             422: components['responses']['ValidationException'];
@@ -868,16 +914,12 @@ export interface operations {
             /** @description An error */
             429: {
                 headers: {
+                    /** @description Seconds before retrying the operation. */
+                    'Retry-After': string;
                     [name: string]: unknown;
                 };
                 content: {
-                    'application/json': {
-                        /**
-                         * @description Error overview.
-                         * @example Слишком много попыток. Попробуйте через минуту.
-                         */
-                        message: string;
-                    };
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
         };
@@ -982,6 +1024,7 @@ export interface operations {
                 };
             };
             401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
             404: components['responses']['ModelNotFoundException'];
         };
     };
@@ -1021,6 +1064,7 @@ export interface operations {
                 };
             };
             401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
             404: components['responses']['ModelNotFoundException'];
             /** @description An error */
             409: {
@@ -1028,13 +1072,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    'application/json': {
-                        /**
-                         * @description Error overview.
-                         * @example
-                         */
-                        message: string;
-                    };
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
             422: components['responses']['ValidationException'];
@@ -1093,21 +1131,7 @@ export interface operations {
                 };
             };
             401: components['responses']['AuthenticationException'];
-            /** @description An error */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': {
-                        /**
-                         * @description Error overview.
-                         * @example
-                         */
-                        message: string;
-                    };
-                };
-            };
+            403: components['responses']['AuthorizationException'];
             404: components['responses']['ModelNotFoundException'];
         };
     };
@@ -1203,13 +1227,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    'application/json': {
-                        /**
-                         * @description Error overview.
-                         * @example
-                         */
-                        message: string;
-                    };
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
             422: components['responses']['ValidationException'];
@@ -1256,10 +1274,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    'application/json': {
-                        /** @description Error overview. */
-                        message: string;
-                    };
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
         };
@@ -1319,7 +1334,7 @@ export interface operations {
             422: components['responses']['ValidationException'];
         };
     };
-    'modules.documents.document.index_25': {
+    'modules.documents.document.index_28': {
         parameters: {
             query?: {
                 q?: string | null;
@@ -1426,7 +1441,7 @@ export interface operations {
             422: components['responses']['ValidationException'];
         };
     };
-    'modules.documents.document.index_26': {
+    'modules.documents.document.index_29': {
         parameters: {
             query?: {
                 q?: string | null;
@@ -1528,6 +1543,7 @@ export interface operations {
                 };
             };
             401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
             404: components['responses']['ModelNotFoundException'];
         };
     };
@@ -1554,6 +1570,7 @@ export interface operations {
                 };
             };
             401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
             404: components['responses']['ModelNotFoundException'];
         };
     };
@@ -1588,6 +1605,7 @@ export interface operations {
                 };
             };
             401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
             404: components['responses']['ModelNotFoundException'];
             422: components['responses']['ValidationException'];
         };
@@ -1615,6 +1633,7 @@ export interface operations {
                 };
             };
             401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
         };
     };
     'document.versions': {
@@ -1640,6 +1659,7 @@ export interface operations {
                 };
             };
             401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
             404: components['responses']['ModelNotFoundException'];
         };
     };
@@ -1698,6 +1718,7 @@ export interface operations {
                 };
             };
             401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
             404: components['responses']['ModelNotFoundException'];
             /** @description An error */
             409: {
@@ -1705,13 +1726,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    'application/json': {
-                        /**
-                         * @description Error overview.
-                         * @example Файл ещё не прошёл обработку.
-                         */
-                        message: string;
-                    };
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
         };
@@ -1739,6 +1754,7 @@ export interface operations {
                 };
             };
             401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
             404: components['responses']['ModelNotFoundException'];
         };
     };
@@ -1768,6 +1784,7 @@ export interface operations {
                 };
             };
             401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
             404: components['responses']['ModelNotFoundException'];
         };
     };
@@ -1794,6 +1811,7 @@ export interface operations {
                 };
             };
             401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
             404: components['responses']['ModelNotFoundException'];
         };
     };
@@ -1820,6 +1838,7 @@ export interface operations {
                 };
             };
             401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
             404: components['responses']['ModelNotFoundException'];
         };
     };
@@ -1858,8 +1877,111 @@ export interface operations {
                 };
             };
             401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
             404: components['responses']['ModelNotFoundException'];
             422: components['responses']['ValidationException'];
+        };
+    };
+    'emailVerification.store': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': {
+                        data: {
+                            /** @constant */
+                            message: 'Электронная почта уже подтверждена.';
+                        };
+                    };
+                };
+            };
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': {
+                        data: {
+                            /** @constant */
+                            message: 'Письмо подтверждения поставлено в очередь отправки.';
+                        };
+                    };
+                };
+            };
+            401: components['responses']['AuthenticationException'];
+            /** @description The CSRF session token is missing or expired. */
+            419: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['ApiError'];
+                };
+            };
+            /** @description Verification mail requests are rate limited per account. */
+            429: {
+                headers: {
+                    /** @description Seconds before retrying the operation. */
+                    'Retry-After': string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['ApiError'];
+                };
+            };
+        };
+    };
+    'verification.verify': {
+        parameters: {
+            query: {
+                expires: number;
+                signature: string;
+            };
+            header?: never;
+            path: {
+                id: number;
+                hash: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': {
+                        data: components['schemas']['User'];
+                    };
+                };
+            };
+            302: {
+                headers: {
+                    Location: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components['responses']['AuthenticationException'];
+            /** @description The signed link is expired, modified, or belongs to another account. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['ApiError'];
+                };
+            };
         };
     };
     'library.folders': {
@@ -1918,13 +2040,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    'application/json': {
-                        /**
-                         * @description Error overview.
-                         * @example
-                         */
-                        message: string;
-                    };
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
             422: components['responses']['ValidationException'];
@@ -2008,6 +2124,7 @@ export interface operations {
                 };
             };
             401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
             404: components['responses']['ModelNotFoundException'];
             422: components['responses']['ValidationException'];
         };
@@ -2041,6 +2158,7 @@ export interface operations {
                 };
             };
             401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
             404: components['responses']['ModelNotFoundException'];
             422: components['responses']['ValidationException'];
         };
@@ -2074,6 +2192,7 @@ export interface operations {
                 };
             };
             401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
             404: components['responses']['ModelNotFoundException'];
             422: components['responses']['ValidationException'];
         };
@@ -2102,13 +2221,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    'application/json': {
-                        /**
-                         * @description Error overview.
-                         * @example
-                         */
-                        message: string;
-                    };
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
         };
@@ -2210,6 +2323,7 @@ export interface operations {
                 };
             };
             401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
             404: components['responses']['ModelNotFoundException'];
             /** @description An error */
             409: {
@@ -2217,13 +2331,53 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    'application/json': components['schemas']['ApiError'];
+                };
+            };
+        };
+    };
+    'registration.store': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['RegisterRequest'];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
                     'application/json': {
-                        /**
-                         * @description Error overview.
-                         * @example
-                         */
-                        message: string;
+                        data: components['schemas']['User'];
                     };
+                };
+            };
+            /** @description The CSRF session token is missing or expired. */
+            419: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['ApiError'];
+                };
+            };
+            422: components['responses']['ValidationException'];
+            /** @description Registration attempts are rate limited per IP address. */
+            429: {
+                headers: {
+                    /** @description Seconds before retrying the operation. */
+                    'Retry-After': string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
         };
@@ -2283,21 +2437,7 @@ export interface operations {
                 };
             };
             401: components['responses']['AuthenticationException'];
-            /** @description An error */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': {
-                        /**
-                         * @description Error overview.
-                         * @example
-                         */
-                        message: string;
-                    };
-                };
-            };
+            403: components['responses']['AuthorizationException'];
             404: components['responses']['ModelNotFoundException'];
             /** @description An error */
             409: {
@@ -2305,13 +2445,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    'application/json': {
-                        /**
-                         * @description Error overview.
-                         * @example
-                         */
-                        message: string;
-                    };
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
             422: components['responses']['ValidationException'];
@@ -2347,13 +2481,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    'application/json': {
-                        /**
-                         * @description Error overview.
-                         * @example Операция уже началась.
-                         */
-                        message: string;
-                    };
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
         };
@@ -2384,13 +2512,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    'application/json': {
-                        /**
-                         * @description Error overview.
-                         * @example
-                         */
-                        message: string;
-                    };
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
         };
@@ -2432,13 +2554,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    'application/json': {
-                        /**
-                         * @description Error overview.
-                         * @example
-                         */
-                        message: string;
-                    };
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
             422: components['responses']['ValidationException'];
@@ -2482,13 +2598,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    'application/json': {
-                        /**
-                         * @description Error overview.
-                         * @example
-                         */
-                        message: string;
-                    };
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
             404: components['responses']['ModelNotFoundException'];

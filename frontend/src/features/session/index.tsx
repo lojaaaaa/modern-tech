@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, initializeCsrf, ApiError } from '@/shared/api/client';
-import type { Resource, User } from '@/shared/api/types';
+import type { Resource, User, RegistrationInput } from '@/shared/api/types';
+import type { operations } from '@/shared/api/schema';
 
 export const useSession = () => {
     return useQuery({
@@ -42,3 +43,26 @@ export const useLogout = () => {
         },
     });
 };
+
+export const useRegister = () => {
+    const client = useQueryClient();
+    return useMutation({
+        mutationFn: async (values: RegistrationInput) => {
+            await initializeCsrf();
+            return api<Resource<User>>('/auth/register', { method: 'POST', body: JSON.stringify(values) });
+        },
+        onSuccess: (data) => {
+            client.removeQueries({ predicate: (query) => query.queryKey[0] !== 'session' });
+            client.setQueryData(['session'], data);
+        },
+    });
+};
+
+export const useResendVerification = () =>
+    useMutation({
+        mutationFn: () =>
+            api<operations['emailVerification.store']['responses'][202]['content']['application/json']>(
+                '/auth/verification-notification',
+                { method: 'POST' }
+            ),
+    });

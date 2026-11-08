@@ -10,6 +10,8 @@ final class UploadRequest extends FormRequest
 {
     public function authorize(): bool
     {
+        abort_unless($this->user()->hasVerifiedEmail(), 403, 'Подтвердите электронную почту перед загрузкой документов.');
+
         return $this->user()->active && $this->user()->role !== 'observer';
     }
 

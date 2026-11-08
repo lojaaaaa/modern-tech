@@ -2509,6 +2509,21 @@ main:has(.document-heading) {
 .password-page .back-link {
     margin-top: 20px;
 }
+.verification-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    margin-bottom: 24px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+}
+.verification-panel > p {
+    margin: 18px 0;
+    line-height: 1.6;
+}
 .annotation-card {
     position: absolute;
     z-index: 20;

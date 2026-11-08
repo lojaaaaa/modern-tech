@@ -8,6 +8,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Exceptions\InvalidSignatureException;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
@@ -27,7 +28,10 @@ return Application::configure(basePath: dirname(__DIR__))
             }
             $status = $error instanceof ValidationException ? 422 : ($error instanceof HttpExceptionInterface ? $error->getStatusCode() : ($error instanceof AuthenticationException ? 401 : 500));
             $message = $status >= 500 ? 'Не удалось выполнить запрос. Попробуйте позже.' : ($error->getMessage() ?: 'Запрос отклонён.');
+            if ($error instanceof InvalidSignatureException) {
+                $message = 'Ссылка подтверждения недействительна или срок её действия истёк. Запросите новое письмо в приложении.';
+            }
 
-            return response()->json(['error' => ['code' => 'HTTP_'.$status, 'message' => $message, 'details' => $error instanceof ValidationException ? $error->errors() : new stdClass, 'request_id' => (string) Str::uuid()]], $status);
+            return response()->json(['error' => ['code' => 'HTTP_'.$status, 'message' => $message, 'details' => $error instanceof ValidationException ? $error->errors() : new stdClass, 'request_id' => (string) Str::uuid()]], $status, $error instanceof HttpExceptionInterface ? $error->getHeaders() : []);
         });
     })->create();

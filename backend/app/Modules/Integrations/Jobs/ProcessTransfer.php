@@ -46,6 +46,9 @@ final class ProcessTransfer implements ShouldQueue
             if (! $user || ! $user->active || $user->role === 'observer' || ! $connection || $connection->owner_id !== $user->id || $connection->status !== 'connected') {
                 throw new CloudFailure('ACCESS_REVOKED');
             }
+            if ($transfer->direction === 'import' && ! $user->hasVerifiedEmail()) {
+                throw new CloudFailure('ACCESS_REVOKED');
+            }
             $provider = $providers->for($connection);
             if ($transfer->direction === 'export') {
                 $version = DocumentVersion::find($transfer->version_id);

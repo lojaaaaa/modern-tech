@@ -1,0 +1,8 @@
+{
+  "name": "modern-tech-app-e2e",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "playwright": "1.65.0-alpha-2026-10-30"
+  }
+}
