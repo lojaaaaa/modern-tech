@@ -51,7 +51,7 @@ final class OfficeController
         $config = [
             'documentType' => 'word', 'width' => '100%', 'height' => '100%',
             'document' => ['fileType' => 'docx', 'key' => $draft->editor_key, 'title' => $document->title.'.docx', 'url' => $base.'/api/v1/office/source/'.$capability, 'permissions' => ['edit' => $edit, 'comment' => $comment, 'download' => $user->can('export', $document)]],
-            'editorConfig' => ['mode' => 'edit', 'user' => ['id' => (string) $user->id, 'name' => $user->name], 'callbackUrl' => $base.'/api/v1/office/callback', 'coEditing' => ['mode' => 'fast', 'change' => true], 'customization' => ['autosave' => true, 'forcesave' => false]],
+            'editorConfig' => ['mode' => 'edit', 'lang' => 'ru', 'user' => ['id' => (string) $user->id, 'name' => $user->name], 'callbackUrl' => $base.'/api/v1/office/callback', 'coEditing' => ['mode' => 'fast', 'change' => true], 'customization' => ['autosave' => true, 'forcesave' => false]],
         ];
         $config['token'] = $tokens->sign($config);
 
