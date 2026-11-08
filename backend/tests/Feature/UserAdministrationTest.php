@@ -13,6 +13,20 @@ final class UserAdministrationTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_user_administration_is_available_only_to_administrator_role(): void
+    {
+        $target = User::factory()->create();
+        foreach (['admin' => 200, 'employee' => 403, 'observer' => 403] as $role => $expected) {
+            $actor = User::factory()->create(['role' => $role]);
+            $this->actingAs($actor)->getJson('/api/v1/users')->assertStatus($expected);
+            $this->patchJson('/api/v1/users/'.$target->id, ['name' => 'Changed'])->assertStatus($expected);
+            $this->postJson('/api/v1/users', [
+                'name' => 'New User', 'email' => $role.'@example.test',
+                'password' => 'long-enough-password', 'role' => 'employee',
+            ])->assertStatus($expected === 200 ? 201 : 403);
+        }
+    }
+
     public function test_role_change_is_authorized_and_observer_cannot_use_an_old_edit_grant(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
