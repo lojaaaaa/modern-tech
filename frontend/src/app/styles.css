@@ -947,18 +947,35 @@ main {
 .document-view-toolbar {
     flex-shrink: 0;
     border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0 20px;
+    padding: 0 20px;
 }
 .document-view-toolbar > .tabs {
     border-bottom: 0;
-    gap: 24px;
-    padding: 0 24px;
+    gap: 20px;
+    padding: 0;
+    flex: 1 1 auto;
+    min-width: 0;
 }
 .document-view-tools {
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    gap: 16px;
-    padding: 8px 24px 12px;
+    gap: 12px;
+    padding: 10px 0;
+    margin-left: auto;
+}
+.document-view-tools > .button {
+    min-height: 40px;
+    padding: 9px 14px;
+    font-size: 14px;
+}
+.document-view-tools > .status {
+    padding: 7px 10px;
+    font-size: 13px;
 }
 @media (max-width: 1100px) {
     .detail-grid.document-layout.discussion-open {
