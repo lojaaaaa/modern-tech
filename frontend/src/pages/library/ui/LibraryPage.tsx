@@ -101,12 +101,13 @@ export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boole
     });
     const docs = query.data?.data ?? [];
     const total = query.data?.meta.total ?? 0;
+    const hasSearchFilters = [...params.keys()].some((key) => !['page', 'sort', 'direction'].includes(key));
     return (
         <>
             <div className="page-heading">
                 <div>
                     <div className="breadcrumbs">
-                        Рабочее пространство <span>/</span> {trash ? 'Корзина' : 'Документы'}
+                        Библиотека <span>/</span> {trash ? 'Корзина' : 'Документы'}
                     </div>
                     <h1>
                         {trash ? 'Корзина' : 'Все документы'}
@@ -174,7 +175,7 @@ export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boole
                     ))}
                     <Button variant="ghost" size="small" onClick={() => setSaving(!saving)}>
                         <BookmarkPlus size={15} />
-                        Сохранить вид
+                        Сохранить фильтры
                     </Button>
                     {saving && (
                         <form
@@ -198,7 +199,7 @@ export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boole
                                 maxLength={40}
                                 value={viewName}
                                 onChange={(e) => setViewName(e.target.value)}
-                                placeholder="Название вида"
+                                placeholder="Например, договоры за месяц"
                             />
                             <Button size="small">Сохранить</Button>
                         </form>
@@ -401,7 +402,24 @@ export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boole
                         <span className="empty-icon">
                             <FolderOpen size={34} />
                         </span>
-                        <h3>{q ? 'Ничего не найдено' : trash ? 'В корзине пусто' : 'Нет документов'}</h3>
+                        <h3>
+                            {hasSearchFilters
+                                ? 'Нет документов по этим условиям'
+                                : trash
+                                  ? 'В корзине пусто'
+                                  : 'Нет документов'}
+                        </h3>
+                        {hasSearchFilters && (
+                            <Button
+                                variant="secondary"
+                                onClick={() => {
+                                    setSelected([]);
+                                    setParams({});
+                                }}
+                            >
+                                Сбросить поиск и фильтры
+                            </Button>
+                        )}
                         {!q && !trash && user.role !== 'observer' && (
                             <Button variant="secondary" onClick={() => setUpload(true)}>
                                 <Plus size={16} />

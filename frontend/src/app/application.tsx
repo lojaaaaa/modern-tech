@@ -289,7 +289,7 @@ const Login = () => {
                             modern<span>tech</span>
                         </div>
                     </div>
-                    <span className="eyebrow">РАБОЧЕЕ ПРОСТРАНСТВО</span>
+                    <span className="eyebrow">Вход в аккаунт</span>
                     <h2>С возвращением</h2>
                     <p className="muted">Войдите, чтобы продолжить работу с документами.</p>
                     <ErrorMessage error={login.error} />
@@ -316,7 +316,7 @@ const Login = () => {
                         />
                     </label>
                     <Button type="submit" disabled={login.isPending}>
-                        {login.isPending ? 'Входим…' : 'Войти в пространство'}
+                        {login.isPending ? 'Входим…' : 'Войти'}
                         <ArrowRight size={17} />
                     </Button>
                     <a className="login-help block" href="/forgot-password">

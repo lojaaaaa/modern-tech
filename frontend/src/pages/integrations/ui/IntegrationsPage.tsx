@@ -119,7 +119,7 @@ export const IntegrationsPage = () => {
         <>
             <div className="page-heading">
                 <div>
-                    <div className="breadcrumbs">Рабочее пространство / Подключения</div>
+                    <div className="breadcrumbs">Документы / Облачные диски</div>
                     <h1>Облачные диски</h1>
                 </div>
                 <Cloud size={30} />

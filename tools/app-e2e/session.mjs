@@ -30,7 +30,7 @@ async function login(email, secret = password) {
     await page.getByLabel('Электронная почта', { exact: true }).fill(email);
     await page.getByLabel('Пароль', { exact: true }).fill(secret);
     const pending = page.waitForResponse(response => response.url() === `${base}/api/v1/auth/login` && response.request().method() === 'POST');
-    await page.getByRole('button', { name: 'Войти в пространство', exact: true }).click();
+    await page.getByRole('button', { name: 'Войти', exact: true }).click();
     assert.equal((await pending).status(), 200);
     await page.getByRole('button', { name: 'Выйти', exact: true }).waitFor();
 }

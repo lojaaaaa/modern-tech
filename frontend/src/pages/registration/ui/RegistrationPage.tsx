@@ -14,7 +14,7 @@ export const RegistrationPage = () => {
         <div className="password-page">
             <section className="content-panel form-panel">
                 <h1>Создать учётную запись</h1>
-                <p className="muted">Аккаунт сотрудника для работы со своими и предоставленными документами.</p>
+                <p className="muted">После регистрации подтвердите почту, чтобы загружать и редактировать документы.</p>
                 <ErrorMessage error={registration.error} />
                 <form
                     onSubmit={(event) => {

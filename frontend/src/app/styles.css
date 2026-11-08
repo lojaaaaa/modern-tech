@@ -1116,6 +1116,10 @@ main {
 .login-mobile-brand {
     display: none;
 }
+.login-form-section .eyebrow {
+    font-size: 12px;
+    letter-spacing: 0;
+}
 .login-form-section h2 {
     font-size: 28px;
     margin: 12px 0;

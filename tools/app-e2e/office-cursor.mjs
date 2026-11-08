@@ -17,7 +17,7 @@ try {
     await page.goto('http://localhost:8892');
     await page.getByLabel('Электронная почта',{exact:true}).fill(seed[name]);
     await page.getByLabel('Пароль',{exact:true}).fill(seed.password);
-    await page.getByRole('button',{name:'Войти в пространство',exact:true}).click();
+    await page.getByRole('button',{name:'Войти',exact:true}).click();
     await page.getByRole('button',{name:'Выйти',exact:true}).waitFor();
     await page.goto(`http://localhost:8892/documents/${seed.id}`);
     await page.getByRole('button',{name:'Совместная работа',exact:true}).click({timeout:30000});

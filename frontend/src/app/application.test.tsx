@@ -52,7 +52,7 @@ it('moves from anonymous session to library and back without leaving a pending o
     const user = userEvent.setup();
     await user.type(await screen.findByLabelText('Электронная почта'), 'test@example.invalid');
     await user.type(screen.getByLabelText('Пароль'), 'test-password');
-    await user.click(screen.getByRole('button', { name: 'Войти в пространство' }));
+    await user.click(screen.getByRole('button', { name: 'Войти' }));
     expect(await screen.findByRole('heading', { name: /Все документы/ })).toBeVisible();
     await user.click(screen.getByRole('button', { name: 'Выйти' }));
     expect(await screen.findByRole('heading', { name: 'С возвращением' })).toBeVisible();
