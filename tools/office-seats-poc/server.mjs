@@ -7,6 +7,9 @@ const secret = process.env.POC_SECRET || 'local-demo-only';
 const lease = Number(process.env.LEASE_MS || 30000);
 if (!Number.isInteger(lease) || lease < 1000) throw Error('LEASE_MS must be at least 1000');
 const sessions = new Map();
+const launches = new Map();
+const publicPort = Number(process.env.POC_PUBLIC_PORT || 8894);
+if (!Number.isInteger(publicPort) || publicPort < 1 || publicPort > 65535) throw Error('Invalid POC_PUBLIC_PORT');
 const permissions = new Map();
 const docKey = doc => createHash('sha256').update(doc).digest('hex');
 const permissionKey = (doc, user) => JSON.stringify([doc, user]);
@@ -73,6 +76,7 @@ async function invalidate(session) {
   if (!session.active) return;
   session.active = false;
   sessions.delete(session.token);
+  launches.delete(session.launchCode);
   closeStreams(session);
   if (session.seated) await run(release, session);
 }
@@ -103,25 +107,43 @@ async function body(req) {
 }
 const validId = value => typeof value === 'string' && /^[a-zA-Z0-9_-]{1,100}$/.test(value);
 function currentSession(req) {
-  const token = /^Bearer ([A-Za-z0-9_-]+)$/.exec(req.headers.authorization || '')?.[1] || /(?:^|;\s*)poc_session=([A-Za-z0-9_-]+)/.exec(req.headers.cookie || '')?.[1];
+  const bearer = /^Bearer ([A-Za-z0-9_-]+)$/.exec(req.headers.authorization || '')?.[1];
+  const token = bearer || /(?:^|;\s*)poc_session=([A-Za-z0-9_-]+)/.exec(req.headers.cookie || '')?.[1];
   const session = sessions.get(token);
-  return session?.active ? session : null;
+  return session?.active && (bearer || req.headers.host === `${session.id}.localhost:${publicPort}`) ? session : null;
 }
 const bridge = createOfficeBridge({sessionFor: currentSession, rightsFor, lease, sessions});
 const server = http.createServer(async (req, res) => {
   try {
     if (req.method === 'GET' && req.url === '/health') return json(res, 200, {ok: true});
+    if (req.method === 'GET' && req.url === '/') {
+      res.writeHead(200, {'content-type':'text/html; charset=utf-8', 'cache-control':'no-store'});
+      return res.end(`<!doctype html><meta charset="utf-8"><title>Seat PoC</title><form><label>Документ <input name="doc" value="doc1" required></label><label>Пользователь <input name="user" value="alice" required></label><label>Пароль <input name="password" type="password" required></label><button>Открыть</button></form><p id="error"></p><script>document.querySelector('form').onsubmit=async e=>{e.preventDefault();const data=Object.fromEntries(new FormData(e.target));const r=await fetch('/session',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(data)});if(!r.ok){document.querySelector('#error').textContent='Не удалось создать сессию';return}location.href=(await r.json()).editorUrl}</script>`);
+    }
+    if (req.method === 'GET' && req.url === '/bootstrap') {
+      res.writeHead(200, {'content-type':'text/html; charset=utf-8', 'cache-control':'no-store', 'referrer-policy':'no-referrer', 'content-security-policy':"default-src 'none'; script-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'"});
+      return res.end(`<!doctype html><meta charset="utf-8"><title>Seat PoC</title><p>Открываем редактор…</p><script>const code=location.hash.slice(1);history.replaceState(null,'','/bootstrap');fetch('/office-bootstrap',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({code})}).then(r=>{if(!r.ok)throw Error();location.replace('/editor')}).catch(()=>document.querySelector('p').textContent='Ссылка недействительна или сессия завершена')</script>`);
+    }
+    if (req.method === 'POST' && req.url === '/office-bootstrap') {
+      const input = await body(req);
+      const session = launches.get(input.code);
+      const host = session && `${session.id}.localhost:${publicPort}`;
+      if (!session?.active || Date.now() >= session.deadline || req.headers.host !== host || req.headers.origin !== `http://${host}`) return json(res, 403, {error:'invalid launch'});
+      launches.delete(input.code);
+      res.setHeader('set-cookie', `poc_session=${session.token}; HttpOnly; SameSite=Strict; Path=/`);
+      return json(res, 200, {ok:true});
+    }
     if (req.method === 'POST' && req.url === '/session') {
       const input = await body(req);
       if (input.password !== secret || !validId(input.doc) || !validId(input.user)) return json(res, 401, {error: 'unauthorized'});
       const rights = rightsFor(input.doc, input.user);
       if (!rights.read || rights.blocked) return json(res, 403, {error: 'forbidden'});
-      const session = {id: randomUUID(), token: randomBytes(32).toString('base64url'), doc: input.doc, user: input.user, active: true, seated: false, deadline: Date.now() + lease, streams: new Set()};
+      const session = {id: randomUUID(), token: randomBytes(32).toString('base64url'), launchCode: randomBytes(32).toString('base64url'), doc: input.doc, user: input.user, active: true, seated: false, deadline: Date.now() + lease, streams: new Set()};
       sessions.set(session.token, session);
       try { if (rights.edit) await reserve(session); } catch (error) { await invalidate(session); throw error; }
       if (!session.active || rightsFor(session.doc, session.user) !== rights) { await invalidate(session); return json(res, 403, {error: 'permission changed'}); }
-      res.setHeader('set-cookie', `poc_session=${session.token}; HttpOnly; SameSite=Strict; Path=/`);
-      return json(res, 200, {token: session.token, user: session.user, mode: mode(session)});
+      launches.set(session.launchCode, session);
+      return json(res, 200, {token: session.token, user: session.user, mode: mode(session), editorUrl: `http://${session.id}.localhost:${publicPort}/bootstrap#${session.launchCode}`});
     }
     if (req.method === 'POST' && req.url === '/admin/permissions') {
       const input = await body(req);

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import http from 'node:http';
 
 const base = process.env.POC_URL || 'http://127.0.0.1:8894';
 const secret = process.env.POC_SECRET || 'local-demo-only';
@@ -10,6 +11,27 @@ async function request(path, {token, body} = {}) {
 async function login(user, doc) {
   return (await request('/session', {body: {user, doc, password: secret}})).value;
 }
+
+test('одноразовый запуск выдаёт cookie только назначенному origin', async () => {
+  const session = await login('tabuser', `tabs-${Date.now()}`);
+  const target = new URL(session.editorUrl);
+  const code = target.hash.slice(1);
+  const withHost = (path, host, {origin, cookie, body} = {}) => new Promise((resolve, reject) => {
+    const req = http.request(base + path, {method:body ? 'POST' : 'GET', headers:{host, ...(origin ? {origin} : {}), ...(cookie ? {cookie} : {}), ...(body ? {'content-type':'application/json'} : {})}}, res => {
+      res.resume(); res.on('end', () => resolve(res));
+    });
+    req.on('error', reject); req.end(body && JSON.stringify(body));
+  });
+  const bootstrap = (host, origin) => withHost('/office-bootstrap', host, {origin, body:{code}});
+  assert.equal((await bootstrap('other.localhost:8894', 'http://other.localhost:8894')).statusCode, 403);
+  const issued = await bootstrap(target.host, target.origin);
+  assert.equal(issued.statusCode, 200);
+  const cookie = issued.headers['set-cookie'][0].split(';')[0];
+  assert.equal((await bootstrap(target.host, target.origin)).statusCode, 403);
+  assert.equal((await withHost('/office-config', target.host, {cookie})).statusCode, 200);
+  assert.equal((await withHost('/office-config', 'other.localhost:8894', {cookie})).statusCode, 401);
+  await request('/close', {token: session.token, body: {}});
+});
 
 test('последнее место атомарно, вкладки учитываются отдельно и открытый поток закрывается при отзыве', async () => {
   const doc = `test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
