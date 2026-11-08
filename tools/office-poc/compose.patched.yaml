@@ -1,0 +1,5 @@
+services:
+  documentserver:
+    image: modern-tech-office-poc-documentserver:9.4.0.1-amd-fix
+    build:
+      context: ./documentserver-patch
