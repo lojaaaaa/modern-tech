@@ -1,6 +1,7 @@
 import http from 'node:http';
 import net from 'node:net';
 import { randomUUID, randomBytes, createHash } from 'node:crypto';
+import { createOfficeBridge } from './office-bridge.mjs';
 
 const secret = process.env.POC_SECRET || 'local-demo-only';
 const lease = Number(process.env.LEASE_MS || 30000);
@@ -102,10 +103,11 @@ async function body(req) {
 }
 const validId = value => typeof value === 'string' && /^[a-zA-Z0-9_-]{1,100}$/.test(value);
 function currentSession(req) {
-  const token = /^Bearer ([A-Za-z0-9_-]+)$/.exec(req.headers.authorization || '')?.[1];
+  const token = /^Bearer ([A-Za-z0-9_-]+)$/.exec(req.headers.authorization || '')?.[1] || /(?:^|;\s*)poc_session=([A-Za-z0-9_-]+)/.exec(req.headers.cookie || '')?.[1];
   const session = sessions.get(token);
   return session?.active ? session : null;
 }
+const bridge = createOfficeBridge({sessionFor: currentSession, rightsFor, lease, sessions});
 const server = http.createServer(async (req, res) => {
   try {
     if (req.method === 'GET' && req.url === '/health') return json(res, 200, {ok: true});
@@ -118,6 +120,7 @@ const server = http.createServer(async (req, res) => {
       sessions.set(session.token, session);
       try { if (rights.edit) await reserve(session); } catch (error) { await invalidate(session); throw error; }
       if (!session.active || rightsFor(session.doc, session.user) !== rights) { await invalidate(session); return json(res, 403, {error: 'permission changed'}); }
+      res.setHeader('set-cookie', `poc_session=${session.token}; HttpOnly; SameSite=Strict; Path=/`);
       return json(res, 200, {token: session.token, user: session.user, mode: mode(session)});
     }
     if (req.method === 'POST' && req.url === '/admin/permissions') {
@@ -129,6 +132,7 @@ const server = http.createServer(async (req, res) => {
       await Promise.all([...sessions.values()].filter(s => s.doc === input.doc && s.user === input.user).map(invalidate));
       return json(res, 200, {ok: true});
     }
+    if (req.url.startsWith('/office-source/') || req.url === '/office-callback') return await bridge.handle(req, res);
     const session = currentSession(req);
     if (!session) return json(res, 401, {error: 'unauthorized'});
     if (Date.now() >= session.deadline) { await invalidate(session); return json(res, 401, {error: 'expired'}); }
@@ -157,12 +161,13 @@ const server = http.createServer(async (req, res) => {
       res.on('close', () => { clearInterval(timer); session.streams.delete(res); });
       return;
     }
-    return json(res, 404, {error: 'not found'});
+    return await bridge.handle(req, res);
   } catch (error) {
     console.error(error.message);
     if (!res.headersSent) json(res, 503, {error: 'service unavailable'}); else res.destroy();
   }
 });
+server.on('upgrade', bridge.upgrade);
 setInterval(() => {
   for (const session of sessions.values()) if (Date.now() >= session.deadline) invalidate(session).catch(error => console.error('expiry release failed:', error.message));
 }, Math.min(1000, lease / 4)).unref();
