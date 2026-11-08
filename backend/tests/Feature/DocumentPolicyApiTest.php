@@ -17,6 +17,23 @@ class DocumentPolicyApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_working_comments_are_hidden_from_read_only_users_and_replies_cannot_cross_versions(): void
+    {
+        $owner = User::factory()->create();
+        $reader = User::factory()->create();
+        $document = Document::create(['owner_id' => $owner->id, 'title' => 'Working discussion']);
+        $document->grants()->create(['user_id' => $reader->id, 'read' => true]);
+        $attributes = ['document_id' => $document->id, 'creator_id' => $owner->id, 'storage_key' => 'file.txt', 'original_name' => 'file.txt', 'mime' => 'text/plain', 'size' => 4, 'sha256' => hash('sha256', 'text'), 'status' => 'ready'];
+        $first = DocumentVersion::create($attributes + ['number' => 1]);
+        $second = DocumentVersion::create($attributes + ['number' => 2]);
+        $document->update(['published_version_id' => $first->id, 'desired_version_id' => $second->id]);
+
+        $parent = $this->actingAs($owner)->postJson('/api/v1/documents/'.$document->id.'/comments', ['body' => 'Private working discussion', 'version_id' => $first->id])->assertCreated()->json('data.id');
+        $this->postJson('/api/v1/documents/'.$document->id.'/comments', ['body' => 'Wrong version', 'version_id' => $second->id, 'parent_id' => $parent])->assertUnprocessable();
+        $this->actingAs($reader)->getJson('/api/v1/documents/'.$document->id.'/comments')->assertOk()->assertJsonPath('data', []);
+        $this->actingAs($owner)->getJson('/api/v1/documents/'.$document->id.'/comments')->assertOk()->assertJsonCount(1, 'data');
+    }
+
     public function test_entities_are_limited_to_the_current_published_version(): void
     {
         $owner = User::factory()->create();
