@@ -51,7 +51,17 @@ const DocumentWorkspace = () => {
     });
     const d = doc.data?.data;
     const activeVersionId = selectedVersion ?? d?.version?.id;
-    const isImage = d?.version?.mime.startsWith('image/') ?? false;
+    const versions = useQuery({
+        queryKey: ['versions', id, d?.processing_status],
+        queryFn: ({ signal }) => api<Resource<Version[]>>(`/documents/${id}/versions`, { signal }),
+        enabled: !!d && (tab === 'versions' || tab === 'compare' || selectedVersion !== null),
+    });
+    const activeVersion = selectedVersion
+        ? selectedVersion === d?.version?.id || d?.permissions.edit
+            ? versions.data?.data.find((version) => version.id === selectedVersion)
+            : undefined
+        : d?.version;
+    const isImage = activeVersion?.mime.startsWith('image/') ?? false;
     const text = useQuery({
         queryKey: ['document-text', activeVersionId],
         queryFn: ({ signal }) =>
@@ -60,8 +70,8 @@ const DocumentWorkspace = () => {
             }),
         enabled:
             !!activeVersionId &&
-            (selectedVersion !== null || d?.processing_status === 'ready') &&
-            (tab === 'text' || (tab === 'preview' && /\.(txt|md|csv)$/i.test(d?.version?.original_name ?? ''))),
+            activeVersion?.status === 'ready' &&
+            (tab === 'text' || (tab === 'preview' && /\.(txt|md|csv)$/i.test(activeVersion.original_name))),
     });
     const entities = useQuery({
         queryKey: ['entities', activeVersionId],
@@ -70,11 +80,6 @@ const DocumentWorkspace = () => {
                 signal,
             }),
         enabled: !!activeVersionId && !isImage && tab === 'entities',
-    });
-    const versions = useQuery({
-        queryKey: ['versions', id, d?.processing_status],
-        queryFn: ({ signal }) => api<Resource<Version[]>>(`/documents/${id}/versions`, { signal }),
-        enabled: !!d && (tab === 'versions' || tab === 'compare'),
     });
     const comments = useQuery({
         queryKey: ['comments', id],
@@ -109,6 +114,9 @@ const DocumentWorkspace = () => {
         setDiscussionOpen(true);
     };
     const jumpToComment = (c: CommentRecord) => {
+        if (c.version_id !== d?.version?.id && !d?.permissions.edit) {
+            return;
+        }
         if (target?.key === c.id) {
             setTarget(null);
             return;
@@ -255,7 +263,13 @@ const DocumentWorkspace = () => {
                         <section
                             ref={readerPanel}
                             className="content-panel reader-panel"
-                            style={tab === 'editor' ? { gridColumn: '1 / -1' } : undefined}
+                            style={
+                                tab === 'editor'
+                                    ? { gridColumn: '1 / -1' }
+                                    : tab === 'versions'
+                                      ? { height: 'auto', alignSelf: 'start' }
+                                      : undefined
+                            }
                         >
                             <div className="document-view-toolbar">
                                 <div className="tabs">
@@ -337,7 +351,7 @@ const DocumentWorkspace = () => {
                             </div>
                             {selectedVersion && selectedVersion !== d.version?.id && (
                                 <div className="version-notice">
-                                    Комментарий к предыдущей версии
+                                    {activeVersion ? `Версия ${activeVersion.number}` : 'Загружаем версию…'}
                                     <Button
                                         variant="ghost"
                                         size="small"
@@ -349,14 +363,25 @@ const DocumentWorkspace = () => {
                                     >
                                         Текущая версия
                                     </Button>
+                                    <Button variant="ghost" size="small" onClick={() => setTab('versions')}>
+                                        Все версии
+                                    </Button>
                                 </div>
                             )}
                             {tab === 'preview' &&
                                 activeVersionId &&
-                                (d.version?.status === 'ready' ? (
+                                (activeVersion?.status === 'ready' ? (
                                     <FilePreview key={activeVersionId} versionId={activeVersionId} fallback={reader} />
+                                ) : selectedVersion && versions.isPending ? (
+                                    <div className="empty-state" role="status">
+                                        Загружаем версию…
+                                    </div>
+                                ) : selectedVersion && (versions.isError || !activeVersion) ? (
+                                    <div className="empty-state">
+                                        Не удалось открыть версию. Вернитесь к списку и попробуйте снова.
+                                    </div>
                                 ) : (
-                                    <div className="empty-state">Документ обрабатывается…</div>
+                                    <div className="empty-state">Предпросмотр этой версии пока недоступен.</div>
                                 ))}
                             {tab === 'editor' && <OfficeEditor documentId={d.id} />}
                             {tab === 'text' && reader}
@@ -422,33 +447,59 @@ const DocumentWorkspace = () => {
                             )}
                             {tab === 'versions' && (
                                 <div className="version-list">
-                                    {(versions.data?.data.length ?? 0) > 1 && (
+                                    <ErrorMessage error={versions.error} />
+                                    {versions.isPending && <p role="status">Загружаем версии…</p>}
+                                    {!versions.isPending && !versions.isError && !versions.data?.data.length && (
+                                        <p className="muted">Версий пока нет.</p>
+                                    )}
+                                    {!d.permissions.edit && (
+                                        <p className="muted">
+                                            Предпросмотр предыдущих версий доступен участникам с правом редактирования.
+                                        </p>
+                                    )}
+                                    {d.permissions.edit && (versions.data?.data.length ?? 0) > 1 && (
                                         <Button variant="secondary" onClick={() => setTab('compare')}>
                                             Сравнить версии
                                         </Button>
                                     )}
-                                    {versions.data?.data.map((v) => (
-                                        <article key={v.id}>
-                                            <span className="file-icon blue">
-                                                <History size={20} />
-                                            </span>
-                                            <div>
-                                                <strong>Версия {v.number}</strong>
-                                                <small>
-                                                    {v.original_name} · {formatBytes(v.size)}
-                                                </small>
-                                            </div>
-                                            <Status value={v.status} />
-                                            {v.status === 'ready' && d.permissions.export && (
-                                                <a
-                                                    href={`/api/v1/versions/${v.id}/download`}
-                                                    aria-label={`Скачать версию ${v.number}`}
-                                                >
-                                                    <Download size={17} />
-                                                </a>
-                                            )}
-                                        </article>
-                                    ))}
+                                    {versions.data?.data
+                                        .filter((v) => d.permissions.edit || v.id === d.version?.id)
+                                        .map((v) => (
+                                            <article key={v.id}>
+                                                <span className="file-icon blue">
+                                                    <History size={20} />
+                                                </span>
+                                                <div>
+                                                    <strong>Версия {v.number}</strong>
+                                                    <small>
+                                                        {v.original_name} · {formatBytes(v.size)}
+                                                    </small>
+                                                </div>
+                                                <Status value={v.status} />
+                                                {v.status === 'ready' && (
+                                                    <Button
+                                                        variant="secondary"
+                                                        size="small"
+                                                        onClick={() => {
+                                                            setSelectedVersion(v.id);
+                                                            setTarget(null);
+                                                            setAnchor(null);
+                                                            setTab('preview');
+                                                        }}
+                                                    >
+                                                        Открыть версию {v.number}
+                                                    </Button>
+                                                )}
+                                                {v.status === 'ready' && d.permissions.export && (
+                                                    <a
+                                                        href={`/api/v1/versions/${v.id}/download`}
+                                                        aria-label={`Скачать версию ${v.number}`}
+                                                    >
+                                                        <Download size={17} />
+                                                    </a>
+                                                )}
+                                            </article>
+                                        ))}
                                 </div>
                             )}
                             {tab === 'access' && <AccessEditor id={d.id} />}

@@ -9,15 +9,97 @@ import type * as DocumentReader from '@/features/document-reader';
 const previewRender = vi.hoisted(() => vi.fn());
 vi.mock('@/features/document-reader', async (importOriginal) => ({
     ...(await importOriginal<typeof DocumentReader>()),
-    FilePreview: () => {
+    FilePreview: ({ versionId }: { versionId: string }) => {
         previewRender();
-        return <div>Просмотр изображения</div>;
+        return (
+            <div>
+                Просмотр изображения<span data-testid="preview-version">{versionId}</span>
+            </div>
+        );
     },
 }));
 afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     previewRender.mockClear();
+});
+
+it('opens the selected ready version and returns to the current one', async () => {
+    const v1 = {
+        id: 'v1',
+        number: 1,
+        mime: 'application/pdf',
+        status: 'ready',
+        size: 1024,
+        original_name: 'first.pdf',
+    };
+    const v2 = { ...v1, id: 'v2', number: 2, original_name: 'second.pdf' };
+    const pending = { ...v1, id: 'v3', number: 3, status: 'scanning' };
+    vi.stubGlobal(
+        'fetch',
+        vi.fn(async (url: string) => {
+            if (url === '/api/v1/documents/image-1')
+                return Response.json({
+                    data: {
+                        id: 'image-1',
+                        title: 'Договор',
+                        owner: { id: 1, name: 'Автор' },
+                        updated_at: '2026-10-31T10:00:00Z',
+                        processing_status: 'ready',
+                        permissions: { comment: true, edit: true, export: true, manage: true },
+                        version: v2,
+                    },
+                });
+            if (url.endsWith('/versions')) return Response.json({ data: [pending, v2, v1] });
+            if (url.endsWith('/comments')) return Response.json({ data: [] });
+            throw new Error('Unexpected request: ' + url);
+        })
+    );
+    renderDocument();
+    expect(await screen.findByTestId('preview-version')).toHaveTextContent('v2');
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Версии' }));
+    expect(await screen.findByRole('button', { name: 'Открыть версию 1' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Открыть версию 3' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Открыть версию 1' }));
+    expect(await screen.findByTestId('preview-version')).toHaveTextContent('v1');
+    await user.click(screen.getByRole('button', { name: 'Текущая версия' }));
+    expect(await screen.findByTestId('preview-version')).toHaveTextContent('v2');
+});
+
+it('does not offer historical version preview without edit permission', async () => {
+    const current = {
+        id: 'v2',
+        number: 2,
+        mime: 'application/pdf',
+        status: 'ready',
+        size: 1024,
+        original_name: 'current.pdf',
+    };
+    vi.stubGlobal(
+        'fetch',
+        vi.fn(async (url: string) => {
+            if (url === '/api/v1/documents/image-1')
+                return Response.json({
+                    data: {
+                        id: 'image-1',
+                        title: 'Договор',
+                        owner: { id: 1, name: 'Автор' },
+                        updated_at: '2026-10-31T10:00:00Z',
+                        processing_status: 'ready',
+                        permissions: { comment: false, edit: false, export: false, manage: false },
+                        version: current,
+                    },
+                });
+            if (url.endsWith('/versions'))
+                return Response.json({ data: [current, { ...current, id: 'v1', number: 1 }] });
+            throw new Error('Unexpected request: ' + url);
+        })
+    );
+    renderDocument();
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Версии' }));
+    expect(await screen.findByRole('button', { name: 'Открыть версию 2' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Открыть версию 1' })).not.toBeInTheDocument();
 });
 
 const mockOverflowingComments = (list: HTMLElement) => {
