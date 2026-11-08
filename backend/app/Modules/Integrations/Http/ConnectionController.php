@@ -50,7 +50,8 @@ final class ConnectionController
     {
         abort_unless($connection->owner_id === $request->user()->id, 404);
         DB::transaction(function () use ($connection): void {
-            $connection->update(['credentials' => [], 'status' => 'disconnected']);
+            $locked = CloudConnection::whereKey($connection->id)->lockForUpdate()->firstOrFail();
+            $locked->update(['credentials' => [], 'status' => 'disconnected']);
             CloudTransfer::where('connection_id', $connection->id)->where('status', 'queued')->update(['status' => 'cancelled']);
         });
 

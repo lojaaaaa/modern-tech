@@ -50,6 +50,11 @@ final class TransferController
             $actor = User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
             abort_unless($actor->active && $actor->role !== 'observer', 403);
             abort_if($data['direction'] === 'import' && ! $actor->hasVerifiedEmail(), 403, 'Подтвердите электронную почту перед импортом документов.');
+            $connection = CloudConnection::whereKey($connection->id)
+                ->where('owner_id', $actor->id)
+                ->where('status', 'connected')
+                ->lockForUpdate()
+                ->firstOrFail();
             $prior = DB::table('idempotency_records')->where(['user_id' => $actor->id, 'scope' => 'transfer', 'key' => $key])->first();
             if ($prior) {
                 abort_if($prior->request_hash !== $hash, 409, 'Ключ уже использован для другой операции.');
