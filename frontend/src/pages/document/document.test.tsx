@@ -81,6 +81,7 @@ it('hides image entities, loads history on demand and isolates comment typing fr
     });
     vi.stubGlobal('fetch', fetcher);
     const view = renderDocument();
+    fireEvent.click(await screen.findByRole('button', { name: 'Обсуждение' }));
     await screen.findByText('Комментариев пока нет');
     await waitFor(() => expect(view.queryClient.isFetching()).toBe(0));
     expect(screen.queryByRole('button', { name: 'Даты, суммы и организации' })).not.toBeInTheDocument();
@@ -156,6 +157,7 @@ it('brings a new comment into view in an overflowing discussion', async () => {
         })
     );
     renderDocument();
+    fireEvent.click(await screen.findByRole('button', { name: 'Обсуждение' }));
     await screen.findByText('Существующий комментарий 2');
     const list = document.querySelector<HTMLElement>('.comment-list')!;
     mockOverflowingComments(list);
@@ -220,6 +222,7 @@ it('brings a comment on selected text into view in an overflowing discussion', a
     );
     renderDocument();
     const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Обсуждение' }));
     await screen.findByText('Существующий комментарий 2');
     const list = document.querySelector<HTMLElement>('.comment-list')!;
     mockOverflowingComments(list);

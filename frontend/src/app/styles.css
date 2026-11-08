@@ -904,6 +904,34 @@ main {
     grid-template-columns: minmax(0, 1fr) 310px;
     gap: 22px;
 }
+.document-layout {
+    grid-template-columns: minmax(0, 1fr);
+}
+.document-layout.discussion-open {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+}
+.document-view-toolbar {
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border);
+}
+.document-view-toolbar > .tabs {
+    border-bottom: 0;
+    gap: 24px;
+    padding: 0 24px;
+}
+.document-view-tools {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 16px;
+    padding: 8px 24px 12px;
+}
+@media (max-width: 1100px) {
+    .document-layout.discussion-open {
+        grid-template-columns: minmax(0, 1fr);
+        overflow-y: auto;
+    }
+}
 .tabs {
     display: flex;
     align-items: center;
@@ -2117,19 +2145,21 @@ main:has(.compact-library) .breadcrumbs {
     padding-block: 10px;
 }
 .document-heading {
-    gap: 10px;
-    margin-bottom: 8px;
+    gap: 24px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
 }
 .document-heading .detail-title {
-    font-size: 19px;
+    font-size: 24px;
+    line-height: 1.4;
 }
 .document-heading p {
-    font-size: 11px;
-    margin-top: 4px;
+    font-size: 13px;
+    margin-top: 10px;
 }
 main:has(.document-heading) .back-link {
-    margin-bottom: 6px;
-    font-size: 11px;
+    margin-bottom: 16px;
+    font-size: 13px;
 }
 main:has(.document-heading) {
     padding-top: 8px;

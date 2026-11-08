@@ -30,6 +30,7 @@ const DocumentWorkspace = () => {
     const navigate = useNavigate();
     const client = useQueryClient();
     const [confirmDelete, setConfirmDelete] = useState(false);
+    const [discussionOpen, setDiscussionOpen] = useState(false);
     const [tab, setTab] = useState<'preview' | 'text' | 'versions' | 'access' | 'compare' | 'entities' | 'editor'>(
         'preview'
     );
@@ -104,6 +105,7 @@ const DocumentWorkspace = () => {
     const chooseAnchor = (value: TextAnchor) => {
         setSelectedVersion(activeVersionId ?? null);
         setAnchor(value);
+        setDiscussionOpen(true);
     };
     const jumpToComment = (c: CommentRecord) => {
         if (target?.key === c.id) {
@@ -243,73 +245,92 @@ const DocumentWorkspace = () => {
                             e.target.value = '';
                         }}
                     />
-                    <div className="detail-grid">
+                    <div
+                        className={`detail-grid document-layout ${discussionOpen && tab !== 'editor' ? 'discussion-open' : ''}`}
+                    >
                         <section
                             ref={readerPanel}
                             className="content-panel reader-panel"
                             style={tab === 'editor' ? { gridColumn: '1 / -1' } : undefined}
                         >
-                            <div className="tabs">
-                                {(d.permissions.edit || d.permissions.comment) &&
-                                    /\.docx$/i.test(d.version?.original_name ?? '') &&
-                                    d.version?.status === 'ready' && (
+                            <div className="document-view-toolbar">
+                                <div className="tabs">
+                                    {(d.permissions.edit || d.permissions.comment) &&
+                                        /\.docx$/i.test(d.version?.original_name ?? '') &&
+                                        d.version?.status === 'ready' && (
+                                            <button
+                                                className={tab === 'editor' ? 'active' : ''}
+                                                onClick={() => {
+                                                    setSelectedVersion(null);
+                                                    setTab('editor');
+                                                }}
+                                            >
+                                                Совместная работа
+                                            </button>
+                                        )}
+                                    {!isImage && (
                                         <button
-                                            className={tab === 'editor' ? 'active' : ''}
-                                            onClick={() => {
-                                                setSelectedVersion(null);
-                                                setTab('editor');
-                                            }}
+                                            className={tab === 'entities' ? 'active' : ''}
+                                            onClick={() => setTab('entities')}
                                         >
-                                            Совместная работа
+                                            Данные
                                         </button>
                                     )}
-                                {!isImage && (
-                                    <button
-                                        className={tab === 'entities' ? 'active' : ''}
-                                        onClick={() => setTab('entities')}
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        aria-label="Полноэкранный просмотр"
+                                        onClick={() => {
+                                            if (document.fullscreenElement) {
+                                                void document.exitFullscreen();
+                                            } else {
+                                                void readerPanel.current?.requestFullscreen();
+                                            }
+                                        }}
                                     >
-                                        Даты, суммы и организации
-                                    </button>
-                                )}
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    aria-label="Полноэкранный просмотр"
-                                    onClick={() => {
-                                        if (document.fullscreenElement) {
-                                            void document.exitFullscreen();
-                                        } else {
-                                            void readerPanel.current?.requestFullscreen();
-                                        }
-                                    }}
-                                >
-                                    <Maximize size={16} />
-                                </Button>
-                                <button className={tab === 'preview' ? 'active' : ''} onClick={() => setTab('preview')}>
-                                    <Eye size={16} />
-                                    Предпросмотр
-                                </button>
-                                <button className={tab === 'text' ? 'active' : ''} onClick={() => setTab('text')}>
-                                    <FileText size={16} />
-                                    Текст
-                                </button>
-                                <button
-                                    className={tab === 'versions' ? 'active' : ''}
-                                    onClick={() => setTab('versions')}
-                                >
-                                    <History size={16} />
-                                    Версии
-                                </button>
-                                {d.permissions.manage && (
+                                        <Maximize size={16} />
+                                    </Button>
                                     <button
-                                        className={tab === 'access' ? 'active' : ''}
-                                        onClick={() => setTab('access')}
+                                        className={tab === 'preview' ? 'active' : ''}
+                                        onClick={() => setTab('preview')}
                                     >
-                                        <Shield size={16} />
-                                        Доступ
+                                        <Eye size={16} />
+                                        Предпросмотр
                                     </button>
-                                )}
-                                <Status value={d.processing_status ?? 'quarantined'} />
+                                    <button className={tab === 'text' ? 'active' : ''} onClick={() => setTab('text')}>
+                                        <FileText size={16} />
+                                        Текст
+                                    </button>
+                                    <button
+                                        className={tab === 'versions' ? 'active' : ''}
+                                        onClick={() => setTab('versions')}
+                                    >
+                                        <History size={16} />
+                                        Версии
+                                    </button>
+                                    {d.permissions.manage && (
+                                        <button
+                                            className={tab === 'access' ? 'active' : ''}
+                                            onClick={() => setTab('access')}
+                                        >
+                                            <Shield size={16} />
+                                            Доступ
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="document-view-tools">
+                                    <Status value={d.processing_status ?? 'quarantined'} />
+                                    {tab !== 'editor' && (
+                                        <Button
+                                            variant="secondary"
+                                            size="small"
+                                            aria-expanded={discussionOpen}
+                                            onClick={() => setDiscussionOpen((open) => !open)}
+                                        >
+                                            {discussionOpen ? 'Скрыть обсуждение' : 'Обсуждение'}
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
                             {selectedVersion && selectedVersion !== d.version?.id && (
                                 <div className="version-notice">
@@ -429,11 +450,12 @@ const DocumentWorkspace = () => {
                             )}
                             {tab === 'access' && <AccessEditor id={d.id} />}
                         </section>
-                        {tab !== 'editor' && !d.permissions.edit && !d.permissions.comment ? (
+                        {discussionOpen && tab !== 'editor' && !d.permissions.edit && !d.permissions.comment ? (
                             <aside className="content-panel comments-panel">
                                 <p className="muted">Обсуждения опубликованной версии пока недоступны.</p>
                             </aside>
                         ) : (
+                            discussionOpen &&
                             tab !== 'editor' && (
                                 <DiscussionPanel
                                     documentId={d.id}
