@@ -11,7 +11,6 @@ import {
     Moon,
     Sun,
     Layers3,
-    ShieldCheck,
     ArrowRight,
     PanelLeftClose,
     PanelLeftOpen,
@@ -91,8 +90,22 @@ export const App = () => {
         }
         return <Login />;
     }
+    const pageNames: Record<string, string> = {
+        '/': 'Документы',
+        '/trash': 'Корзина',
+        '/integrations': 'Облачные диски',
+        '/users': 'Команда',
+        '/audit': 'Журнал действий',
+        '/verify-email': 'Подтверждение почты',
+    };
+    const pageName = location.pathname.startsWith('/documents/')
+        ? 'Документ'
+        : (pageNames[location.pathname] ?? 'Документы');
     return (
         <div key={user.id} className="app-shell">
+            <a className="skip-link" href="#main-content">
+                Перейти к содержимому
+            </a>
             {menu && (
                 <button className="mobile-nav-backdrop" aria-label="Закрыть меню" onClick={() => setMenu(false)} />
             )}
@@ -106,15 +119,8 @@ export const App = () => {
                         <small>ДОКУМЕНТЫ КОМАНДЫ</small>
                     </div>
                 </NavLink>
-                <div className="workspace-switch">
-                    <span className="workspace-avatar">М</span>
-                    <div>
-                        <strong>Моя компания</strong>
-                        <small>Рабочее пространство</small>
-                    </div>
-                </div>
-                <div className="nav-label">БИБЛИОТЕКА</div>
-                <nav>
+                <div className="nav-label">Библиотека</div>
+                <nav aria-label="Библиотека">
                     <NavLink to="/" end onClick={() => setMenu(false)}>
                         <Files size={18} />
                         Все документы
@@ -132,8 +138,8 @@ export const App = () => {
                 </nav>
                 {user.role === 'admin' && (
                     <>
-                        <div className="nav-label">УПРАВЛЕНИЕ</div>
-                        <nav>
+                        <div className="nav-label">Управление</div>
+                        <nav aria-label="Управление">
                             <NavLink to="/users" onClick={() => setMenu(false)}>
                                 <Users size={18} />
                                 Команда
@@ -179,14 +185,9 @@ export const App = () => {
                         >
                             {menu ? <PanelLeftClose size={19} /> : <PanelLeftOpen size={19} />}
                         </Button>
-                        <span className="topbar-dot" />
-                        Рабочее пространство
+                        <span className="topbar-section">{pageName}</span>
                     </div>
                     <div>
-                        <span className="private-label">
-                            <ShieldCheck size={14} />
-                            Приватный архив
-                        </span>
                         <Button
                             variant="ghost"
                             size="icon"
@@ -197,7 +198,7 @@ export const App = () => {
                         </Button>
                     </div>
                 </header>
-                <main>
+                <main id="main-content" tabIndex={-1}>
                     {user.email_verified_at === null && location.pathname !== '/verify-email' && (
                         <div className="verification-banner" role="status">
                             <span>Подтвердите email перед загрузкой, редактированием и комментированием.</span>
@@ -256,28 +257,22 @@ const Login = () => {
                     </div>
                 </div>
                 <div>
-                    <span className="story-eyebrow">ПОРЯДОК В ДОКУМЕНТАХ</span>
-                    <h1>
-                        Знания команды.
-                        <br />
-                        На своём месте.
-                    </h1>
-                    <p>
-                        Храните документы, находите нужное за секунды
-                        <br />и работайте вместе — с полным контролем доступа.
-                    </p>
-                    <div className="story-tags">
+                    <span className="story-eyebrow">Работа с документами</span>
+                    <h1>Документы команды.</h1>
+                    <p>Храните файлы, ищите по содержимому и обсуждайте документы с коллегами.</p>
+                    <div className="story-index" aria-label="Возможности">
                         <span>
-                            <Files size={16} />
-                            Единый архив
+                            <b>01</b> Файлы и версии
                         </span>
                         <span>
-                            <ShieldCheck size={16} />
-                            Приватность
+                            <b>02</b> Поиск по тексту
+                        </span>
+                        <span>
+                            <b>03</b> Совместная работа
                         </span>
                     </div>
                 </div>
-                <small>Ваши документы. Ваша инфраструктура.</small>
+                <small>Modern Tech · Документы команды</small>
             </section>
             <section className="login-form-section">
                 <form
@@ -286,6 +281,14 @@ const Login = () => {
                         login.mutate({ email, password });
                     }}
                 >
+                    <div className="brand login-mobile-brand" aria-label="Modern Tech">
+                        <span>
+                            <Layers3 size={21} />
+                        </span>
+                        <div>
+                            modern<span>tech</span>
+                        </div>
+                    </div>
                     <span className="eyebrow">РАБОЧЕЕ ПРОСТРАНСТВО</span>
                     <h2>С возвращением</h2>
                     <p className="muted">Войдите, чтобы продолжить работу с документами.</p>
