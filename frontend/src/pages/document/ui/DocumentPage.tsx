@@ -1,8 +1,8 @@
 import { Maximize } from 'lucide-react';
 import { lazy, Suspense, useState, useRef } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Download, Trash2, FileText, History, Upload, Shield, Eye } from 'lucide-react';
+import { Download, Trash2, FileText, History, Upload, Shield, Eye } from 'lucide-react';
 import { FilePreview, TextReader, type TextAnchor, type AnchorTarget } from '@/features/document-reader';
 import { CloudExport } from '@/features/cloud-export';
 import { api } from '@/shared/api/client';
@@ -179,10 +179,6 @@ const DocumentWorkspace = () => {
                     </footer>
                 </Modal>
             )}
-            <Link to="/" className="back-link">
-                <ArrowLeft size={16} />
-                Все документы
-            </Link>
             <ErrorMessage error={doc.error || remove.error || version.error} />
             {doc.isPending && (
                 <div className="empty-state" role="status">

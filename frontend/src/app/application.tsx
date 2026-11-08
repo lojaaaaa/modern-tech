@@ -12,6 +12,7 @@ import {
     Sun,
     Layers3,
     ArrowRight,
+    ArrowLeft,
     PanelLeftClose,
     PanelLeftOpen,
 } from 'lucide-react';
@@ -185,6 +186,11 @@ export const App = () => {
                         >
                             {menu ? <PanelLeftClose size={19} /> : <PanelLeftOpen size={19} />}
                         </Button>
+                        {location.pathname.startsWith('/documents/') && (
+                            <Link to="/" className="topbar-back" aria-label="Все документы">
+                                <ArrowLeft size={19} />
+                            </Link>
+                        )}
                         <span className="topbar-section">{pageName}</span>
                     </div>
                     <div>
