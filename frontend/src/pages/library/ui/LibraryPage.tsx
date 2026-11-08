@@ -37,11 +37,12 @@ export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boole
         };
         document.addEventListener('pointerdown', close, true);
         const escape = (event: KeyboardEvent) => {
-            if (event.key === 'Escape')
+            if (event.key === 'Escape') {
                 document.querySelectorAll<HTMLDetailsElement>('details.batch-actions-menu[open]').forEach((details) => {
                     details.open = false;
                     details.querySelector('summary')?.focus();
                 });
+            }
         };
         document.addEventListener('keydown', escape);
         return () => {

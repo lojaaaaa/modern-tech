@@ -249,7 +249,9 @@ const useCursorFilters = (defaults: Record<string, string>) => {
     const [filters, setFilters] = useState(defaults);
     const [cursor, setCursor] = useState('');
     const params = new URLSearchParams(Object.entries(filters).filter(([, value]) => value !== ''));
-    if (cursor) params.set('cursor', cursor);
+    if (cursor) {
+        params.set('cursor', cursor);
+    }
     return {
         filters,
         search: params.toString(),
