@@ -72,7 +72,7 @@ export async function createHarness(options = {}) {
           document: { fileType: extension, key: sessions[file].key, title: file, url: `${internal}/files/${file}`, permissions: { edit: true, comment: true, download: true } },
           editorConfig: { mode: 'edit', lang: 'en', user: { id: user, name: names[user] }, callbackUrl: `${internal}/callback/${file}`, coEditing: { mode: 'fast', change: false }, customization: { autosave: true, forcesave: true, anonymous: { request: false }, help: false, feedback: false } },
         };
-        if (url.searchParams.get('validation') === '1') {
+        if (url.searchParams.get('validation') === '1' || url.searchParams.get('discussion') === '1') {
           config.editorConfig.plugins = { autostart: [validationPlugin], pluginsData: [`${publicBase}/plugin/config.json?file=${file}&user=${user}`] };
         }
         config.token = token(config, secret);
