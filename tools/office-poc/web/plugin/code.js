@@ -1,6 +1,8 @@
 (function () {
-  const user = new URLSearchParams(location.search).get('user');
-  const file = new URLSearchParams(location.search).get('file');
+  // The editor appends its own query string, so participant context uses the path.
+  const context = location.pathname.match(/^\/plugin\/(alice|bob)\/(sample\.(?:docx|xlsx|pptx))\/index\.html$/);
+  const user = context?.[1];
+  const file = context?.[2];
   let busy = false;
 
   function run(action) {
@@ -73,6 +75,7 @@
   }
 
   Asc.plugin.init = function () {
+    if (!user || !file) throw new Error('Missing native validation participant context');
     window.pocPlugin = { run: run, editorType: Asc.plugin.info.editorType, user: user, file: file };
     document.querySelector('#status').textContent = 'Plugin ready: ' + Asc.plugin.info.editorType + ' · ' + user;
     document.querySelector('#run').disabled = false;

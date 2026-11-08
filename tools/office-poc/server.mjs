@@ -78,14 +78,17 @@ export async function createHarness(options = {}) {
         config.token = token(config, secret);
         return json(res, 200, config);
       }
-      if (req.method === 'GET' && url.pathname === '/plugin/config.json') {
-        const file = url.searchParams.get('file');
-        const user = url.searchParams.get('user');
-        if (!validFile(file) || !names[user]) return json(res, 404, { error: 'Unknown validation context' });
-        return json(res, 200, { name: 'Office acceptance', guid: validationPlugin, version: '1.0', minVersion: '8.1.0', baseUrl: `${publicBase}/plugin/`, variations: [{ description: 'Office acceptance controls', url: `index.html?file=${file}&user=${user}`, EditorsSupport: ['word', 'cell', 'slide'], type: 'panelRight', isViewer: false, initDataType: 'none', initData: '', buttons: [], icons: ['icon.svg'] }] });
+      const pluginContext = url.pathname.match(/^\/plugin\/(alice|bob)\/(sample\.(?:docx|xlsx|pptx))\/(config\.json|index\.html|code\.js|icon\.svg)$/);
+      if (req.method === 'GET' && (url.pathname === '/plugin/config.json' || pluginContext?.[3] === 'config.json')) {
+        const file = pluginContext?.[2] ?? url.searchParams.get('file');
+        const user = pluginContext?.[1] ?? url.searchParams.get('user');
+        if ((file || user) && (!validFile(file) || !names[user])) return json(res, 404, { error: 'Unknown validation context' });
+        // The native plugin SDK also loads bare config.json inside the iframe.
+        const entry = file && user ? `${user}/${file}/index.html` : 'index.html';
+        return json(res, 200, { name: 'Office acceptance', guid: validationPlugin, version: '1.0', minVersion: '8.1.0', baseUrl: `${publicBase}/plugin/`, variations: [{ description: 'Office acceptance controls', url: entry, EditorsSupport: ['word', 'cell', 'slide'], type: 'panelRight', isViewer: false, initDataType: 'none', initData: '', buttons: [], icons: ['icon.svg'] }] });
       }
-      if (req.method === 'GET' && ['/plugin/index.html', '/plugin/code.js', '/plugin/icon.svg'].includes(url.pathname)) {
-        const path = join(root, 'web', url.pathname.slice(1));
+      if (req.method === 'GET' && (['/plugin/index.html', '/plugin/code.js', '/plugin/icon.svg'].includes(url.pathname) || pluginContext)) {
+        const path = join(root, 'web/plugin', pluginContext?.[3] ?? url.pathname.split('/').pop());
         const content = (await readFile(path, 'utf8')).replaceAll('__OFFICE_PUBLIC_URL__', officePublic);
         const contentType = url.pathname.endsWith('.html') ? 'text/html; charset=utf-8' : url.pathname.endsWith('.js') ? 'text/javascript; charset=utf-8' : 'image/svg+xml';
         res.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': new URL(officePublic).origin });

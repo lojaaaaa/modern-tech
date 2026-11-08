@@ -1,0 +1,570 @@
+{
+  "at": "2026-11-08T08:20:43.909Z",
+  "run": "2026-11-08T08-20-43-909Z",
+  "kind": "live-native-editor-acceptance",
+  "base": "http://localhost:8890",
+  "office": "http://localhost:8891",
+  "formats": {
+    "docx": {
+      "result": "passed",
+      "phases": {
+        "initial-alice": {
+          "key": "9377fd7d-b8d7-45ff-95b0-2194321ae654",
+          "userId": "alice",
+          "opened": true
+        },
+        "initial-bob": {
+          "key": "9377fd7d-b8d7-45ff-95b0-2194321ae654",
+          "userId": "bob",
+          "opened": true
+        },
+        "reopened-alice": {
+          "key": "6a600c0c-b11f-4156-b856-bab5a8af2c2d",
+          "userId": "alice",
+          "opened": true
+        },
+        "reopened-bob": {
+          "key": "6a600c0c-b11f-4156-b856-bab5a8af2c2d",
+          "userId": "bob",
+          "opened": true
+        }
+      },
+      "initial": [
+        {
+          "paragraphs": [
+            "Совместный договор\r\n",
+            "Исходный абзац — Unicode: ё, Ω, 文. Важное условие\r\n",
+            "Повторяющаяся цитата.\r\n",
+            "Повторяющаяся цитата.\r\n",
+            "Сторона\t",
+            "Срок\r\n",
+            "Алиса\t",
+            "10 дней\r\n",
+            "Борис\t",
+            "20 дней\r\n",
+            "Конец исходного документа.\r\n",
+            "ALICE_DOCX_2026-11-08T07-53-51-593Z\r\n",
+            "BOB_DOCX_2026-11-08T07-53-51-593Z\r\n",
+            "ALICE_DOCX_2026-11-08T07-54-56-918Z\r\n",
+            "BOB_DOCX_2026-11-08T07-54-56-918Z\r\n"
+          ]
+        },
+        {
+          "paragraphs": [
+            "Совместный договор\r\n",
+            "Исходный абзац — Unicode: ё, Ω, 文. Важное условие\r\n",
+            "Повторяющаяся цитата.\r\n",
+            "Повторяющаяся цитата.\r\n",
+            "Сторона\t",
+            "Срок\r\n",
+            "Алиса\t",
+            "10 дней\r\n",
+            "Борис\t",
+            "20 дней\r\n",
+            "Конец исходного документа.\r\n",
+            "ALICE_DOCX_2026-11-08T07-53-51-593Z\r\n",
+            "BOB_DOCX_2026-11-08T07-53-51-593Z\r\n",
+            "ALICE_DOCX_2026-11-08T07-54-56-918Z\r\n",
+            "BOB_DOCX_2026-11-08T07-54-56-918Z\r\n"
+          ]
+        }
+      ],
+      "aliceSeenByBob": {
+        "paragraphs": [
+          "Совместный договор\r\n",
+          "Исходный абзац — Unicode: ё, Ω, 文. Важное условие\r\n",
+          "Повторяющаяся цитата.\r\n",
+          "Повторяющаяся цитата.\r\n",
+          "Сторона\t",
+          "Срок\r\n",
+          "Алиса\t",
+          "10 дней\r\n",
+          "Борис\t",
+          "20 дней\r\n",
+          "Конец исходного документа.\r\n",
+          "ALICE_DOCX_2026-11-08T07-53-51-593Z\r\n",
+          "BOB_DOCX_2026-11-08T07-53-51-593Z\r\n",
+          "ALICE_DOCX_2026-11-08T07-54-56-918Z\r\n",
+          "BOB_DOCX_2026-11-08T07-54-56-918Z\r\n",
+          "ALICE_DOCX_2026-11-08T08-20-43-909Z\r\n"
+        ]
+      },
+      "convergence": {
+        "passed": true,
+        "markers": {
+          "alice": "ALICE_DOCX_2026-11-08T08-20-43-909Z",
+          "bob": "BOB_DOCX_2026-11-08T08-20-43-909Z"
+        },
+        "clients": [
+          {
+            "paragraphs": [
+              "Совместный договор\r\n",
+              "Исходный абзац — Unicode: ё, Ω, 文. Важное условие\r\n",
+              "Повторяющаяся цитата.\r\n",
+              "Повторяющаяся цитата.\r\n",
+              "Сторона\t",
+              "Срок\r\n",
+              "Алиса\t",
+              "10 дней\r\n",
+              "Борис\t",
+              "20 дней\r\n",
+              "Конец исходного документа.\r\n",
+              "ALICE_DOCX_2026-11-08T07-53-51-593Z\r\n",
+              "BOB_DOCX_2026-11-08T07-53-51-593Z\r\n",
+              "ALICE_DOCX_2026-11-08T07-54-56-918Z\r\n",
+              "BOB_DOCX_2026-11-08T07-54-56-918Z\r\n",
+              "ALICE_DOCX_2026-11-08T08-20-43-909Z\r\n",
+              "BOB_DOCX_2026-11-08T08-20-43-909Z\r\n"
+            ]
+          },
+          {
+            "paragraphs": [
+              "Совместный договор\r\n",
+              "Исходный абзац — Unicode: ё, Ω, 文. Важное условие\r\n",
+              "Повторяющаяся цитата.\r\n",
+              "Повторяющаяся цитата.\r\n",
+              "Сторона\t",
+              "Срок\r\n",
+              "Алиса\t",
+              "10 дней\r\n",
+              "Борис\t",
+              "20 дней\r\n",
+              "Конец исходного документа.\r\n",
+              "ALICE_DOCX_2026-11-08T07-53-51-593Z\r\n",
+              "BOB_DOCX_2026-11-08T07-53-51-593Z\r\n",
+              "ALICE_DOCX_2026-11-08T07-54-56-918Z\r\n",
+              "BOB_DOCX_2026-11-08T07-54-56-918Z\r\n",
+              "ALICE_DOCX_2026-11-08T08-20-43-909Z\r\n",
+              "BOB_DOCX_2026-11-08T08-20-43-909Z\r\n"
+            ]
+          }
+        ],
+        "mainNavigations": [
+          1,
+          1
+        ]
+      },
+      "cursors": {
+        "passed": true,
+        "evidence": [
+          {
+            "observer": "alice",
+            "peer": "bob",
+            "labels": [
+              {
+                "text": "Борис Иванов",
+                "tag": "DIV",
+                "id": "",
+                "className": "username-tip",
+                "rect": {
+                  "x": 560,
+                  "y": 269,
+                  "width": 110.484375,
+                  "height": 20,
+                  "top": 269,
+                  "right": 670.484375,
+                  "bottom": 289,
+                  "left": 560
+                }
+              }
+            ]
+          },
+          {
+            "observer": "bob",
+            "peer": "alice",
+            "labels": [
+              {
+                "text": "Алиса Петрова",
+                "tag": "DIV",
+                "id": "",
+                "className": "username-tip",
+                "rect": {
+                  "x": 560,
+                  "y": 269,
+                  "width": 117.375,
+                  "height": 20,
+                  "top": 269,
+                  "right": 677.375,
+                  "bottom": 289,
+                  "left": 560
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "save": {
+        "passed": true,
+        "callback": {
+          "at": "2026-11-08T08:20:56.938Z",
+          "file": "sample.docx",
+          "key": "9377fd7d-b8d7-45ff-95b0-2194321ae654",
+          "status": 6,
+          "users": [
+            "bob"
+          ],
+          "sha256": "edbb73b412803818991e35db3209beea92075113e5fee1fb470c257b198575e5",
+          "bytes": 40659
+        },
+        "commandReply": {
+          "key": "9377fd7d-b8d7-45ff-95b0-2194321ae654",
+          "error": 0
+        },
+        "downloadedSha256": "edbb73b412803818991e35db3209beea92075113e5fee1fb470c257b198575e5"
+      },
+      "reopened": [
+        {
+          "paragraphs": [
+            "Совместный договор\r\n",
+            "Исходный абзац — Unicode: ё, Ω, 文. Важное условие\r\n",
+            "Повторяющаяся цитата.\r\n",
+            "Повторяющаяся цитата.\r\n",
+            "Сторона\t",
+            "Срок\r\n",
+            "Алиса\t",
+            "10 дней\r\n",
+            "Борис\t",
+            "20 дней\r\n",
+            "Конец исходного документа.\r\n",
+            "ALICE_DOCX_2026-11-08T07-53-51-593Z\r\n",
+            "BOB_DOCX_2026-11-08T07-53-51-593Z\r\n",
+            "ALICE_DOCX_2026-11-08T07-54-56-918Z\r\n",
+            "BOB_DOCX_2026-11-08T07-54-56-918Z\r\n",
+            "ALICE_DOCX_2026-11-08T08-20-43-909Z\r\n",
+            "BOB_DOCX_2026-11-08T08-20-43-909Z\r\n"
+          ]
+        },
+        {
+          "paragraphs": [
+            "Совместный договор\r\n",
+            "Исходный абзац — Unicode: ё, Ω, 文. Важное условие\r\n",
+            "Повторяющаяся цитата.\r\n",
+            "Повторяющаяся цитата.\r\n",
+            "Сторона\t",
+            "Срок\r\n",
+            "Алиса\t",
+            "10 дней\r\n",
+            "Борис\t",
+            "20 дней\r\n",
+            "Конец исходного документа.\r\n",
+            "ALICE_DOCX_2026-11-08T07-53-51-593Z\r\n",
+            "BOB_DOCX_2026-11-08T07-53-51-593Z\r\n",
+            "ALICE_DOCX_2026-11-08T07-54-56-918Z\r\n",
+            "BOB_DOCX_2026-11-08T07-54-56-918Z\r\n",
+            "ALICE_DOCX_2026-11-08T08-20-43-909Z\r\n",
+            "BOB_DOCX_2026-11-08T08-20-43-909Z\r\n"
+          ]
+        }
+      ],
+      "reopen": {
+        "passed": true,
+        "newKey": "6a600c0c-b11f-4156-b856-bab5a8af2c2d"
+      }
+    },
+    "xlsx": {
+      "result": "failed-cursor-evidence",
+      "phases": {
+        "initial-alice": {
+          "key": "d9779dc5-53d4-433f-9911-7828bf45cada",
+          "userId": "alice",
+          "opened": true
+        },
+        "initial-bob": {
+          "key": "d9779dc5-53d4-433f-9911-7828bf45cada",
+          "userId": "bob",
+          "opened": true
+        },
+        "reopened-alice": {
+          "key": "74414f50-69a0-4ec8-96e2-9c091a3657bc",
+          "userId": "alice",
+          "opened": true
+        },
+        "reopened-bob": {
+          "key": "74414f50-69a0-4ec8-96e2-9c091a3657bc",
+          "userId": "bob",
+          "opened": true
+        }
+      },
+      "initial": [
+        {
+          "values": [
+            [
+              17,
+              25,
+              42
+            ]
+          ],
+          "formula": "=SUM(A3:B3)",
+          "sheet": "Расчёт"
+        },
+        {
+          "values": [
+            [
+              17,
+              25,
+              42
+            ]
+          ],
+          "formula": "=SUM(A3:B3)",
+          "sheet": "Расчёт"
+        }
+      ],
+      "aliceSeenByBob": {
+        "values": [
+          [
+            17,
+            20,
+            37
+          ]
+        ],
+        "formula": "=SUM(A3:B3)",
+        "sheet": "Расчёт"
+      },
+      "convergence": {
+        "passed": true,
+        "markers": {
+          "alice": "ALICE_XLSX_2026-11-08T08-20-43-909Z",
+          "bob": "BOB_XLSX_2026-11-08T08-20-43-909Z"
+        },
+        "clients": [
+          {
+            "values": [
+              [
+                17,
+                25,
+                42
+              ]
+            ],
+            "formula": "=SUM(A3:B3)",
+            "sheet": "Расчёт"
+          },
+          {
+            "values": [
+              [
+                17,
+                25,
+                42
+              ]
+            ],
+            "formula": "=SUM(A3:B3)",
+            "sheet": "Расчёт"
+          }
+        ],
+        "mainNavigations": [
+          1,
+          1
+        ]
+      },
+      "cursors": {
+        "passed": false,
+        "reason": "visible native peer cursor/selection label: timed out; last value=[]"
+      },
+      "save": {
+        "passed": true,
+        "callback": {
+          "at": "2026-11-08T08:21:33.941Z",
+          "file": "sample.xlsx",
+          "key": "d9779dc5-53d4-433f-9911-7828bf45cada",
+          "status": 6,
+          "users": [
+            "bob"
+          ],
+          "sha256": "6d9daea282291d132e962864eff3f3dd45a1c418a65aaa4e27b28c2c3ad9d141",
+          "bytes": 10958
+        },
+        "commandReply": {
+          "key": "d9779dc5-53d4-433f-9911-7828bf45cada",
+          "error": 0
+        },
+        "downloadedSha256": "6d9daea282291d132e962864eff3f3dd45a1c418a65aaa4e27b28c2c3ad9d141"
+      },
+      "reopened": [
+        {
+          "values": [
+            [
+              17,
+              25,
+              42
+            ]
+          ],
+          "formula": "=SUM(A3:B3)",
+          "sheet": "Расчёт"
+        },
+        {
+          "values": [
+            [
+              17,
+              25,
+              42
+            ]
+          ],
+          "formula": "=SUM(A3:B3)",
+          "sheet": "Расчёт"
+        }
+      ],
+      "reopen": {
+        "passed": true,
+        "newKey": "74414f50-69a0-4ec8-96e2-9c091a3657bc"
+      }
+    },
+    "pptx": {
+      "result": "failed-cursor-evidence",
+      "phases": {
+        "initial-alice": {
+          "key": "da4f8703-32f9-49d2-8c2f-f0e8b300c826",
+          "userId": "alice",
+          "opened": true
+        },
+        "initial-bob": {
+          "key": "da4f8703-32f9-49d2-8c2f-f0e8b300c826",
+          "userId": "bob",
+          "opened": true
+        },
+        "reopened-alice": {
+          "key": "0e34f136-fecf-4410-aaf3-6189b0e3297f",
+          "userId": "alice",
+          "opened": true
+        },
+        "reopened-bob": {
+          "key": "0e34f136-fecf-4410-aaf3-6189b0e3297f",
+          "userId": "bob",
+          "opened": true
+        }
+      },
+      "initial": [
+        {
+          "slides": [
+            [
+              "План проекта\r\n",
+              "Первая контрольная точка — ё Ω 文\r\n"
+            ],
+            [
+              "Результаты\r\n",
+              "Вторая контрольная точка\r\n"
+            ]
+          ]
+        },
+        {
+          "slides": [
+            [
+              "План проекта\r\n",
+              "Первая контрольная точка — ё Ω 文\r\n"
+            ],
+            [
+              "Результаты\r\n",
+              "Вторая контрольная точка\r\n"
+            ]
+          ]
+        }
+      ],
+      "aliceSeenByBob": {
+        "slides": [
+          [
+            "План проекта\r\n",
+            "Первая контрольная точка — ё Ω 文 ALICE_PPTX_2026-11-08T08-20-43-909Z\r\n"
+          ],
+          [
+            "Результаты\r\n",
+            "Вторая контрольная точка\r\n"
+          ]
+        ]
+      },
+      "convergence": {
+        "passed": true,
+        "markers": {
+          "alice": "ALICE_PPTX_2026-11-08T08-20-43-909Z",
+          "bob": "BOB_PPTX_2026-11-08T08-20-43-909Z"
+        },
+        "clients": [
+          {
+            "slides": [
+              [
+                "План проекта\r\n",
+                "Первая контрольная точка — ё Ω 文 ALICE_PPTX_2026-11-08T08-20-43-909Z\r\n"
+              ],
+              [
+                "Результаты\r\n",
+                "Вторая контрольная точка BOB_PPTX_2026-11-08T08-20-43-909Z\r\n"
+              ]
+            ]
+          },
+          {
+            "slides": [
+              [
+                "План проекта\r\n",
+                "Первая контрольная точка — ё Ω 文 ALICE_PPTX_2026-11-08T08-20-43-909Z\r\n"
+              ],
+              [
+                "Результаты\r\n",
+                "Вторая контрольная точка BOB_PPTX_2026-11-08T08-20-43-909Z\r\n"
+              ]
+            ]
+          }
+        ],
+        "mainNavigations": [
+          1,
+          1
+        ]
+      },
+      "cursors": {
+        "passed": false,
+        "reason": "visible native peer cursor/selection label: timed out; last value=[]"
+      },
+      "save": {
+        "passed": true,
+        "callback": {
+          "at": "2026-11-08T08:22:07.452Z",
+          "file": "sample.pptx",
+          "key": "da4f8703-32f9-49d2-8c2f-f0e8b300c826",
+          "status": 6,
+          "users": [
+            "bob"
+          ],
+          "sha256": "f4771395f588e98c4d62299c564b4257d767e2d3fbf1df5adcb73dd0e888d9e6",
+          "bytes": 36466
+        },
+        "commandReply": {
+          "key": "da4f8703-32f9-49d2-8c2f-f0e8b300c826",
+          "error": 0
+        },
+        "downloadedSha256": "f4771395f588e98c4d62299c564b4257d767e2d3fbf1df5adcb73dd0e888d9e6"
+      },
+      "reopened": [
+        {
+          "slides": [
+            [
+              "План проекта\r\n",
+              "Первая контрольная точка — ё Ω 文 ALICE_PPTX_2026-11-08T08-20-43-909Z\r\n"
+            ],
+            [
+              "Результаты\r\n",
+              "Вторая контрольная точка BOB_PPTX_2026-11-08T08-20-43-909Z\r\n"
+            ]
+          ]
+        },
+        {
+          "slides": [
+            [
+              "План проекта\r\n",
+              "Первая контрольная точка — ё Ω 文 ALICE_PPTX_2026-11-08T08-20-43-909Z\r\n"
+            ],
+            [
+              "Результаты\r\n",
+              "Вторая контрольная точка BOB_PPTX_2026-11-08T08-20-43-909Z\r\n"
+            ]
+          ]
+        }
+      ],
+      "reopen": {
+        "passed": true,
+        "newKey": "0e34f136-fecf-4410-aaf3-6189b0e3297f"
+      }
+    }
+  },
+  "result": "failed",
+  "browser": "156.0.8078.81",
+  "artifactVerification": {
+    "passed": true,
+    "exitCode": 0
+  }
+}

@@ -40,7 +40,7 @@ async function request(path, method = 'GET') {
 async function plugin(page) {
   return await until('free validation plugin initialization', async () => {
     for (const frame of page.frames()) {
-      if (frame.url().includes('/plugin/index.html') && await frame.evaluate(() => Boolean(window.pocPlugin)).catch(() => false)) return frame;
+      if (frame.url().includes('/plugin/') && /\/index\.html(?:[?#]|$)/.test(frame.url()) && await frame.evaluate(() => Boolean(window.pocPlugin)).catch(() => false)) return frame;
     }
     return null;
   }, Boolean, 60000);
@@ -63,7 +63,10 @@ async function openPair(format, phase, record) {
     page.on('framenavigated', frame => { if (frame === page.mainFrame()) client.mainNavigations++; });
     page.on('pageerror', error => client.errors.push(error.message));
     await page.goto(`${base}/?file=sample.${format}&user=${user}&validation=1`);
-    await page.waitForFunction(() => window.pocReady || window.pocError, null, { timeout: 180000 });
+    await until('native editor initialization', async () => {
+      if (client.errors.length) throw new Error(`${format}/${user} initialization: ${client.errors[0]}`);
+      return await page.evaluate(() => window.pocReady || window.pocError);
+    }, Boolean, 180000);
     const error = await page.evaluate(() => window.pocError);
     if (error) throw new Error(`${format}/${user} editor error: ${JSON.stringify(error)}`);
     await plugin(page);
@@ -101,7 +104,23 @@ async function closed(clients, format, key) {
 }
 
 async function cursorEvidence(clients, format) {
-  for (const client of clients) await command(client, { op: 'select' });
+  for (const client of clients) {
+    await command(client, { op: 'select' });
+    if (format === 'pptx') {
+      // Enter inside the slide canvas rather than the thumbnails or plugin panel.
+      const editor = client.page.frames().find(frame => frame.url().includes('/presentationeditor/main/index.html'));
+      assert(editor, 'Presentation editor frame missing');
+      const hints = editor.getByRole('button', { name: 'Got it', exact: true });
+      for (let index = 0; index < await hints.count(); index++) {
+        if (await hints.nth(index).isVisible()) await hints.nth(index).click();
+      }
+      // Fixed-corpus coordinates at the runner's1920×1200 viewport: title/body text.
+      await client.page.mouse.dblclick(client.user === 'alice' ? 800 : 700, client.user === 'alice' ? 380 : 490);
+      await client.page.keyboard.press('ArrowRight');
+      await client.page.keyboard.type(' ');
+      await client.page.keyboard.press('Backspace');
+    }
+  }
   const evidence = [];
   for (const observer of clients) {
     const peer = observer.user === 'alice' ? 'bob' : 'alice';

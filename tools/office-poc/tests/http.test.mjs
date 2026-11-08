@@ -53,9 +53,15 @@ test('real-client validation explicitly loads the free plugin with the correct f
   const plugin = await response.json();
   assert.equal(plugin.guid, config.editorConfig.plugins.autostart[0]);
   assert.deepEqual(plugin.variations[0].EditorsSupport, ['word', 'cell', 'slide']);
-  assert.match(plugin.variations[0].url, /user=bob/);
-  assert.match(plugin.variations[0].url, /file=sample.xlsx/);
+  assert.equal(plugin.variations[0].url, 'bob/sample.xlsx/index.html');
+  const contextualIndex = await fetch(`${origin}/plugin/${plugin.variations[0].url}?lang=en-EN`);
+  assert.equal(contextualIndex.status, 200, 'The editor appends its language query to the plugin entry point');
+  assert.equal((await fetch(`${origin}/plugin/bob/sample.xlsx/config.json`)).status, 200);
+  assert.equal((await fetch(`${origin}/plugin/bob/sample.xlsx/code.js`)).status, 200);
   const index = await fetch(`${origin}/plugin/index.html`);
   assert.equal(index.status, 200);
   assert.match(await index.text(), /Office acceptance controls/);
+  const sdkConfig = await fetch(`${origin}/plugin/config.json`);
+  assert.equal(sdkConfig.status, 200, 'The native plugin SDK re-fetches bare config.json during startup');
+  assert.equal((await sdkConfig.json()).guid, plugin.guid);
 });

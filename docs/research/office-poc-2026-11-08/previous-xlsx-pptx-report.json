@@ -1,0 +1,359 @@
+{
+  "at": "2026-11-08T08:05:39.793Z",
+  "run": "2026-11-08T08-05-39-793Z",
+  "kind": "live-native-editor-acceptance",
+  "base": "http://localhost:8890",
+  "office": "http://localhost:8891",
+  "formats": {
+    "xlsx": {
+      "result": "passed",
+      "phases": {
+        "initial-alice": {
+          "key": "32827cc5-eb87-4e8d-b676-ebbb016fefa4",
+          "userId": "alice",
+          "opened": true
+        },
+        "initial-bob": {
+          "key": "32827cc5-eb87-4e8d-b676-ebbb016fefa4",
+          "userId": "bob",
+          "opened": true
+        },
+        "reopened-alice": {
+          "key": "e47db85e-1470-427e-a43a-cc5360027069",
+          "userId": "alice",
+          "opened": true
+        },
+        "reopened-bob": {
+          "key": "e47db85e-1470-427e-a43a-cc5360027069",
+          "userId": "bob",
+          "opened": true
+        }
+      },
+      "initial": [
+        {
+          "values": [
+            [
+              10,
+              25,
+              35
+            ]
+          ],
+          "formula": "=SUM(A3:B3)",
+          "sheet": "Расчёт"
+        },
+        {
+          "values": [
+            [
+              10,
+              25,
+              35
+            ]
+          ],
+          "formula": "=SUM(A3:B3)",
+          "sheet": "Расчёт"
+        }
+      ],
+      "aliceSeenByBob": {
+        "values": [
+          [
+            17,
+            20,
+            37
+          ]
+        ],
+        "formula": "=SUM(A3:B3)",
+        "sheet": "Расчёт"
+      },
+      "convergence": {
+        "passed": true,
+        "markers": {
+          "alice": "ALICE_XLSX_2026-11-08T08-05-39-793Z",
+          "bob": "BOB_XLSX_2026-11-08T08-05-39-793Z"
+        },
+        "clients": [
+          {
+            "values": [
+              [
+                17,
+                25,
+                42
+              ]
+            ],
+            "formula": "=SUM(A3:B3)",
+            "sheet": "Расчёт"
+          },
+          {
+            "values": [
+              [
+                17,
+                25,
+                42
+              ]
+            ],
+            "formula": "=SUM(A3:B3)",
+            "sheet": "Расчёт"
+          }
+        ],
+        "mainNavigations": [
+          1,
+          1
+        ]
+      },
+      "cursors": {
+        "passed": true,
+        "evidence": [
+          {
+            "observer": "alice",
+            "peer": "bob",
+            "labels": [
+              {
+                "text": "Борис Иванов",
+                "tag": "DIV",
+                "id": "",
+                "className": "username-tip",
+                "rect": {
+                  "x": 388,
+                  "y": 213,
+                  "width": 110.484375,
+                  "height": 20,
+                  "top": 213,
+                  "right": 498.484375,
+                  "bottom": 233,
+                  "left": 388
+                }
+              }
+            ]
+          },
+          {
+            "observer": "bob",
+            "peer": "alice",
+            "labels": [
+              {
+                "text": "Алиса Петрова",
+                "tag": "DIV",
+                "id": "",
+                "className": "username-tip",
+                "rect": {
+                  "x": 262,
+                  "y": 213,
+                  "width": 117.375,
+                  "height": 20,
+                  "top": 213,
+                  "right": 379.375,
+                  "bottom": 233,
+                  "left": 262
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "save": {
+        "passed": true,
+        "callback": {
+          "at": "2026-11-08T08:05:50.825Z",
+          "file": "sample.xlsx",
+          "key": "32827cc5-eb87-4e8d-b676-ebbb016fefa4",
+          "status": 6,
+          "users": [
+            "bob"
+          ],
+          "sha256": "295ec1dc6175e38cc7b6a1673a93b610476f06a9d97306934dbfc426a0c2e22e",
+          "bytes": 10959
+        },
+        "commandReply": {
+          "key": "32827cc5-eb87-4e8d-b676-ebbb016fefa4",
+          "error": 0
+        },
+        "downloadedSha256": "295ec1dc6175e38cc7b6a1673a93b610476f06a9d97306934dbfc426a0c2e22e"
+      },
+      "reopened": [
+        {
+          "values": [
+            [
+              17,
+              25,
+              42
+            ]
+          ],
+          "formula": "=SUM(A3:B3)",
+          "sheet": "Расчёт"
+        },
+        {
+          "values": [
+            [
+              17,
+              25,
+              42
+            ]
+          ],
+          "formula": "=SUM(A3:B3)",
+          "sheet": "Расчёт"
+        }
+      ],
+      "reopen": {
+        "passed": true,
+        "newKey": "e47db85e-1470-427e-a43a-cc5360027069"
+      }
+    },
+    "pptx": {
+      "result": "failed-cursor-evidence",
+      "phases": {
+        "initial-alice": {
+          "key": "25d9b4ee-9792-4404-be0e-a44ac3dbe319",
+          "userId": "alice",
+          "opened": true
+        },
+        "initial-bob": {
+          "key": "25d9b4ee-9792-4404-be0e-a44ac3dbe319",
+          "userId": "bob",
+          "opened": true
+        },
+        "reopened-alice": {
+          "key": "53570750-3f8e-4a08-a3e9-96f7fcc3decd",
+          "userId": "alice",
+          "opened": true
+        },
+        "reopened-bob": {
+          "key": "53570750-3f8e-4a08-a3e9-96f7fcc3decd",
+          "userId": "bob",
+          "opened": true
+        }
+      },
+      "initial": [
+        {
+          "slides": [
+            [
+              "План проекта\r\n",
+              "Первая контрольная точка — ё Ω 文\r\n"
+            ],
+            [
+              "Результаты\r\n",
+              "Вторая контрольная точка\r\n"
+            ]
+          ]
+        },
+        {
+          "slides": [
+            [
+              "План проекта\r\n",
+              "Первая контрольная точка — ё Ω 文\r\n"
+            ],
+            [
+              "Результаты\r\n",
+              "Вторая контрольная точка\r\n"
+            ]
+          ]
+        }
+      ],
+      "aliceSeenByBob": {
+        "slides": [
+          [
+            "План проекта\r\n",
+            "Первая контрольная точка — ё Ω 文 ALICE_PPTX_2026-11-08T08-05-39-793Z\r\n"
+          ],
+          [
+            "Результаты\r\n",
+            "Вторая контрольная точка\r\n"
+          ]
+        ]
+      },
+      "convergence": {
+        "passed": true,
+        "markers": {
+          "alice": "ALICE_PPTX_2026-11-08T08-05-39-793Z",
+          "bob": "BOB_PPTX_2026-11-08T08-05-39-793Z"
+        },
+        "clients": [
+          {
+            "slides": [
+              [
+                "План проекта\r\n",
+                "Первая контрольная точка — ё Ω 文 ALICE_PPTX_2026-11-08T08-05-39-793Z\r\n"
+              ],
+              [
+                "Результаты\r\n",
+                "Вторая контрольная точка BOB_PPTX_2026-11-08T08-05-39-793Z\r\n"
+              ]
+            ]
+          },
+          {
+            "slides": [
+              [
+                "План проекта\r\n",
+                "Первая контрольная точка — ё Ω 文 ALICE_PPTX_2026-11-08T08-05-39-793Z\r\n"
+              ],
+              [
+                "Результаты\r\n",
+                "Вторая контрольная точка BOB_PPTX_2026-11-08T08-05-39-793Z\r\n"
+              ]
+            ]
+          }
+        ],
+        "mainNavigations": [
+          1,
+          1
+        ]
+      },
+      "cursors": {
+        "passed": false,
+        "reason": "visible native peer cursor/selection label: timed out; last value=[]"
+      },
+      "save": {
+        "passed": true,
+        "callback": {
+          "at": "2026-11-08T08:06:24.763Z",
+          "file": "sample.pptx",
+          "key": "25d9b4ee-9792-4404-be0e-a44ac3dbe319",
+          "status": 6,
+          "users": [
+            "bob"
+          ],
+          "sha256": "7ebc406dab582b03040fe71763f8b3f62b306b3709778f2965ac7dcbcfc789bd",
+          "bytes": 36386
+        },
+        "commandReply": {
+          "key": "25d9b4ee-9792-4404-be0e-a44ac3dbe319",
+          "error": 0
+        },
+        "downloadedSha256": "7ebc406dab582b03040fe71763f8b3f62b306b3709778f2965ac7dcbcfc789bd"
+      },
+      "reopened": [
+        {
+          "slides": [
+            [
+              "План проекта\r\n",
+              "Первая контрольная точка — ё Ω 文 ALICE_PPTX_2026-11-08T08-05-39-793Z\r\n"
+            ],
+            [
+              "Результаты\r\n",
+              "Вторая контрольная точка BOB_PPTX_2026-11-08T08-05-39-793Z\r\n"
+            ]
+          ]
+        },
+        {
+          "slides": [
+            [
+              "План проекта\r\n",
+              "Первая контрольная точка — ё Ω 文 ALICE_PPTX_2026-11-08T08-05-39-793Z\r\n"
+            ],
+            [
+              "Результаты\r\n",
+              "Вторая контрольная точка BOB_PPTX_2026-11-08T08-05-39-793Z\r\n"
+            ]
+          ]
+        }
+      ],
+      "reopen": {
+        "passed": true,
+        "newKey": "53570750-3f8e-4a08-a3e9-96f7fcc3decd"
+      }
+    }
+  },
+  "result": "failed",
+  "browser": "156.0.8078.81",
+  "artifactVerification": {
+    "passed": false,
+    "reason": "All three callback artifacts are required"
+  }
+}
