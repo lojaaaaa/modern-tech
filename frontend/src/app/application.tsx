@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
-import { Routes, Route, NavLink, Navigate } from 'react-router-dom';
+import { Routes, Route, NavLink, Navigate, Link, useLocation } from 'react-router-dom';
 import { client } from './query-client';
 import {
     Files,
@@ -29,8 +29,15 @@ const DocumentPage = lazy(() => import('@/pages/document').then((module) => ({ d
 const UsersPage = lazy(() => import('@/pages/admin').then((module) => ({ default: module.UsersPage })));
 const AuditPage = lazy(() => import('@/pages/admin').then((module) => ({ default: module.AuditPage })));
 const PasswordPage = lazy(() => import('@/pages/password').then((module) => ({ default: module.PasswordPage })));
+const RegistrationPage = lazy(() =>
+    import('@/pages/registration').then((module) => ({ default: module.RegistrationPage }))
+);
+const VerificationPage = lazy(() =>
+    import('@/pages/registration').then((module) => ({ default: module.VerificationPage }))
+);
 
 export const App = () => {
+    const location = useLocation();
     const session = useSession();
     const logout = useLogout();
     const dark = useTheme((s) => s.dark);
@@ -56,7 +63,7 @@ export const App = () => {
         );
     }
     const user = session.data?.data;
-    if (['/forgot-password', '/reset-password'].includes(window.location.pathname)) {
+    if (['/forgot-password', '/reset-password'].includes(location.pathname)) {
         return (
             <Suspense
                 fallback={
@@ -70,6 +77,19 @@ export const App = () => {
         );
     }
     if (!user) {
+        if (location.pathname === '/register') {
+            return (
+                <Suspense
+                    fallback={
+                        <div className="empty-state" role="status">
+                            Загрузка…
+                        </div>
+                    }
+                >
+                    <RegistrationPage />
+                </Suspense>
+            );
+        }
         return <Login />;
     }
     return (
@@ -179,6 +199,12 @@ export const App = () => {
                     </div>
                 </header>
                 <main>
+                    {user.email_verified_at === null && location.pathname !== '/verify-email' && (
+                        <div className="verification-banner" role="status">
+                            <span>Подтвердите email перед загрузкой, редактированием и комментированием.</span>
+                            <Link to="/verify-email">Подтвердить электронную почту</Link>
+                        </div>
+                    )}
                     <Suspense
                         fallback={
                             <div className="empty-state" role="status">
@@ -187,6 +213,11 @@ export const App = () => {
                         }
                     >
                         <Routes>
+                            <Route
+                                path="/register"
+                                element={<Navigate to={user.email_verified_at ? '/' : '/verify-email'} replace />}
+                            />
+                            <Route path="/verify-email" element={<VerificationPage user={user} />} />
                             <Route path="/" element={<LibraryPage key={`documents:${user.id}`} user={user} />} />
                             <Route path="/trash" element={<LibraryPage key={`trash:${user.id}`} user={user} trash />} />
                             <Route
@@ -289,7 +320,9 @@ const Login = () => {
                     <a className="login-help block" href="/forgot-password">
                         Забыли пароль?
                     </a>
-                    <p className="login-help">Нет доступа? Обратитесь к администратору вашей компании.</p>
+                    <Link className="login-help block" to="/register">
+                        Создать учётную запись
+                    </Link>
                 </form>
             </section>
         </div>
