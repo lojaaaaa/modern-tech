@@ -938,10 +938,10 @@ main {
     grid-template-columns: minmax(0, 1fr) 310px;
     gap: 22px;
 }
-.document-layout {
+.detail-grid.document-layout {
     grid-template-columns: minmax(0, 1fr);
 }
-.document-layout.discussion-open {
+.detail-grid.document-layout.discussion-open {
     grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
 }
 .document-view-toolbar {
@@ -961,7 +961,7 @@ main {
     padding: 8px 24px 12px;
 }
 @media (max-width: 1100px) {
-    .document-layout.discussion-open {
+    .detail-grid.document-layout.discussion-open {
         grid-template-columns: minmax(0, 1fr);
         overflow-y: auto;
     }
