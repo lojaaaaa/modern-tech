@@ -2426,6 +2426,26 @@ main:has(.document-heading) {
     background: #203e30;
     color: #a9e0bd;
 }
+.office-editor {
+    min-height: 640px;
+    display: flex;
+    flex-direction: column;
+}
+
+.office-editor > p {
+    margin: 8px 16px;
+}
+.office-editor-frame {
+    min-height: 600px;
+    flex: 1;
+}
+.office-editor > iframe {
+    width: 100%;
+    min-height: 600px;
+    flex: 1;
+    border: 0;
+}
+
 .reader-panel:fullscreen {
     background: var(--surface);
     padding: 12px;

@@ -14,6 +14,7 @@ import { Status } from '@/shared/ui/status';
 import { ErrorMessage } from '@/shared/ui/error-message';
 import { formatBytes, formatDate } from '@/shared/lib/utils';
 import { DiscussionPanel } from './DiscussionPanel';
+import { OfficeEditor } from './OfficeEditor';
 
 const VersionCompare = lazy(() =>
     import('@/features/version-compare').then((module) => ({ default: module.VersionCompare }))
@@ -29,7 +30,9 @@ const DocumentWorkspace = () => {
     const navigate = useNavigate();
     const client = useQueryClient();
     const [confirmDelete, setConfirmDelete] = useState(false);
-    const [tab, setTab] = useState<'preview' | 'text' | 'versions' | 'access' | 'compare' | 'entities'>('preview');
+    const [tab, setTab] = useState<'preview' | 'text' | 'versions' | 'access' | 'compare' | 'entities' | 'editor'>(
+        'preview'
+    );
     const [anchor, setAnchor] = useState<TextAnchor | null>(null);
     const [target, setTarget] = useState<AnchorTarget | null>(null);
     const [newCommentId, setNewCommentId] = useState<string | null>(null);
@@ -74,7 +77,7 @@ const DocumentWorkspace = () => {
     const comments = useQuery({
         queryKey: ['comments', id],
         queryFn: ({ signal }) => api<Resource<CommentRecord[]>>(`/documents/${id}/comments`, { signal }),
-        enabled: !!d,
+        enabled: !!d && tab !== 'editor' && (d.permissions.comment || d.permissions.edit),
     });
     const remove = useMutation({
         mutationFn: () => api(`/documents/${id}`, { method: 'DELETE' }),
@@ -235,8 +238,25 @@ const DocumentWorkspace = () => {
                         }}
                     />
                     <div className="detail-grid">
-                        <section ref={readerPanel} className="content-panel reader-panel">
+                        <section
+                            ref={readerPanel}
+                            className="content-panel reader-panel"
+                            style={tab === 'editor' ? { gridColumn: '1 / -1' } : undefined}
+                        >
                             <div className="tabs">
+                                {(d.permissions.edit || d.permissions.comment) &&
+                                    /\.docx$/i.test(d.version?.original_name ?? '') &&
+                                    d.version?.status === 'ready' && (
+                                        <button
+                                            className={tab === 'editor' ? 'active' : ''}
+                                            onClick={() => {
+                                                setSelectedVersion(null);
+                                                setTab('editor');
+                                            }}
+                                        >
+                                            Совместная работа
+                                        </button>
+                                    )}
                                 {!isImage && (
                                     <button
                                         className={tab === 'entities' ? 'active' : ''}
@@ -308,10 +328,15 @@ const DocumentWorkspace = () => {
                                 ) : (
                                     <div className="empty-state">Документ обрабатывается…</div>
                                 ))}
+                            {tab === 'editor' && <OfficeEditor documentId={d.id} />}
                             {tab === 'text' && reader}
                             {tab === 'entities' && !isImage && (
                                 <div className="access-editor">
-                                    <p>Сущности определяются по простым правилам: даты, email, суммы и некоторые названия российских организаций. Возможны пропуски и ложные совпадения; результат не является полноценным распознаванием имён и организаций.</p>
+                                    <p>
+                                        Сущности определяются по простым правилам: даты, email, суммы и некоторые
+                                        названия российских организаций. Возможны пропуски и ложные совпадения;
+                                        результат не является полноценным распознаванием имён и организаций.
+                                    </p>
                                     <ErrorMessage error={entities.error} />
                                     {entities.isPending ? (
                                         <p>Загрузка…</p>
@@ -398,19 +423,27 @@ const DocumentWorkspace = () => {
                             )}
                             {tab === 'access' && <AccessEditor id={d.id} />}
                         </section>
-                        <DiscussionPanel
-                            documentId={d.id}
-                            versionId={activeVersionId}
-                            canComment={d.permissions.comment}
-                            comments={comments.data?.data ?? []}
-                            error={comments.error}
-                            anchor={anchor}
-                            newCommentId={newCommentId}
-                            onCommentCreated={setNewCommentId}
-                            onCommentShown={() => setNewCommentId(null)}
-                            onClearAnchor={() => setAnchor(null)}
-                            onJump={jumpToComment}
-                        />
+                        {tab !== 'editor' && !d.permissions.edit && !d.permissions.comment ? (
+                            <aside className="content-panel comments-panel">
+                                <p className="muted">Обсуждения опубликованной версии пока недоступны.</p>
+                            </aside>
+                        ) : (
+                            tab !== 'editor' && (
+                                <DiscussionPanel
+                                    documentId={d.id}
+                                    versionId={activeVersionId}
+                                    canComment={d.permissions.comment}
+                                    comments={comments.data?.data ?? []}
+                                    error={comments.error}
+                                    anchor={anchor}
+                                    newCommentId={newCommentId}
+                                    onCommentCreated={setNewCommentId}
+                                    onCommentShown={() => setNewCommentId(null)}
+                                    onClearAnchor={() => setAnchor(null)}
+                                    onJump={jumpToComment}
+                                />
+                            )
+                        )}
                     </div>
                 </>
             )}
