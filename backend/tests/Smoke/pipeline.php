@@ -6,7 +6,7 @@ use App\Models\User;
 use App\Modules\Documents\Services\UploadDocument;
 use App\Modules\Processing\Jobs\ProcessVersion;
 use Illuminate\Contracts\Console\Kernel;
-use Illuminate\Http\UploadedFile;
+use App\Modules\Documents\Services\IncomingFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -22,7 +22,7 @@ DB::beginTransaction();
 try {
     file_put_contents($temporary, 'Контрольный документ: управление архивом. Reliable searchable archive.');
     $user = User::create(['name' => 'Smoke test', 'email' => 'smoke-'.bin2hex(random_bytes(8)).'@example.invalid', 'password' => bin2hex(random_bytes(32)), 'role' => 'employee', 'active' => true]);
-    $document = app(UploadDocument::class)->execute($user, new UploadedFile($temporary, 'smoke.txt', 'text/plain', null, true), null, 'smoke-test');
+    $document = app(UploadDocument::class)->execute($user, new IncomingFile($temporary, 'smoke.txt'), null, 'smoke-test');
     $version = $document->versions()->firstOrFail();
     $stored = $version->storage_key;
     app()->call([new ProcessVersion($version->id), 'handle']);

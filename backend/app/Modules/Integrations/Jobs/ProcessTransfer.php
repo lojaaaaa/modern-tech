@@ -14,7 +14,7 @@ use App\Modules\Integrations\Services\CloudFailure;
 use App\Modules\Integrations\Services\ProviderFactory;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Http\UploadedFile;
+use App\Modules\Documents\Services\IncomingFile;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 
@@ -69,7 +69,7 @@ final class ProcessTransfer implements ShouldQueue
                     throw new CloudFailure('INVALID_FILE_SIZE');
                 }
                 // Imported files enter exactly the same quarantine as browser uploads.
-                $document = $uploads->execute($user, new UploadedFile($temporary, $transfer->filename, null, null, true), null, 'transfer:'.$transfer->id);
+                $document = $uploads->execute($user, new IncomingFile($temporary, $transfer->filename), null, 'transfer:'.$transfer->id);
                 $transfer->document_id = $document->id;
             }
             $transfer->status = 'completed';

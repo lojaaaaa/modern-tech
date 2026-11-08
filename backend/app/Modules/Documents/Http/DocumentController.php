@@ -10,6 +10,7 @@ use App\Modules\Documents\Models\Document;
 use App\Modules\Documents\Models\DocumentVersion;
 use App\Modules\Documents\Services\DocumentListing;
 use App\Modules\Documents\Services\UploadDocument;
+use App\Modules\Documents\Services\IncomingFile;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -37,7 +38,7 @@ final class DocumentController
     {
         $key = $request->header('Idempotency-Key');
         abort_unless(is_string($key) && strlen($key) >= 8 && strlen($key) <= 100, 422, 'Нужен Idempotency-Key длиной 8-100 символов.');
-        $document = $upload->execute($request->user(), $request->file('file'), $request->validated('title'), $key);
+        $document = $upload->execute($request->user(), new IncomingFile($request->file('file')->getPathname(), $request->file('file')->getClientOriginalName()), $request->validated('title'), $key);
 
         return (new DocumentResource($document->load(['owner', 'publishedVersion', 'desiredVersion'])))->response()->setStatusCode(202);
     }
@@ -101,7 +102,7 @@ final class DocumentController
         $key = $request->header('Idempotency-Key');
         abort_unless(is_string($key) && strlen($key) >= 8 && strlen($key) <= 100, 422);
 
-        return (new DocumentResource($upload->execute($request->user(), $request->file('file'), null, $key, $document)->load(['owner', 'publishedVersion', 'desiredVersion'])))->response()->setStatusCode(202);
+        return (new DocumentResource($upload->execute($request->user(), new IncomingFile($request->file('file')->getPathname(), $request->file('file')->getClientOriginalName()), null, $key, $document)->load(['owner', 'publishedVersion', 'desiredVersion'])))->response()->setStatusCode(202);
     }
 
     public function download(Request $request, DocumentVersion $version)
