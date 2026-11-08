@@ -463,6 +463,19 @@ textarea {
     color: var(--text);
     font-weight: 600;
 }
+.topbar-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+}
+.topbar-back:hover {
+    color: var(--text);
+    background: var(--hover);
+}
 .topbar > div {
     display: flex;
     align-items: center;
@@ -2156,8 +2169,16 @@ dialog.modal > p {
     align-self: baseline;
     line-height: 1.4;
 }
-.document-title-line .status svg { display: none; }
-.document-title-line .status::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.document-title-line .status svg {
+    display: none;
+}
+.document-title-line .status::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+}
 .document-heading .eyebrow {
     display: none;
 }
