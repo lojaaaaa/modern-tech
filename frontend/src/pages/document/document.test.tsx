@@ -81,9 +81,9 @@ it('hides image entities, loads history on demand and isolates comment typing fr
     });
     vi.stubGlobal('fetch', fetcher);
     const view = renderDocument();
-    await screen.findByText('Нет комментариев');
+    await screen.findByText('Комментариев пока нет');
     await waitFor(() => expect(view.queryClient.isFetching()).toBe(0));
-    expect(screen.queryByRole('button', { name: 'Извлечённые данные' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Даты, суммы и организации' })).not.toBeInTheDocument();
     expect(fetcher.mock.calls.some(([url]) => url.endsWith('/entities') || url.endsWith('/versions'))).toBe(false);
     const renders = previewRender.mock.calls.length;
     const user = userEvent.setup();
@@ -162,7 +162,7 @@ it('brings a new comment into view in an overflowing discussion', async () => {
     expect(list.scrollTop).toBe(0);
     const user = userEvent.setup();
     await user.type(screen.getByLabelText('Текст комментария'), comment.body);
-    await user.click(screen.getByRole('button', { name: 'Отправить' }));
+    await user.click(screen.getByRole('button', { name: 'Добавить комментарий' }));
     expect(await screen.findByText(comment.body)).toBeInTheDocument();
     await waitFor(() => expect(list.scrollTop).toBe(120));
 });
@@ -235,7 +235,7 @@ it('brings a comment on selected text into view in an overflowing discussion', a
     fireEvent.mouseUp(content);
     await user.click(screen.getByRole('button', { name: 'Комментировать выделение' }));
     await user.type(screen.getByLabelText('Комментарий к выделению'), comment.body);
-    await user.click(screen.getAllByRole('button', { name: 'Отправить' })[0]!);
+    await user.click(screen.getByRole('button', { name: 'Отправить' }));
     expect(await screen.findByText(comment.body)).toBeInTheDocument();
     await waitFor(() => expect(list.scrollTop).toBe(120));
 });
