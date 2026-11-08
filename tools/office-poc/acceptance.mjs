@@ -104,7 +104,7 @@ async function closed(clients, format, key) {
 }
 
 async function cursorEvidence(clients, format) {
-  for (const client of clients) {
+  async function activate(client) {
     await command(client, { op: 'select' });
     if (format === 'pptx') {
       // Enter inside the slide canvas rather than the thumbnails or plugin panel.
@@ -124,6 +124,12 @@ async function cursorEvidence(clients, format) {
   const evidence = [];
   for (const observer of clients) {
     const peer = observer.user === 'alice' ? 'bob' : 'alice';
+    const peerClient = clients.find(client => client.user === peer);
+    // Presentation cursor positioning needs a text target in the observer.
+    // Peer labels are transient, so generate each peer movement immediately
+    // before observing it instead of waiting for both selections first.
+    await activate(observer);
+    await activate(peerClient);
     const result = await until('visible native peer cursor/selection label', async () => {
       const frames = [];
       for (const frame of observer.page.frames()) {
