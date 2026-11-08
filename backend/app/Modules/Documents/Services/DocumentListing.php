@@ -18,6 +18,7 @@ final class DocumentListing
      */
     public function query(User $user, array $filters): Builder
     {
+        $term = trim($filters['q'] ?? '');
         $query = Document::query()->visibleTo($user)->with(['owner', 'publishedVersion', 'desiredVersion', 'grants' => fn ($grants) => $grants->where('user_id', $user->id)]);
         if (! empty($filters['trash'])) {
             $query->onlyTrashed();
@@ -37,11 +38,15 @@ final class DocumentListing
         if (! empty($filters['tag_id'])) {
             $query->whereIn('id', DB::table('document_tags')->select('document_id')->where('tag_id', $filters['tag_id']));
         }
+        if ($term !== '') {
+            $query->whereNotNull('published_version_id');
+        }
+        $versionRelation = $term !== '' ? 'publishedVersion' : 'desiredVersion';
         if (! empty($filters['format'])) {
-            $query->whereHas('desiredVersion', fn ($v) => $v->whereRaw('lower(original_name) LIKE ?', ['%.'.$filters['format']]));
+            $query->whereHas($versionRelation, fn ($v) => $v->whereRaw('lower(original_name) LIKE ?', ['%.'.$filters['format']]));
         }
         if (! empty($filters['status'])) {
-            $query->whereHas('desiredVersion', fn ($v) => $v->where('status', $filters['status']));
+            $query->whereHas($versionRelation, fn ($v) => $v->where('status', $filters['status']));
         }
         foreach (['created', 'updated'] as $date) {
             if (! empty($filters[$date.'_from'])) {
@@ -51,7 +56,6 @@ final class DocumentListing
                 $query->where($date.'_at', '<', CarbonImmutable::parse($filters[$date.'_to'])->addDay()->startOfDay());
             }
         }
-        $term = trim($filters['q'] ?? '');
         if ($term !== '') {
             app(SearchDocuments::class)->apply($query, $term);
         }
@@ -64,7 +68,8 @@ final class DocumentListing
             } elseif ($sort === 'owner') {
                 $query->orderBy(User::select('name')->whereColumn('users.id', 'documents.owner_id')->limit(1), $direction);
             } else {
-                $subquery = DocumentVersion::whereColumn('document_versions.id', 'documents.desired_version_id');
+                $versionColumn = $term !== '' ? 'documents.published_version_id' : 'documents.desired_version_id';
+                $subquery = DocumentVersion::whereColumn('document_versions.id', $versionColumn);
                 if ($sort === 'format') {
                     // The extension is the last segment, independent of filename length/case.
                     $subquery->selectRaw(DB::getDriverName() === 'pgsql' ? "lower(substring(original_name from '[^.]+$'))" : 'lower(mime)');
