@@ -18,6 +18,11 @@ final class CommentController
     public function index(Request $request, Document $document): JsonResponse
     {
         Gate::authorize('read', $document);
+        // These rows are mutable working discussions, not publication snapshots.
+        // Do not expose them to readers without draft access until snapshots exist.
+        if (! $request->user()->can('comment', $document) && ! $request->user()->can('edit', $document)) {
+            return response()->json(['data' => []]);
+        }
         $comments = DB::table('document_comments')->join('users', 'users.id', '=', 'document_comments.author_id')->where('document_id', $document->id)->orderBy('document_comments.created_at')->get(['document_comments.*', 'users.name as author_name']);
         $comments->each(function ($c): void {
             if ($c->deleted_at) {
@@ -46,7 +51,7 @@ final class CommentController
             abort_unless($quote === $data['anchor_quote'], 422, 'Фрагмент не совпадает с текстом версии.');
         }
         if ($data['parent_id'] ?? null) {
-            abort_unless(DB::table('document_comments')->where('id', $data['parent_id'])->where('document_id', $document->id)->whereNull('parent_id')->exists(), 422);
+            abort_unless(DB::table('document_comments')->where('id', $data['parent_id'])->where('document_id', $document->id)->where('version_id', $data['version_id'])->whereNull('parent_id')->whereNull('deleted_at')->exists(), 422);
         }
         $key = $request->header('Idempotency-Key');
         abort_if($key !== null && (strlen($key) < 8 || strlen($key) > 100), 422);
