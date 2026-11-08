@@ -1,0 +1,32 @@
+import { chromium } from '../office-poc/node_modules/playwright/index.mjs';
+import net from 'node:net';
+const base=process.env.POC_URL || 'http://localhost:8894', secret=process.env.POC_SECRET || 'local-demo-only';
+const gateway=new URL(base), doc='revoke'+Date.now(), user='alice';
+if(gateway.protocol!=='http:' || !['localhost','127.0.0.1'].includes(gateway.hostname)) throw Error('Use only the isolated local PoC gateway');
+const post=async(path,body)=>{const res=await fetch(base+path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});if(!res.ok)throw Error(path+' '+res.status);return res.json();};
+const browser=await chromium.launch({executablePath:process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true});
+const context=await browser.newContext();
+try {
+ const page=await context.newPage(); const cdp=await context.newCDPSession(page); await cdp.send('Network.enable');
+ const open=new Map(), closed=new Map();
+ cdp.on('Network.webSocketCreated',e=>open.set(e.requestId,e.url));
+ cdp.on('Network.webSocketClosed',e=>closed.set(e.requestId,Date.now()));
+ await page.goto(base+'/'); await page.locator('[name=doc]').fill(doc); await page.locator('[name=user]').fill(user); await page.locator('[name=password]').fill(secret); await page.locator('button').click();
+ await page.waitForURL('**/editor',{timeout:30000}); await page.getByText('Можно редактировать',{exact:true}).waitFor({timeout:90000});
+ for(let i=0;i<30&&!open.size;i++)await new Promise(r=>setTimeout(r,100));
+ const active=[...open].filter(([id])=>!closed.has(id)); if(!active.length)throw Error('No active real editor WebSocket');
+ const [socketId,socketUrl]=active[0], target=new URL(socketUrl), cookie=(await context.cookies(page.url())).find(c=>c.name==='poc_session');
+ if(!cookie)throw Error('No session cookie');
+ const foreign=await new Promise((resolve,reject)=>{const sock=net.connect(Number(gateway.port||80),'127.0.0.1',()=>sock.write(`GET ${target.pathname}${target.search} HTTP/1.1\r\nHost: ${target.host}\r\nOrigin: http://other.localhost:${gateway.port||80}\r\nCookie: poc_session=${cookie.value}\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\r\n`));let data='';sock.setTimeout(5000,()=>sock.destroy(Error('foreign handshake timeout')));sock.on('data',chunk=>{data+=chunk;sock.destroy();resolve(data.split('\r\n')[0]);});sock.on('error',reject);});
+ if(!foreign.includes('403'))throw Error('Foreign websocket origin was not forbidden: '+foreign);
+ const iframeBefore=await page.locator('#editor-container iframe').count();
+ const began=Date.now(); await post('/admin/permissions',{secret,doc,user,read:false,comment:false,edit:false,blocked:false});
+ for(let i=0;i<50&&!closed.has(socketId);i++)await new Promise(r=>setTimeout(r,100));
+ if(!closed.has(socketId))throw Error('Real editor socket stayed open after revocation');
+ const elapsed=closed.get(socketId)-began;
+ const iframeAfter=await page.locator('#editor-container iframe').count();
+ const configStatus=await page.evaluate(async()=> (await fetch('/office-config')).status);
+ const websocketAfter=await page.evaluate(url=>new Promise(resolve=>{const ws=new WebSocket(url);let opened=false;ws.onopen=()=>{opened=true;ws.close();};ws.onclose=()=>resolve(opened);ws.onerror=()=>{};setTimeout(()=>resolve(opened),2500);}),socketUrl);
+ if(configStatus!==401||websocketAfter||iframeBefore!==1||iframeAfter!==1)throw Error(`Unexpected boundary: config=${configStatus} reconnect=${websocketAfter} iframe=${iframeBefore}/${iframeAfter}`);
+ console.log(JSON.stringify({actualEditorSocketClosed:true,elapsedMs:elapsed,foreignOrigin:403,configAfter:configStatus,reconnectOpened:websocketAfter,iframeStillPresent:iframeAfter===1}));
+} finally {await browser.close();}
