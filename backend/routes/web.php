@@ -34,7 +34,7 @@ Route::prefix('api/v1')->group(function (): void {
     Route::post('/auth/forgot-password', [PasswordController::class, 'forgot'])->middleware('throttle:3,15');
     Route::post('/auth/reset-password', [PasswordController::class, 'reset'])->middleware('throttle:10,1');
     Route::post('/auth/login', [AuthController::class, 'login']);
-    Route::middleware(['auth', EnsureActive::class])->group(function (): void {
+    Route::middleware(['auth', EnsureActive::class, 'auth.session'])->group(function (): void {
         Route::post('/auth/verification-notification', [EmailVerificationController::class, 'store'])->middleware('throttle:email-verification');
         Route::get('/auth/verify-email/{id}/{hash}', [EmailVerificationController::class, 'show'])->whereNumber('id')->middleware('signed')->name('verification.verify');
         Route::get('/admin/metrics', MetricsController::class);

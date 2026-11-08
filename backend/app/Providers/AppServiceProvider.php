@@ -14,6 +14,7 @@ use App\Modules\Processing\Services\VirusScanner;
 use Dedoc\Scramble\Scramble;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Contracts\Auth\StatefulGuard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
@@ -23,6 +24,7 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->bind(StatefulGuard::class, fn ($app) => $app['auth']->guard('web'));
         $this->app->bind(VirusScanner::class, ClamAvScanner::class);
         $this->app->bind(TextExtractor::class, TikaExtractor::class);
     }

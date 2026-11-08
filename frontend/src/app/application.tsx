@@ -16,7 +16,7 @@ import {
     PanelLeftClose,
     PanelLeftOpen,
 } from 'lucide-react';
-import { useSession, useLogin, useLogout } from '@/features/session';
+import { useSession, useLogin, useLogout, replaceSession } from '@/features/session';
 import { Button } from '@/shared/ui/button';
 import { ErrorMessage } from '@/shared/ui/error-message';
 import { useTheme } from './theme';
@@ -48,8 +48,7 @@ export const App = () => {
     }, [dark]);
     useEffect(() => {
         const expired = () => {
-            client.removeQueries({ predicate: (query) => query.queryKey[0] !== 'session' });
-            client.setQueryData(['session'], null);
+            replaceSession(client, null);
         };
         window.addEventListener('session-expired', expired);
         return () => window.removeEventListener('session-expired', expired);
@@ -93,7 +92,7 @@ export const App = () => {
         return <Login />;
     }
     return (
-        <div className="app-shell">
+        <div key={user.id} className="app-shell">
             {menu && (
                 <button className="mobile-nav-backdrop" aria-label="Закрыть меню" onClick={() => setMenu(false)} />
             )}
