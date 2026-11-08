@@ -189,9 +189,12 @@ textarea {
     color: var(--muted);
     background: var(--success-surface);
 }
+.button.user-block-action,
+.button.user-block-action:hover {
+    background: var(--danger-surface);
+}
 .button.user-block-action:hover,
 .button.user-unblock-action:hover {
-    background: var(--success-surface);
     color: var(--text);
 }
 .button {
