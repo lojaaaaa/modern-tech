@@ -17,9 +17,14 @@ final class UserAdministrationTest extends TestCase
     {
         $admin = User::factory()->create(['role' => 'admin']);
         User::factory()->count(22)->create(['name' => 'Same Name']);
-        $first = $this->actingAs($admin)->getJson('/api/v1/users?per_page=10')->assertOk()->assertJsonCount(10, 'data')->assertJsonPath('meta.total', 23)->json('data');
-        $second = $this->getJson('/api/v1/users?per_page=10&page=2')->assertOk()->assertJsonCount(10, 'data')->json('data');
-        $this->assertEmpty(array_intersect(array_column($first, 'id'), array_column($second, 'id')));
+        $first = $this->actingAs($admin)->getJson('/api/v1/users?per_page=10')->assertOk()->assertJsonCount(10, 'data')->json();
+        $second = $this->getJson('/api/v1/users?per_page=10&cursor='.urlencode($first['meta']['next_cursor']))->assertOk()->assertJsonCount(10, 'data')->json();
+        $this->assertEmpty(array_intersect(array_column($first['data'], 'id'), array_column($second['data'], 'id')));
+        $back = $this->getJson('/api/v1/users?per_page=10&cursor='.urlencode($second['meta']['prev_cursor']))->assertOk()->json('data');
+        $this->assertSame(array_column($first['data'], 'id'), array_column($back, 'id'));
+        $this->getJson('/api/v1/users?cursor=bad')->assertUnprocessable();
+        $this->getJson('/api/v1/users?sort=email&cursor='.urlencode($first['meta']['next_cursor']))->assertUnprocessable();
+        $this->getJson('/api/v1/users?q=Same&role=employee&active=1&sort=email&direction=desc')->assertOk()->assertJsonCount(20, 'data');
         $this->getJson('/api/v1/users?per_page=101')->assertUnprocessable();
     }
 

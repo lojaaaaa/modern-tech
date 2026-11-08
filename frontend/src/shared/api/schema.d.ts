@@ -872,7 +872,15 @@ export interface operations {
     "audit.index": {
         parameters: {
             query?: {
-                page?: number | null;
+                cursor?: string | null;
+                per_page?: number;
+                q?: string | null;
+                action?: string | null;
+                actor_id?: number | null;
+                date_from?: string | null;
+                date_to?: string | null;
+                sort?: "created_at" | "id" | "action" | null;
+                direction?: "asc" | "desc" | null;
             };
             header?: never;
             path?: never;
@@ -880,13 +888,19 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description `LengthAwarePaginator` */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["LengthAwarePaginator"];
+                    "application/json": {
+                        data: string[];
+                        meta: {
+                            next_cursor: string | null;
+                            prev_cursor: string | null;
+                            per_page: number;
+                        };
+                    };
                 };
             };
             401: components["responses"]["AuthenticationException"];
@@ -2536,8 +2550,13 @@ export interface operations {
     "user.index": {
         parameters: {
             query?: {
-                page?: number;
+                cursor?: string | null;
                 per_page?: number;
+                q?: string | null;
+                role?: "admin" | "employee" | "observer" | null;
+                active?: boolean | null;
+                sort?: "name" | "email" | "created_at" | "id" | null;
+                direction?: "asc" | "desc" | null;
             };
             header?: never;
             path?: never;
@@ -2553,10 +2572,9 @@ export interface operations {
                     "application/json": {
                         data: components["schemas"]["User"][];
                         meta: {
-                            current_page: number;
-                            last_page: number;
+                            next_cursor: string | null;
+                            prev_cursor: string | null;
                             per_page: number;
-                            total: number;
                         };
                     };
                 };
