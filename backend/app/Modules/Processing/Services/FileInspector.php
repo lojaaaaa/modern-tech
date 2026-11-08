@@ -2,21 +2,20 @@
 
 declare(strict_types=1);
 
-namespace App\Modules\Documents\Services;
+namespace App\Modules\Processing\Services;
 
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\File\File;
 use ZipArchive;
 
 final class FileInspector
 {
-    public function inspect(IncomingFile $incoming): void
+    public function inspect(File $file, string $ext): void
     {
-        $file = $incoming->file;
         $size = $file->getSize();
         if ($size === false || $size < 1 || $size > 52_428_800) {
             $this->reject('Размер файла должен быть от 1 байта до 50 МиБ.');
         }
-        $ext = $incoming->extension();
         if (in_array($ext, ['txt', 'md', 'csv'], true) && ! in_array($file->getMimeType(), ['text/plain', 'text/csv', 'text/markdown', 'application/csv'], true)) {
             $this->reject('Содержимое не соответствует текстовому файлу.');
         }
