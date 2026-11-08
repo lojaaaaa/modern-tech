@@ -28,6 +28,7 @@ final class TransferController
     {
         abort_if($request->user()->role === 'observer', 403);
         $data = $request->validate(['connection_id' => 'required|uuid', 'direction' => ['required', Rule::in(['import', 'export'])], 'path' => 'required|string|max:2048', 'filename' => 'required|string|max:255', 'version_id' => 'required_if:direction,export|uuid']);
+        abort_if($data['direction'] === 'import' && ! $request->user()->hasVerifiedEmail(), 403, 'Подтвердите электронную почту перед импортом документов.');
         $key = $request->header('Idempotency-Key');
         abort_unless(is_string($key) && strlen($key) >= 8 && strlen($key) <= 100, 422, 'Нужен ключ операции.');
         $hash = hash('sha256', json_encode($data, JSON_THROW_ON_ERROR));
@@ -48,6 +49,7 @@ final class TransferController
         $transfer = DB::transaction(function () use ($id, $request, $connection, $data, $path, $filename, $version, $key, $hash) {
             $actor = User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
             abort_unless($actor->active && $actor->role !== 'observer', 403);
+            abort_if($data['direction'] === 'import' && ! $actor->hasVerifiedEmail(), 403, 'Подтвердите электронную почту перед импортом документов.');
             $prior = DB::table('idempotency_records')->where(['user_id' => $actor->id, 'scope' => 'transfer', 'key' => $key])->first();
             if ($prior) {
                 abort_if($prior->request_hash !== $hash, 409, 'Ключ уже использован для другой операции.');
