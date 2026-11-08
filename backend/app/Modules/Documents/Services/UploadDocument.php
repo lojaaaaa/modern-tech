@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Modules\Audit\Services\Audit;
 use App\Modules\Documents\Models\Document;
 use App\Modules\Documents\Models\DocumentVersion;
+use App\Modules\Processing\Services\FileInspector;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -15,6 +16,8 @@ use Illuminate\Validation\ValidationException;
 
 final class UploadDocument
 {
+    public function __construct(private readonly FileInspector $inspector) {}
+
     public function execute(User $user, IncomingFile $incoming, ?string $title, string $key, ?Document $existing = null): Document
     {
         $this->ensureVerifiedUploader($user);
@@ -23,7 +26,7 @@ final class UploadDocument
         if (! in_array($extension, ['pdf', 'docx', 'xlsx', 'pptx', 'txt', 'md', 'csv', 'png', 'jpg', 'jpeg'], true)) {
             throw ValidationException::withMessages(['file' => 'Этот формат не поддерживается.']);
         }
-        app(FileInspector::class)->inspect($incoming);
+        $this->inspector->inspect($file, $extension);
         $sha = hash_file('sha256', $file->getPathname());
         $scope = 'upload:'.($existing !== null ? $existing->id : 'new');
         $hash = hash('sha256', $sha.'|'.($title ?? '').'|'.$scope);
