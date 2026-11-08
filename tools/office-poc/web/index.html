@@ -7,7 +7,7 @@
 html,body{height:100%;margin:0;font:14px system-ui;background:#f4f4f4}body{display:flex;flex-direction:column}header{padding:8px 12px;display:flex;align-items:center;gap:14px;min-height:32px}header a{color:#2455a0}main{display:flex;flex:1;min-height:0}#office{flex:1;min-width:0}output{margin-left:auto}button,textarea{font:inherit}#error{background:#fdd;color:#900;padding:12px}iframe{border:0}aside{width:300px;overflow:auto;padding:12px;background:white;border-left:1px solid #ddd}aside h2{font-size:16px}textarea{box-sizing:border-box;width:100%;min-height:70px}article{padding:10px 0;border-top:1px solid #ddd;overflow-wrap:anywhere}article p{white-space:pre-wrap;margin:6px 0}article blockquote{margin:6px 0;color:#555}small{color:#555}#discussion-status{display:block;margin:8px 0}
 </style>
 <header><b>Изолированный прототип</b><span id="identity"></span><a href="/?file=sample.docx&user=alice">DOCX</a><a href="/?file=sample.xlsx&user=alice">XLSX</a><a href="/?file=sample.pptx&user=alice">PPTX</a><button id="save">Запросить сохранение</button><button id="close">Закрыть редактор</button><output id="status" aria-live="polite">Подключение</output></header>
-<div id="error" hidden></div><main><div id="office"><div id="editor"></div></div><aside id="discussion" hidden><h2>Обсуждение черновика</h2><small>Выделите фрагмент в редакторе, затем добавьте замечание. Цвет автора в панели может отличаться от цвета курсора. В прототипе одновременные ответы могут перезаписать друг друга.</small><form id="comment-form"><textarea id="comment-text" aria-label="Текст замечания" required></textarea><button>Добавить замечание</button></form><span id="discussion-status" role="status">Ожидание плагина</span><div id="comments"></div></aside></main>
+<div id="error" hidden></div><main><div id="office"><div id="editor"></div></div><aside id="discussion" hidden><h2>Обсуждение черновика</h2><small>Выделите фрагмент в редакторе, затем добавьте замечание. Цвет автора в панели может отличаться от цвета курсора. Ответы через панель недоступны: безопасная одновременная запись не подтверждена. Ответы в редакторе отображаются здесь; их сохранность при одновременной работе также не подтверждена.</small><form id="comment-form"><textarea id="comment-text" aria-label="Текст замечания" required></textarea><button>Добавить замечание</button></form><span id="discussion-status" role="status">Ожидание плагина</span><div id="comments"></div></aside></main>
 <script src="__OFFICE_PUBLIC_URL__/web-apps/apps/api/documents/api.js"></script>
 <script type="module">
 const params = new URLSearchParams(location.search);
@@ -31,7 +31,6 @@ if (discussionEnabled) {
  const status = document.querySelector('#discussion-status');
  const list = document.querySelector('#comments');
  const pending = new Map();
- const drafts = new Map(), sending = new Set();
  let bridge, sequence = 0, refreshInProgress = false, refreshAgain = false;
  disconnectDiscussion = () => {
   bridge = null;
@@ -65,9 +64,6 @@ if (discussionEnabled) {
   return { name: display, key: userId };
  }
  function render(comments) {
-  const active = document.activeElement;
-  const activeId = active?.dataset.replyId;
-  const selectionStart = activeId ? active.selectionStart : null, selectionEnd = activeId ? active.selectionEnd : null;
   list.replaceChildren();
   for (const comment of comments) {
    if (!comment || !comment.Data || !comment.Id) continue;
@@ -87,33 +83,11 @@ if (discussionEnabled) {
     name.style.color = color(identity.key);
     line.append(name, document.createTextNode(reply.Text || '')); article.append(line);
    }
-   const id = String(comment.Id), form = document.createElement('form'), input = document.createElement('textarea'), submit = document.createElement('button');
-   input.dataset.replyId = id; input.setAttribute('aria-label', 'Текст ответа'); input.required = true; input.value = drafts.get(id) || '';
-   input.oninput = () => drafts.set(id, input.value);
-   submit.textContent = 'Ответить'; submit.disabled = sending.has(id);
-   form.append(input, submit);
-   form.onsubmit = async event => {
-    event.preventDefault();
-    if (sending.has(id)) return;
-    const text = input.value;
-    sending.add(id); submit.disabled = true;
-    try {
-     await request('reply', { id, text });
-     if (drafts.get(id) === text) drafts.delete(id);
-     await refresh(); status.textContent = 'Ответ виден в редакторе';
-    } catch (error) { status.textContent = error.message; }
-    finally { sending.delete(id); for (const field of list.querySelectorAll('textarea[data-reply-id]')) if (field.dataset.replyId === id) field.form.querySelector('button').disabled = false; }
-   };
-   article.append(form);
    if (file.endsWith('.docx')) {
     const move = document.createElement('button'); move.type = 'button'; move.textContent = 'Перейти к фрагменту';
     move.onclick = () => request('move', String(comment.Id)).catch(error => { status.textContent = error.message; }); article.append(move);
    } else { const note = document.createElement('small'); note.textContent = 'Переход к фрагменту для этого формата не подтверждён'; article.append(note); }
    list.append(article);
-  }
-  if (activeId) {
-   const field = Array.from(list.querySelectorAll('textarea[data-reply-id]')).find(item => item.dataset.replyId === activeId);
-   if (field) { field.focus(); field.setSelectionRange(selectionStart, selectionEnd); }
   }
  }
  async function refresh() {
