@@ -1,0 +1,35 @@
+services:
+  api:
+    environment:
+      OFFICE_PUBLIC_URL: http://localhost:8895
+      OFFICE_INTERNAL_URL: http://office-documentserver
+      OFFICE_APP_INTERNAL_URL: http://gateway
+      OFFICE_JWT_SECRET: ${OFFICE_JWT_SECRET:?Set OFFICE_JWT_SECRET for the local Office editor}
+  office-documentserver:
+    image: modern-tech-office-poc-documentserver:9.4.0.1-amd-fix
+    build:
+      context: ./tools/office-poc/documentserver-patch
+    platform: linux/arm64
+    environment:
+      JWT_ENABLED: "true"
+      JWT_SECRET: ${OFFICE_JWT_SECRET:?Set OFFICE_JWT_SECRET for the local Office editor}
+      JWT_HEADER: Authorization
+      ALLOW_PRIVATE_IP_ADDRESS: "true"
+      ALLOW_META_IP_ADDRESS: "false"
+    ports:
+      - 127.0.0.1:8895:80
+    shm_size: 1gb
+    volumes:
+      - office-data:/var/www/onlyoffice/Data
+      - office-cache:/var/lib/onlyoffice
+      - office-logs:/var/log/onlyoffice
+    healthcheck:
+      test: [CMD, curl, -fsS, http://localhost/healthcheck]
+      interval: 10s
+      timeout: 5s
+      retries: 36
+      start_period: 60s
+volumes:
+  office-data:
+  office-cache:
+  office-logs:
