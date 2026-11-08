@@ -27,14 +27,27 @@ import { UploadPanel } from '@/features/upload';
 export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boolean }) => {
     useEffect(() => {
         const close = (event: PointerEvent) => {
-            document.querySelectorAll<HTMLDetailsElement>('details.date-filters[open]').forEach((details) => {
-                if (event.target instanceof Node && !details.contains(event.target)) {
-                    details.open = false;
-                }
-            });
+            document
+                .querySelectorAll<HTMLDetailsElement>('details.date-filters[open], details.batch-actions-menu[open]')
+                .forEach((details) => {
+                    if (event.target instanceof Node && !details.contains(event.target)) {
+                        details.open = false;
+                    }
+                });
         };
         document.addEventListener('pointerdown', close, true);
-        return () => document.removeEventListener('pointerdown', close, true);
+        const escape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape')
+                document.querySelectorAll<HTMLDetailsElement>('details.batch-actions-menu[open]').forEach((details) => {
+                    details.open = false;
+                    details.querySelector('summary')?.focus();
+                });
+        };
+        document.addEventListener('keydown', escape);
+        return () => {
+            document.removeEventListener('pointerdown', close, true);
+            document.removeEventListener('keydown', escape);
+        };
     }, []);
     const [params, setParams] = useSearchParams();
     const viewsKey = `library-views:${user.id}:${trash}`;
@@ -101,6 +114,25 @@ export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boole
     });
     const docs = query.data?.data ?? [];
     const total = query.data?.meta.total ?? 0;
+    const sortColumn = (key: string) => {
+        const next = new URLSearchParams(params);
+        const current = params.get('sort') ?? 'updated_at';
+        const direction = params.get('direction') ?? 'desc';
+        next.set('sort', key);
+        next.set('direction', current === key && direction === 'desc' ? 'asc' : 'desc');
+        next.delete('page');
+        setSelected([]);
+        setParams(next);
+    };
+    const sortHeader = (label: string, key: string) => {
+        const active = (params.get('sort') ?? 'updated_at') === key;
+        const ascending = (params.get('direction') ?? 'desc') === 'asc';
+        return (
+            <button type="button" className="table-sort" onClick={() => sortColumn(key)}>
+                {label} {active && <span aria-hidden="true">{ascending ? '↑' : '↓'}</span>}
+            </button>
+        );
+    };
     const hasSearchFilters = [...params.keys()].some((key) => !['page', 'sort', 'direction'].includes(key));
     return (
         <>
@@ -126,32 +158,6 @@ export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boole
                 )}
             </div>
             <section className="library-panel compact-library">
-                {selected.length > 0 && (
-                    <div className="batch-toolbar">
-                        <span>Выбрано: {selected.length}</span>
-                        <Button
-                            size="small"
-                            variant="secondary"
-                            disabled={batch.isPending}
-                            onClick={() => batch.mutate(trash ? 'restore' : 'favorite')}
-                        >
-                            {trash ? 'Восстановить' : 'В избранное'}
-                        </Button>
-                        {!trash && (
-                            <Button
-                                size="small"
-                                variant="destructive"
-                                disabled={batch.isPending}
-                                onClick={() => batch.mutate('trash')}
-                            >
-                                В корзину
-                            </Button>
-                        )}
-                        <Button variant="ghost" size="small" onClick={() => setSelected([])}>
-                            <X size={14} /> Снять выбор
-                        </Button>
-                    </div>
-                )}
                 <ErrorMessage error={batch.error} />
                 <div className="saved-views">
                     {views.map((view, i) => (
@@ -209,6 +215,37 @@ export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boole
                     <SearchInput initialValue={q} busy={query.isFetching} onSearch={(value) => change('q', value)} />
                 </div>
                 <div className="library-filters">
+                    <div className="selection-actions">
+                        <span role="status">{selected.length ? `Выбрано: ${selected.length}` : ''}</span>
+                        <details key={selected.join(',')} className="batch-actions-menu">
+                            <summary>Действия</summary>
+                            <div>
+                                <Button
+                                    variant="ghost"
+                                    disabled={!selected.length || batch.isPending}
+                                    onClick={() => batch.mutate(trash ? 'restore' : 'favorite')}
+                                >
+                                    {trash ? 'Восстановить' : 'В избранное'}
+                                </Button>
+                                {!trash && (
+                                    <Button
+                                        variant="ghost"
+                                        disabled={!selected.length || batch.isPending}
+                                        onClick={() => batch.mutate('trash')}
+                                    >
+                                        В корзину
+                                    </Button>
+                                )}
+                                <Button
+                                    variant="ghost"
+                                    disabled={!selected.length || batch.isPending}
+                                    onClick={() => setSelected([])}
+                                >
+                                    Снять выбор
+                                </Button>
+                            </div>
+                        </details>
+                    </div>
                     <Select
                         label="Тип файла"
                         value={params.get('format') ?? ''}
@@ -233,30 +270,6 @@ export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boole
                             { value: 'extracting', label: 'Распознавание' },
                             { value: 'failed', label: 'Ошибка' },
                             { value: 'rejected', label: 'Отклонено' },
-                        ]}
-                    />
-                    <Select
-                        label="Сортировка"
-                        value={params.get('sort') ?? 'updated_at'}
-                        onValueChange={(v) => change('sort', v)}
-                        options={[
-                            { value: 'updated_at', label: 'По изменению' },
-                            { value: 'created_at', label: 'По созданию' },
-                            { value: 'title', label: 'По названию' },
-                            { value: 'format', label: 'По типу' },
-                            { value: 'status', label: 'По статусу' },
-                            { value: 'size', label: 'По размеру' },
-                            { value: 'owner', label: 'По владельцу' },
-                            { value: 'relevance', label: 'По релевантности' },
-                        ]}
-                    />
-                    <Select
-                        label="Порядок"
-                        value={params.get('direction') ?? 'desc'}
-                        onValueChange={(v) => change('direction', v)}
-                        options={[
-                            { value: 'desc', label: 'По убыванию' },
-                            { value: 'asc', label: 'По возрастанию' },
                         ]}
                     />
                     <details className="date-filters">
@@ -306,10 +319,50 @@ export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boole
                     <table className="documents-table library-table">
                         <thead>
                             <tr>
-                                <th>Название документа</th>
-                                <th>Статус</th>
-                                <th>Владелец</th>
-                                <th>Изменён</th>
+                                <th
+                                    aria-sort={
+                                        (params.get('sort') ?? 'updated_at') === 'title'
+                                            ? params.get('direction') === 'asc'
+                                                ? 'ascending'
+                                                : 'descending'
+                                            : undefined
+                                    }
+                                >
+                                    {sortHeader('Название документа', 'title')}
+                                </th>
+                                <th
+                                    aria-sort={
+                                        params.get('sort') === 'status'
+                                            ? params.get('direction') === 'asc'
+                                                ? 'ascending'
+                                                : 'descending'
+                                            : undefined
+                                    }
+                                >
+                                    {sortHeader('Статус', 'status')}
+                                </th>
+                                <th
+                                    aria-sort={
+                                        params.get('sort') === 'owner'
+                                            ? params.get('direction') === 'asc'
+                                                ? 'ascending'
+                                                : 'descending'
+                                            : undefined
+                                    }
+                                >
+                                    {sortHeader('Владелец', 'owner')}
+                                </th>
+                                <th
+                                    aria-sort={
+                                        (params.get('sort') ?? 'updated_at') === 'updated_at'
+                                            ? params.get('direction') === 'asc'
+                                                ? 'ascending'
+                                                : 'descending'
+                                            : undefined
+                                    }
+                                >
+                                    {sortHeader('Изменён', 'updated_at')}
+                                </th>
                                 <th aria-label="Действия" />
                             </tr>
                         </thead>

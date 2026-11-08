@@ -34,6 +34,7 @@ const DocumentWorkspace = () => {
     const [tab, setTab] = useState<'preview' | 'text' | 'versions' | 'access' | 'compare' | 'entities' | 'editor'>(
         'preview'
     );
+    const showDiscussion = tab === 'preview' || tab === 'text';
     const [anchor, setAnchor] = useState<TextAnchor | null>(null);
     const [target, setTarget] = useState<AnchorTarget | null>(null);
     const [newCommentId, setNewCommentId] = useState<string | null>(null);
@@ -193,7 +194,10 @@ const DocumentWorkspace = () => {
                     <div className="page-heading document-heading">
                         <div>
                             <div className="eyebrow">ДОКУМЕНТ · ВЕРСИЯ {d.version?.number ?? '—'}</div>
-                            <h1 className="detail-title">{d.title}</h1>
+                            <div className="document-title-line">
+                                <h1 className="detail-title">{d.title}</h1>
+                                <Status value={d.processing_status ?? 'quarantined'} />
+                            </div>
                             <p className="muted">
                                 {d.owner.name} · {formatDate(d.updated_at)} · {d.version && formatBytes(d.version.size)}
                             </p>
@@ -246,7 +250,7 @@ const DocumentWorkspace = () => {
                         }}
                     />
                     <div
-                        className={`detail-grid document-layout ${discussionOpen && tab !== 'editor' ? 'discussion-open' : ''}`}
+                        className={`detail-grid document-layout ${discussionOpen && showDiscussion ? 'discussion-open' : ''}`}
                     >
                         <section
                             ref={readerPanel}
@@ -319,8 +323,7 @@ const DocumentWorkspace = () => {
                                     )}
                                 </div>
                                 <div className="document-view-tools">
-                                    <Status value={d.processing_status ?? 'quarantined'} />
-                                    {tab !== 'editor' && (
+                                    {showDiscussion && (
                                         <Button
                                             variant="secondary"
                                             size="small"
@@ -450,13 +453,13 @@ const DocumentWorkspace = () => {
                             )}
                             {tab === 'access' && <AccessEditor id={d.id} />}
                         </section>
-                        {discussionOpen && tab !== 'editor' && !d.permissions.edit && !d.permissions.comment ? (
+                        {discussionOpen && showDiscussion && !d.permissions.edit && !d.permissions.comment ? (
                             <aside className="content-panel comments-panel">
                                 <p className="muted">Обсуждения опубликованной версии пока недоступны.</p>
                             </aside>
                         ) : (
                             discussionOpen &&
-                            tab !== 'editor' && (
+                            showDiscussion && (
                                 <DiscussionPanel
                                     documentId={d.id}
                                     versionId={activeVersionId}

@@ -607,6 +607,63 @@ main {
     align-items: center;
     justify-content: space-between;
 }
+.selection-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 0 0 auto;
+}
+.selection-actions > span {
+    font-size: 12px;
+    color: var(--muted);
+    min-width: 72px;
+}
+.batch-actions-menu {
+    position: relative;
+}
+.batch-actions-menu summary {
+    cursor: pointer;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 9px 14px;
+    font-size: 13px;
+    white-space: nowrap;
+}
+.batch-actions-menu > div {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 6px);
+    z-index: 10;
+    min-width: 180px;
+    padding: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 6px 20px #14244318;
+    display: grid;
+}
+.batch-actions-menu .button {
+    justify-content: flex-start;
+}
+.table-sort {
+    background: none;
+    border: 0;
+    padding: 4px 0;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+.table-sort:hover {
+    color: var(--text);
+}
+@media (max-width: 600px) {
+    .selection-actions > span {
+        display: none;
+    }
+    .compact-library .library-toolbar {
+        gap: 8px;
+    }
+}
 .search-field {
     display: flex;
     align-items: center;
@@ -949,7 +1006,7 @@ main {
     border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 0 20px;
     padding: 0 20px;
 }
@@ -957,7 +1014,7 @@ main {
     border-bottom: 0;
     gap: 20px;
     padding: 0;
-    flex: 1 1 auto;
+    flex: 1 1 0;
     min-width: 0;
 }
 .document-view-tools {
@@ -967,6 +1024,7 @@ main {
     gap: 12px;
     padding: 10px 0;
     margin-left: auto;
+    flex: 0 0 auto;
 }
 .document-view-tools > .button {
     min-height: 40px;
@@ -2085,6 +2143,18 @@ dialog.modal > p {
 .document-heading {
     margin-bottom: 14px;
 }
+.document-title-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+}
+.document-title-line .status {
+    background: transparent;
+    padding: 0;
+}
+.document-title-line .status svg { display: none; }
+.document-title-line .status::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 .document-heading .eyebrow {
     display: none;
 }
