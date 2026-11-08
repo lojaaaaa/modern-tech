@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>Место редактора</title>
+  <style>
+    html, body { height: 100%; margin: 0; font: 14px sans-serif; }
+    body { display: flex; flex-direction: column; }
+    header { display: flex; gap: 1rem; align-items: center; padding: .5rem; }
+    #editor-container { flex: 1; min-height: 0; }
+    #editor { height: 100%; }
+  </style>
+  <script src="/web-apps/apps/api/documents/api.js"></script>
+</head>
+<body>
+  <header>
+    <span id="status" role="status">Подключаем редактор…</span>
+    <button id="retry" type="button" hidden>Попробовать редактировать</button>
+    <button id="close" type="button">Закрыть</button>
+  </header>
+  <div id="editor-container"><div id="editor"></div></div>
+  <script>
+    const status = document.querySelector('#status');
+    const retry = document.querySelector('#retry');
+    const close = document.querySelector('#close');
+    const container = document.querySelector('#editor-container');
+    let editor;
+    let stopped = false;
+    let pending = false;
+    let editorMode;
+    let cancelEditorLoad;
+
+    function showMode(state, full = false) {
+      if (stopped) return;
+      const restartNeeded = state.mode === 'edit' && editorMode !== 'edit';
+      retry.hidden = !state.canRequestEdit && !restartNeeded;
+      retry.textContent = restartNeeded ? 'Открыть редактор' : 'Попробовать редактировать';
+      if (restartNeeded) { status.textContent = 'Место получено. Откройте редактор заново.'; return; }
+      status.textContent = state.mode === 'edit' ? 'Можно редактировать' :
+        full ? 'Все места заняты. Можно повторить попытку позже.' :
+        state.mode === 'comment' ? 'Доступно комментирование' : 'Доступен просмотр';
+    }
+    function denyAccess() {
+      stopped = true;
+      retry.hidden = true;
+      close.disabled = true;
+      if (cancelEditorLoad) cancelEditorLoad();
+      if (editor) editor.destroyEditor();
+      editor = undefined;
+      status.textContent = 'Доступ к редактору завершён. Откройте документ заново.';
+    }
+    async function api(path, options) {
+      const response = await fetch(path, options);
+      if (response.status === 401 || response.status === 403) { denyAccess(); throw Error('Доступ завершён'); }
+      if (!response.ok) throw Error('Редактор временно недоступен');
+      return response.json();
+    }
+    async function openEditor() {
+      // Obtain the new signed permissions before replacing the current editor.
+      const config = await api('/office-config');
+      if (stopped) return;
+      if (editor) editor.destroyEditor();
+      editor = undefined;
+      editorMode = undefined;
+      container.replaceChildren(Object.assign(document.createElement('div'), {id: 'editor'}));
+      await new Promise((resolve, reject) => {
+        let finished = false;
+        const timer = setTimeout(() => finish(Error('Редактор не ответил')), 60000);
+        function finish(error) {
+          if (finished) return;
+          finished = true;
+          clearTimeout(timer);
+          cancelEditorLoad = undefined;
+          if (error) { reject(error); return; }
+          editorMode = config.document.permissions.edit ? 'edit' : 'read';
+          resolve();
+        }
+        cancelEditorLoad = () => finish(Error('Доступ завершён'));
+        config.events = {onDocumentReady: () => finish(), onError: () => finish(Error('Ошибка редактора'))};
+        try { editor = new DocsAPI.DocEditor('editor', config); }
+        catch (error) { finish(error); }
+      });
+    }
+    async function heartbeat() {
+      if (stopped) return;
+      try {
+        const state = await api('/heartbeat', {method: 'POST'});
+        if (!pending) showMode(state);
+      } catch (error) { if (!stopped) status.textContent = 'Связь потеряна. Ожидаем восстановления.'; }
+    }
+    retry.addEventListener('click', async () => {
+      if (pending || stopped) return;
+      pending = true;
+      retry.disabled = true;
+      try {
+        const state = await api('/seat', {method: 'POST'});
+        if (state.mode === 'edit') {
+          status.textContent = 'Место получено. Перезапускаем редактор…';
+          await openEditor();
+          showMode(state);
+        } else showMode(state, true);
+      } catch (error) { if (!stopped) status.textContent = 'Не удалось обновить редактор. Повторите попытку.'; }
+      finally { pending = false; retry.disabled = false; }
+    });
+    close.addEventListener('click', async () => {
+      close.disabled = true;
+      try { await api('/close', {method: 'POST'}); } catch (error) { /* The lease still expires if the request fails. */ }
+      denyAccess();
+    });
+    async function start() {
+      pending = true;
+      try {
+        const state = await api('/heartbeat', {method: 'POST'});
+        setInterval(heartbeat, __HEARTBEAT_MS__);
+        await openEditor();
+        showMode(state);
+      } catch (error) { if (!stopped) status.textContent = 'Не удалось открыть редактор. Обновите страницу.'; }
+      finally { pending = false; }
+    }
+    // Abrupt tab closure and reload are indistinguishable: preserve the lease on
+    // pagehide; the server closes streams and releases the seat after expiry.
+    start();
+  </script>
+</body>
+</html>

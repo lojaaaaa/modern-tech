@@ -61,11 +61,7 @@ async function save(state, downloadUrl) {
   return {bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex')};
 }
 const headers = req => ({...req.headers, host: origin.host, 'x-forwarded-host': req.headers.host, 'x-forwarded-proto': 'http', cookie: ''});
-const html = lease => `<!doctype html><html><head><meta charset="utf-8"><title>Seat PoC</title><style>html,body,#editor{height:100%;margin:0}</style><script src="/web-apps/apps/api/documents/api.js"></script></head><body><div id="editor"></div><script>
-fetch('/office-config').then(r => { if (!r.ok) throw Error('access denied'); return r.json(); }).then(config => new DocsAPI.DocEditor('editor',config)).catch(error => document.body.textContent = error.message);
-setInterval(() => fetch('/heartbeat',{method:'POST'}).then(r => {if (!r.ok) location.reload();}).catch(() => {}), ${Math.max(300, Math.floor(lease / 3))});
-window.addEventListener('pagehide', () => navigator.sendBeacon('/close', '{}'));
-</script></body></html>`;
+const editorPage = new URL('./editor.html', import.meta.url);
 
 export function createOfficeBridge({ sessionFor, rightsFor, lease, sessions }) {
   const permitted = session => session?.active && Date.now() < session.deadline && (() => { const r = rightsFor(session.doc, session.user); return r.read && !r.blocked && (r.edit || r.comment); })();
@@ -107,7 +103,8 @@ export function createOfficeBridge({ sessionFor, rightsFor, lease, sessions }) {
     const session = sessionFor(req);
     if (req.method === 'GET' && url.pathname === '/editor') {
       if (!permitted(session)) { json(res, 403, {error: 'draft forbidden'}); return true; }
-      res.writeHead(200, {'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store'}); res.end(html(lease)); return true;
+      const html = (await readFile(editorPage, 'utf8')).replace('__HEARTBEAT_MS__', String(Math.max(300, Math.floor(lease / 3))));
+      res.writeHead(200, {'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store'}); res.end(html); return true;
     }
     if (req.method === 'GET' && url.pathname === '/office-config') {
       if (!permitted(session)) { json(res, 403, {error: 'draft forbidden'}); return true; }

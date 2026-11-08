@@ -159,6 +159,9 @@ const server = http.createServer(async (req, res) => {
     if (req.url.startsWith('/office-source/') || req.url === '/office-callback') return await bridge.handle(req, res);
     const session = currentSession(req);
     if (!session) return json(res, 401, {error: 'unauthorized'});
+    // SameSite cookies also cover sibling localhost origins: browser mutations
+    // must originate from the exact host assigned to this session.
+    if (req.method === 'POST' && !/^Bearer [A-Za-z0-9_-]+$/.test(req.headers.authorization || '') && req.headers.origin !== `http://${req.headers.host}`) return json(res, 403, {error: 'invalid origin'});
     if (Date.now() >= session.deadline) { await invalidate(session); return json(res, 401, {error: 'expired'}); }
     const rights = rightsFor(session.doc, session.user);
     if (!rights.read || rights.blocked) { await invalidate(session); return json(res, 403, {error: 'forbidden'}); }
@@ -167,12 +170,12 @@ const server = http.createServer(async (req, res) => {
       if (session.seated && await run(renew, session) !== 1) { await invalidate(session); return json(res, 401, {error: 'expired'}); }
       if (!session.active) return json(res, 401, {error: 'revoked'});
       session.deadline = Date.now() + lease;
-      return json(res, 200, {mode: mode(session)});
+      return json(res, 200, {mode: mode(session), canRequestEdit: rightsFor(session.doc, session.user).edit && !session.seated});
     }
     if (req.method === 'POST' && req.url === '/seat') {
       if (!session.seated && rights.edit) await reserve(session);
       if (!session.active) return json(res, 401, {error: 'revoked'});
-      return json(res, 200, {mode: mode(session)});
+      return json(res, 200, {mode: mode(session), canRequestEdit: rightsFor(session.doc, session.user).edit && !session.seated});
     }
     if (req.method === 'GET' && req.url === '/published') return json(res, 200, {content: 'public version fixture'});
     if (req.method === 'GET' && (req.url === '/draft' || req.url === '/draft/stream')) {

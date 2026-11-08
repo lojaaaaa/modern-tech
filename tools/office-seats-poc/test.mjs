@@ -30,6 +30,8 @@ test('одноразовый запуск выдаёт cookie только на�
   assert.equal((await bootstrap(target.host, target.origin)).statusCode, 403);
   assert.equal((await withHost('/office-config', target.host, {cookie})).statusCode, 200);
   assert.equal((await withHost('/office-config', 'other.localhost:8894', {cookie})).statusCode, 401);
+  assert.equal((await withHost('/seat', target.host, {cookie, origin:'http://other.localhost:8894', body:{}})).statusCode, 403);
+  assert.equal((await withHost('/seat', target.host, {cookie, origin:target.origin, body:{}})).statusCode, 200);
   const configuration = (await request('/office-config', {token: session.token})).value;
   const source = new URL(configuration.document.url).pathname;
   const capability = source.split('/').pop().replace(/\.docx$/, '');
