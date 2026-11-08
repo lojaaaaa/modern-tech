@@ -13,6 +13,16 @@ final class UserAdministrationTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_user_list_has_bounded_stable_pages(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        User::factory()->count(22)->create(['name' => 'Same Name']);
+        $first = $this->actingAs($admin)->getJson('/api/v1/users?per_page=10')->assertOk()->assertJsonCount(10, 'data')->assertJsonPath('meta.total', 23)->json('data');
+        $second = $this->getJson('/api/v1/users?per_page=10&page=2')->assertOk()->assertJsonCount(10, 'data')->json('data');
+        $this->assertEmpty(array_intersect(array_column($first, 'id'), array_column($second, 'id')));
+        $this->getJson('/api/v1/users?per_page=101')->assertUnprocessable();
+    }
+
     public function test_user_administration_is_available_only_to_administrator_role(): void
     {
         $target = User::factory()->create();

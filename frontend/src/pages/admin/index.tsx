@@ -2,16 +2,17 @@ import { Pagination } from '@/shared/ui/pagination';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/shared/api/client';
-import type { Resource, User, Role } from '@/shared/api/types';
+import type { Page, User, Role } from '@/shared/api/types';
 import { Select } from '@/shared/ui/select';
 import { Button } from '@/shared/ui/button';
 import { ErrorMessage } from '@/shared/ui/error-message';
 
 export const UsersPage = () => {
     const client = useQueryClient();
+    const [page, setPage] = useState(1);
     const query = useQuery({
-        queryKey: ['users'],
-        queryFn: ({ signal }) => api<Resource<User[]>>('/users', { signal }),
+        queryKey: ['users', page],
+        queryFn: ({ signal }) => api<Page<User>>(`/users?page=${page}`, { signal }),
     });
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
@@ -83,11 +84,17 @@ export const UsersPage = () => {
                                         ]}
                                     />
                                 </td>
-                                <td>{u.active ? 'Активен' : 'Заблокирован'}</td>
+                                <td>
+                                    <span className={`user-status ${u.active ? 'active' : 'blocked'}`}>
+                                        <span aria-hidden="true" />
+                                        {u.active ? 'Активен' : 'Заблокирован'}
+                                    </span>
+                                </td>
                                 <td>
                                     <Button
                                         variant="ghost"
                                         size="small"
+                                        className={u.active ? 'user-block-action' : 'user-unblock-action'}
                                         disabled={toggle.isPending}
                                         onClick={() => toggle.mutate(u)}
                                     >
@@ -99,6 +106,13 @@ export const UsersPage = () => {
                     </tbody>
                 </table>
             </section>
+            <Pagination
+                page={page}
+                pages={query.data?.meta.last_page ?? 1}
+                onChange={setPage}
+                busy={query.isFetching}
+                label="Страницы пользователей"
+            />
             <section className="content-panel form-panel">
                 <h2>Добавить участника</h2>
                 <form

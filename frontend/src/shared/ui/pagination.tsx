@@ -5,17 +5,19 @@ export const Pagination = ({
     pages,
     onChange,
     busy = false,
+    label = 'Страницы журнала',
 }: {
     page: number;
     pages: number;
     onChange: (page: number) => void;
     busy?: boolean;
+    label?: string;
 }) => {
     const numbers = Array.from(new Set([1, page - 1, page, page + 1, pages]))
         .filter((n) => n >= 1 && n <= pages)
         .sort((a, b) => a - b);
     return (
-        <nav className="pagination" aria-label="Страницы журнала">
+        <nav className="pagination" aria-label={label}>
             <span>
                 Страница {page} из {pages}
             </span>

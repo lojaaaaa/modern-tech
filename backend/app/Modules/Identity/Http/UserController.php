@@ -19,7 +19,13 @@ final class UserController
     {
         Gate::authorize('viewAny', User::class);
 
-        return response()->json(['data' => User::orderBy('name')->get()]);
+        $data = $request->validate(['page' => 'sometimes|integer|min:1', 'per_page' => 'sometimes|integer|min:1|max:100']);
+        $users = User::orderBy('name')->orderBy('id')->paginate($data['per_page'] ?? 20);
+
+        return response()->json(['data' => $users->items(), 'meta' => [
+            'current_page' => $users->currentPage(), 'last_page' => $users->lastPage(),
+            'per_page' => $users->perPage(), 'total' => $users->total(),
+        ]]);
     }
 
     public function store(Request $request, CreateManagedUser $create): JsonResponse

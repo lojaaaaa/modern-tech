@@ -2535,7 +2535,10 @@ export interface operations {
     };
     "user.index": {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number;
+                per_page?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -2549,19 +2552,18 @@ export interface operations {
                 content: {
                     "application/json": {
                         data: components["schemas"]["User"][];
+                        meta: {
+                            current_page: number;
+                            last_page: number;
+                            per_page: number;
+                            total: number;
+                        };
                     };
                 };
             };
             401: components["responses"]["AuthenticationException"];
-            /** @description An error */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
         };
     };
     "user.store": {
