@@ -57,7 +57,7 @@ export const UsersPage = () => {
                 <table className="documents-table">
                     <thead>
                         <tr>
-                            <th>Пользователь</th>
+                            <SortHeader listing={listing} field="name" label="Пользователь" />
                             <th>Роль</th>
                             <th>Статус</th>
                             <th aria-label="Действия" />
@@ -188,10 +188,10 @@ export const AuditPage = () => {
                 <table className="documents-table">
                     <thead>
                         <tr>
-                            <th>Событие</th>
+                            <SortHeader listing={listing} field="action" label="Событие" />
                             <th>Пользователь</th>
                             <th>Ресурс</th>
-                            <th>Время</th>
+                            <SortHeader listing={listing} field="created_at" label="Время" />
                         </tr>
                     </thead>
                     <tbody>
@@ -259,12 +259,39 @@ const useCursorFilters = (defaults: Record<string, string>) => {
             setCursor('');
             setFilters((old) => ({ ...old, [key]: value }));
         },
+        sort: (field: string) => {
+            setCursor('');
+            setFilters((old) => ({
+                ...old,
+                sort: field,
+                direction: old.sort === field && old.direction === 'desc' ? 'asc' : 'desc',
+            }));
+        },
         reset: () => {
             setCursor('');
             setFilters(defaults);
         },
         navigate: (value: string) => setCursor(value),
     };
+};
+const SortHeader = ({
+    listing,
+    field,
+    label,
+}: {
+    listing: ReturnType<typeof useCursorFilters>;
+    field: string;
+    label: string;
+}) => {
+    const active = listing.filters.sort === field;
+    const asc = listing.filters.direction === 'asc';
+    return (
+        <th aria-sort={active ? (asc ? 'ascending' : 'descending') : undefined}>
+            <button type="button" className="table-sort" onClick={() => listing.sort(field)}>
+                {label} {active && <span aria-hidden="true">{asc ? '↑' : '↓'}</span>}
+            </button>
+        </th>
+    );
 };
 const CursorNavigation = ({
     meta,
@@ -345,26 +372,6 @@ const AdminFilters = ({ listing, kind }: { listing: ReturnType<typeof useCursorF
                     {field('date_to', 'По дату', 'date')}
                 </>
             )}
-            {select(
-                'sort',
-                'Сортировка',
-                users
-                    ? [
-                          { value: 'name', label: 'Имя' },
-                          { value: 'email', label: 'Почта' },
-                          { value: 'created_at', label: 'Дата регистрации' },
-                          { value: 'id', label: 'ID' },
-                      ]
-                    : [
-                          { value: 'created_at', label: 'Время' },
-                          { value: 'id', label: 'ID' },
-                          { value: 'action', label: 'Событие' },
-                      ]
-            )}
-            {select('direction', 'Порядок', [
-                { value: 'asc', label: 'По возрастанию' },
-                { value: 'desc', label: 'По убыванию' },
-            ])}
             <Button variant="ghost" onClick={listing.reset}>
                 Сбросить
             </Button>
