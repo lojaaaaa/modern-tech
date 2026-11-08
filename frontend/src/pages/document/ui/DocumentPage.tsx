@@ -126,7 +126,9 @@ const DocumentWorkspace = () => {
     const reader = (
         <>
             {text.isPending ? (
-                <div className="empty-state">Загрузка текста…</div>
+                <div className="empty-state" role="status">
+                    Загружаем текст…
+                </div>
             ) : text.data?.data.text?.trim() ? (
                 <TextReader
                     key={activeVersionId}
@@ -179,7 +181,11 @@ const DocumentWorkspace = () => {
                 Все документы
             </Link>
             <ErrorMessage error={doc.error || remove.error || version.error} />
-            {doc.isPending && <div className="empty-state">Загрузка документа…</div>}
+            {doc.isPending && (
+                <div className="empty-state" role="status">
+                    Загружаем документ…
+                </div>
+            )}
             {d && (
                 <>
                     <div className="page-heading document-heading">
@@ -262,7 +268,7 @@ const DocumentWorkspace = () => {
                                         className={tab === 'entities' ? 'active' : ''}
                                         onClick={() => setTab('entities')}
                                     >
-                                        Извлечённые данные
+                                        Даты, суммы и организации
                                     </button>
                                 )}
                                 <Button
@@ -481,7 +487,9 @@ const AccessEditor = ({ id }: { id: string }) => {
     });
     return (
         <div className="access-editor">
-            <p className="muted">Владелец и администраторы имеют полный доступ.</p>
+            <p className="muted">
+                Выберите участника и разрешённые действия. Чтение включается при предоставлении доступа.
+            </p>
             <ErrorMessage error={query.error || participants.error || update.error} />
             {query.data?.data.map((g) => (
                 <div className="grant-row" key={g.user_id}>

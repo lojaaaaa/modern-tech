@@ -78,6 +78,11 @@ export const TextReader = ({
     const valid = target && text.slice(target.start, target.end) === target.quote;
     return (
         <div className="text-reader">
+            {target && !valid && (
+                <p role="status" className="muted">
+                    Фрагмент не найден в тексте этой версии. Комментарий сохранён в обсуждении.
+                </p>
+            )}
             {activeComment && hovered && (
                 <aside
                     className="annotation-card"

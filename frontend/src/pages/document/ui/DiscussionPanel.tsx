@@ -35,6 +35,7 @@ export const DiscussionPanel = ({
 }) => {
     const client = useQueryClient();
     const [openOnly, setOpenOnly] = useState(false);
+    const visibleComments = comments.filter((comment) => !openOnly || !comment.resolved_at);
     const listRef = useRef<HTMLDivElement>(null);
     const newCommentRef = useRef<HTMLElement>(null);
     useLayoutEffect(() => {
@@ -73,41 +74,41 @@ export const DiscussionPanel = ({
             </label>
             <ErrorMessage error={resolution.error} />
             <div className="comment-list" ref={listRef}>
-                {comments.length ? (
-                    comments
-                        .filter((c) => !openOnly || !c.resolved_at)
-                        .map((c) => (
-                            <article key={c.id} ref={c.id === newCommentId ? newCommentRef : null}>
-                                <div className="comment-meta">
-                                    <span className="avatar tiny">{c.author_name.slice(0, 1)}</span>
-                                    <strong>{c.author_name}</strong>
-                                    <small>{formatDate(c.created_at)}</small>
-                                </div>
-                                {c.anchor_quote && (
-                                    <button
-                                        className="comment-anchor"
-                                        onClick={() => onJump(c)}
-                                        title="Перейти к фрагменту"
-                                    >
-                                        {c.anchor_quote}
-                                    </button>
-                                )}
-                                <p>{c.body}</p>
-                                {c.resolved_at && <small className="muted">Обсуждение закрыто</small>}
-                                {canComment && !c.deleted_at && (
-                                    <Button
-                                        variant="ghost"
-                                        size="small"
-                                        disabled={resolution.isPending}
-                                        onClick={() => resolution.mutate(c)}
-                                    >
-                                        {c.resolved_at ? 'Открыть снова' : 'Закрыть обсуждение'}
-                                    </Button>
-                                )}
-                            </article>
-                        ))
+                {visibleComments.length ? (
+                    visibleComments.map((c) => (
+                        <article key={c.id} ref={c.id === newCommentId ? newCommentRef : null}>
+                            <div className="comment-meta">
+                                <span className="avatar tiny">{c.author_name.slice(0, 1)}</span>
+                                <strong>{c.author_name}</strong>
+                                <small>{formatDate(c.created_at)}</small>
+                            </div>
+                            {c.anchor_quote && (
+                                <button
+                                    className="comment-anchor"
+                                    onClick={() => onJump(c)}
+                                    title="Перейти к фрагменту"
+                                >
+                                    {c.anchor_quote}
+                                </button>
+                            )}
+                            <p>{c.body}</p>
+                            {c.resolved_at && <small className="muted">Обсуждение закрыто</small>}
+                            {canComment && !c.deleted_at && (
+                                <Button
+                                    variant="ghost"
+                                    size="small"
+                                    disabled={resolution.isPending}
+                                    onClick={() => resolution.mutate(c)}
+                                >
+                                    {c.resolved_at ? 'Открыть снова' : 'Закрыть обсуждение'}
+                                </Button>
+                            )}
+                        </article>
+                    ))
                 ) : (
-                    <div className="comment-empty">Нет комментариев</div>
+                    <div className="comment-empty">
+                        {openOnly ? 'Открытых обсуждений нет' : 'Комментариев пока нет'}
+                    </div>
                 )}
             </div>
             {canComment && versionId && (
@@ -196,7 +197,7 @@ const CommentComposer = ({
                 />
                 <Button disabled={!comment.trim() || add.isPending} type="submit">
                     <Send size={15} />
-                    Отправить
+                    {add.isPending ? 'Отправляем…' : 'Добавить комментарий'}
                 </Button>
             </form>
         </>
