@@ -1,0 +1,29 @@
+name: modern-tech-office-seats-poc
+services:
+  redis:
+    image: redis:7.4-alpine
+    command: [redis-server, --appendonly, 'yes']
+    volumes:
+      - seats-redis:/data
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+  gateway:
+    image: node:24-alpine@sha256:f70403e87646dc51b45295f4b8b70cdad0b63d2297c4c9899119b03f7af7a6b3
+    working_dir: /poc
+    command: [node, server.mjs]
+    environment:
+      REDIS_HOST: redis
+      POC_SECRET: ${POC_SECRET:-local-demo-only}
+      LEASE_MS: ${LEASE_MS:-30000}
+    ports:
+      - 127.0.0.1:8894:8894
+    volumes:
+      - ./:/poc:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+volumes:
+  seats-redis:
