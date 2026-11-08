@@ -72,7 +72,12 @@ export function createOfficeBridge({ sessionFor, rightsFor, lease, sessions }) {
       const capability = url.pathname.slice('/office-source/'.length).replace(/\.docx$/, '');
       const session = [...sessions.values()].find(candidate => candidate.sourceCapability === capability);
       if (!permitted(session)) return json(res, 403, {error: 'forbidden'}), true;
+      // Track this file response before the asynchronous read. Revocation
+      // closes it even if loading the file has not yet finished.
+      session.streams.add(res);
+      res.on('close', () => session.streams.delete(res));
       const bytes = await source(session.doc);
+      if (!permitted(session) || res.destroyed) return true;
       res.writeHead(200, {'content-type': 'application/octet-stream', 'content-length': bytes.length, 'cache-control': 'no-store'});
       res.end(bytes); return true;
     }
@@ -137,6 +142,9 @@ export function createOfficeBridge({ sessionFor, rightsFor, lease, sessions }) {
   function upgrade(req, socket, head) {
     const session = sessionFor(req);
     if (!permitted(session)) { socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n'); return; }
+    // WebSockets do not enforce CORS. SameSite cookies alone cannot isolate
+    // sibling localhost origins, so verify the origin before proxying.
+    if (!/^Bearer [A-Za-z0-9_-]+$/.test(req.headers.authorization || '') && req.headers.origin !== `http://${req.headers.host}`) { socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n'); return; }
     session.streams.add(socket);
     const upstream = http.request(origin, {method: req.method, path: req.url, headers: headers(req)});
     socket.on('close', () => { session.streams.delete(socket); upstream.destroy(); });
