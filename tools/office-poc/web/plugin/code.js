@@ -49,28 +49,10 @@
       return id;
     }
     if (op === 'reply') {
-      if (!value || typeof value.id !== 'string' || !value.id || typeof value.text !== 'string' || !value.text.trim() || Array.from(value.text.trim()).length > 5000) throw new Error('Введите ответ (до 5000 символов Unicode)');
-      // Fetch the editor's current thread, never a copy supplied by the panel.
-      // ChangeComment replaces the whole thread: a concurrent writer in another
-      // client can still race this read. This is an experimental limitation.
-      const comments = await method('GetAllComments', []);
-      if (!Array.isArray(comments)) throw new Error('Редактор не вернул список обсуждений');
-      const comment = comments.find(function (item) { return item && String(item.Id) === value.id && item.Data; });
-      if (!comment || (comment.Data.Replies && !Array.isArray(comment.Data.Replies))) throw new Error('Ветка недоступна; обновите список');
-      // DOCX drops UserId from replies. Keep an explicit synthetic identity in
-      // this fixture's visible native name; it is not trusted authentication.
-      const reply = { UserId: user, UserName: nativeAuthorName, Text: value.text.trim(), Time: String(Date.now()), Solved: false };
-      const updated = Object.assign({}, comment.Data, { Replies: (comment.Data.Replies || []).concat([reply]) });
-      const result = await method('ChangeComment', [value.id, updated]);
-      if (result === false) throw new Error('Редактор отклонил ответ');
-      const after = await method('GetAllComments', []);
-      if (!Array.isArray(after) || !after.some(function (item) {
-        return item && String(item.Id) === value.id && Array.isArray(item.Data?.Replies) && item.Data.Replies.some(function (candidate) {
-          // DOCX normalizes replies and omits UserId from GetAllComments.
-          return candidate.UserName === reply.UserName && candidate.Time === reply.Time && candidate.Text === reply.Text;
-        });
-      })) throw new Error('Ответ не подтверждён редактором; проверьте ветку перед повтором');
-      return true;
+      // Replacing a thread can silently overwrite a simultaneous native edit
+      // or another client's reply. The bridge fails closed until the editor
+      // offers a verified concurrency-safe operation.
+      throw new Error('Ответы через панель недоступны: безопасная одновременная запись не подтверждена');
     }
     if (op === 'move' && Asc.plugin.info.editorType === 'word') {
       if (typeof value !== 'string' || !value) throw new Error('Не указан идентификатор обсуждения');
