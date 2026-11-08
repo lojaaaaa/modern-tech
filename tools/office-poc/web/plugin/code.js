@@ -39,7 +39,7 @@
       return comments;
     }
     if (op === 'add') {
-      if (typeof value !== 'string' || !value.trim() || value.length > 5000) throw new Error('Введите текст замечания (до 5000 символов)');
+      if (typeof value !== 'string' || !value.trim() || Array.from(value.trim()).length > 5000) throw new Error('Введите текст замечания (до 5000 символов Unicode)');
       const id = await method('AddComment', [{ UserId: user, UserName: authorNames[user], Text: value.trim(), Time: String(Date.now()), Solved: false, Replies: [] }]);
       if (!id) throw new Error('Редактор не создал замечание; проверьте выделение');
       return id;
