@@ -5,6 +5,9 @@
   const file = context?.[2];
   let busy = false;
   const authorNames = { alice: 'Алиса Петрова', bob: 'Борис Иванов' };
+  // Identity is explicit only for the fixed synthetic participants; the
+  // marker is visible in the native editor and is not authenticated.
+  const nativeAuthorName = authorNames[user] + ' [PoC:' + user + ']';
   let methods = Promise.resolve();
   let discussionOperations = Promise.resolve();
   let methodFailed = false;
@@ -41,7 +44,7 @@
     }
     if (op === 'add') {
       if (typeof value !== 'string' || !value.trim() || Array.from(value.trim()).length > 5000) throw new Error('Введите текст замечания (до 5000 символов Unicode)');
-      const id = await method('AddComment', [{ UserId: user, UserName: authorNames[user], Text: value.trim(), Time: String(Date.now()), Solved: false, Replies: [] }]);
+      const id = await method('AddComment', [{ UserId: user, UserName: nativeAuthorName, Text: value.trim(), Time: String(Date.now()), Solved: false, Replies: [] }]);
       if (!id) throw new Error('Редактор не создал замечание; проверьте выделение');
       return id;
     }
@@ -54,7 +57,9 @@
       if (!Array.isArray(comments)) throw new Error('Редактор не вернул список обсуждений');
       const comment = comments.find(function (item) { return item && String(item.Id) === value.id && item.Data; });
       if (!comment || (comment.Data.Replies && !Array.isArray(comment.Data.Replies))) throw new Error('Ветка недоступна; обновите список');
-      const reply = { UserId: user, UserName: authorNames[user], Text: value.text.trim(), Time: String(Date.now()), Solved: false };
+      // DOCX drops UserId from replies. Keep an explicit synthetic identity in
+      // this fixture's visible native name; it is not trusted authentication.
+      const reply = { UserId: user, UserName: nativeAuthorName, Text: value.text.trim(), Time: String(Date.now()), Solved: false };
       const updated = Object.assign({}, comment.Data, { Replies: (comment.Data.Replies || []).concat([reply]) });
       const result = await method('ChangeComment', [value.id, updated]);
       if (result === false) throw new Error('Редактор отклонил ответ');
