@@ -5,6 +5,7 @@ import { api } from '@/shared/api/client';
 import type { CommentRecord, Resource } from '@/shared/api/types';
 import { Button } from '@/shared/ui/button';
 import { ErrorMessage } from '@/shared/ui/error-message';
+import './file-preview.css';
 export interface TextAnchor {
     start: number;
     end: number;
@@ -272,5 +273,13 @@ export const FilePreview = ({ versionId, fallback }: { versionId: string; fallba
             </div>
         );
     }
-    return <iframe className="pdf-reader" title="Предпросмотр PDF" src={`${url}#view=FitH`} />;
+    return (
+        <>
+            <p className="pdf-comment-notice" role="note">
+                Пометки в PDF-просмотрщике браузера не сохраняются в обсуждении. Чтобы добавить комментарий,
+                откройте вкладку «Текст» и выделите фрагмент.
+            </p>
+            <iframe className="pdf-reader" title="Предпросмотр PDF" src={`${url}#view=FitH`} />
+        </>
+    );
 };
