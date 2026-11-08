@@ -1,0 +1,182 @@
+{
+  "at": "2026-11-08T09:51:12.192Z",
+  "run": "2026-11-08T09-51-12-192Z",
+  "kind": "live-native-editor-acceptance",
+  "base": "http://localhost:8897",
+  "office": "http://localhost:8891",
+  "formats": {
+    "pptx": {
+      "result": "failed-cursor-evidence",
+      "phases": {
+        "initial-alice": {
+          "key": "69bd8265-6e36-44be-b6ce-ab7b30b74a2b",
+          "userId": "alice",
+          "opened": true
+        },
+        "initial-bob": {
+          "key": "69bd8265-6e36-44be-b6ce-ab7b30b74a2b",
+          "userId": "bob",
+          "opened": true
+        },
+        "reopened-alice": {
+          "key": "ed1261b5-cc1b-46d8-9bc8-0a2b123c7844",
+          "userId": "alice",
+          "opened": true
+        },
+        "reopened-bob": {
+          "key": "ed1261b5-cc1b-46d8-9bc8-0a2b123c7844",
+          "userId": "bob",
+          "opened": true
+        }
+      },
+      "initial": [
+        {
+          "slides": [
+            [
+              "План проекта\r\n",
+              "Первая контрольная точка — ё Ω 文 ALICE_PPTX_2026-11-08T09-49-07-117Z\r\n"
+            ],
+            [
+              "Результаты\r\n",
+              "Вторая контрольная точка BOB_PPTX_2026-11-08T09-49-07-117Z\r\n"
+            ]
+          ]
+        },
+        {
+          "slides": [
+            [
+              "План проекта\r\n",
+              "Первая контрольная точка — ё Ω 文 ALICE_PPTX_2026-11-08T09-49-07-117Z\r\n"
+            ],
+            [
+              "Результаты\r\n",
+              "Вторая контрольная точка BOB_PPTX_2026-11-08T09-49-07-117Z\r\n"
+            ]
+          ]
+        }
+      ],
+      "aliceSeenByBob": {
+        "slides": [
+          [
+            "План проекта\r\n",
+            "Первая контрольная точка — ё Ω 文 ALICE_PPTX_2026-11-08T09-49-07-117Z ALICE_PPTX_2026-11-08T09-51-12-192Z\r\n"
+          ],
+          [
+            "Результаты\r\n",
+            "Вторая контрольная точка BOB_PPTX_2026-11-08T09-49-07-117Z\r\n"
+          ]
+        ]
+      },
+      "convergence": {
+        "passed": true,
+        "markers": {
+          "alice": "ALICE_PPTX_2026-11-08T09-51-12-192Z",
+          "bob": "BOB_PPTX_2026-11-08T09-51-12-192Z"
+        },
+        "clients": [
+          {
+            "slides": [
+              [
+                "План проекта\r\n",
+                "Первая контрольная точка — ё Ω 文 ALICE_PPTX_2026-11-08T09-49-07-117Z ALICE_PPTX_2026-11-08T09-51-12-192Z\r\n"
+              ],
+              [
+                "Результаты\r\n",
+                "Вторая контрольная точка BOB_PPTX_2026-11-08T09-49-07-117Z BOB_PPTX_2026-11-08T09-51-12-192Z\r\n"
+              ]
+            ]
+          },
+          {
+            "slides": [
+              [
+                "План проекта\r\n",
+                "Первая контрольная точка — ё Ω 文 ALICE_PPTX_2026-11-08T09-49-07-117Z ALICE_PPTX_2026-11-08T09-51-12-192Z\r\n"
+              ],
+              [
+                "Результаты\r\n",
+                "Вторая контрольная точка BOB_PPTX_2026-11-08T09-49-07-117Z BOB_PPTX_2026-11-08T09-51-12-192Z\r\n"
+              ]
+            ]
+          }
+        ],
+        "mainNavigations": [
+          1,
+          1
+        ]
+      },
+      "cursors": {
+        "passed": false,
+        "evidence": [],
+        "failures": [
+          {
+            "observer": "alice",
+            "peer": "bob",
+            "reason": "visible native peer cursor/selection label: timed out; last value=[]",
+            "hover": []
+          },
+          {
+            "observer": "bob",
+            "peer": "alice",
+            "reason": "visible native peer cursor/selection label: timed out; last value=[]",
+            "hover": []
+          }
+        ]
+      },
+      "save": {
+        "passed": true,
+        "callback": {
+          "at": "2026-11-08T09:51:58.458Z",
+          "file": "sample.pptx",
+          "key": "69bd8265-6e36-44be-b6ce-ab7b30b74a2b",
+          "status": 6,
+          "users": [
+            "alice"
+          ],
+          "sha256": "f16477e53f391a6c51904afea7779242820c67c7a099c109e98923bed6f6d8a3",
+          "bytes": 36488
+        },
+        "commandReply": {
+          "key": "69bd8265-6e36-44be-b6ce-ab7b30b74a2b",
+          "error": 0
+        },
+        "downloadedSha256": "f16477e53f391a6c51904afea7779242820c67c7a099c109e98923bed6f6d8a3"
+      },
+      "reopened": [
+        {
+          "slides": [
+            [
+              "План проекта\r\n",
+              "Первая контрольная точка — ё Ω 文 ALICE_PPTX_2026-11-08T09-49-07-117Z ALICE_PPTX_2026-11-08T09-51-12-192Z\r\n"
+            ],
+            [
+              "Результаты\r\n",
+              "Вторая контрольная точка BOB_PPTX_2026-11-08T09-49-07-117Z BOB_PPTX_2026-11-08T09-51-12-192Z\r\n"
+            ]
+          ]
+        },
+        {
+          "slides": [
+            [
+              "План проекта\r\n",
+              "Первая контрольная точка — ё Ω 文 ALICE_PPTX_2026-11-08T09-49-07-117Z ALICE_PPTX_2026-11-08T09-51-12-192Z\r\n"
+            ],
+            [
+              "Результаты\r\n",
+              "Вторая контрольная точка BOB_PPTX_2026-11-08T09-49-07-117Z BOB_PPTX_2026-11-08T09-51-12-192Z\r\n"
+            ]
+          ]
+        }
+      ],
+      "reopen": {
+        "passed": true,
+        "newKey": "ed1261b5-cc1b-46d8-9bc8-0a2b123c7844"
+      }
+    }
+  },
+  "result": "failed",
+  "browser": "156.0.8078.81",
+  "artifactVerification": {
+    "passed": false,
+    "reason": "All three callback artifacts are required"
+  }
+}

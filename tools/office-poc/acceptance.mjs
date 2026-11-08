@@ -122,6 +122,7 @@ async function cursorEvidence(clients, format) {
     }
   }
   const evidence = [];
+  const failures = [];
   for (const observer of clients) {
     const peer = observer.user === 'alice' ? 'bob' : 'alice';
     const peerClient = clients.find(client => client.user === peer);
@@ -130,28 +131,51 @@ async function cursorEvidence(clients, format) {
     // before observing it instead of waiting for both selections first.
     await activate(observer);
     await activate(peerClient);
-    const result = await until('visible native peer cursor/selection label', async () => {
+    const findPeerLabels = async (kind = 'cursor') => {
       const frames = [];
       for (const frame of observer.page.frames()) {
         if (!frame.url().includes('/web-apps/apps/')) continue;
-        const labels = await frame.evaluate(peerName => {
+        const labels = await frame.evaluate(({ peerName, peerId, kind }) => {
           const canvas = document.querySelector('#editor_sdk')?.getBoundingClientRect();
           if (!canvas) return [];
-          const selectors = '.username-tip, .usertip, [class*="cursor-label" i], [id*="cursor" i], [class*="foreign" i], [id*="foreign" i]';
+          // In the pinned editor, the foreign-cursor label has userid; the
+          // visually similar locked-object hover label does not. Never count
+          // an ambiguous name tooltip or participants list as a cursor.
+          const selectors = kind === 'cursor' ? '.username-tip[userid]' : '.username-tip:not([userid])';
           return Array.from(document.querySelectorAll(selectors)).filter(element => {
             const rect = element.getBoundingClientRect();
             const style = getComputedStyle(element);
-            return element.textContent.includes(peerName) && !element.closest('button, [role="menu"], .dropdown-menu') && rect.width > 0 && rect.width < 400 && rect.height > 0 && rect.height <= 60 && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity) > 0 && rect.left >= Math.max(0, canvas.left) && rect.top >= Math.max(0, canvas.top) && rect.right <= Math.min(innerWidth, canvas.right) && rect.bottom <= Math.min(innerHeight, canvas.bottom);
-          }).map(element => ({ text: element.textContent.trim(), tag: element.tagName, id: element.id, className: element.className, rect: element.getBoundingClientRect().toJSON() }));
-        }, names[peer]);
+            return (kind !== 'cursor' || element.getAttribute('userid') === peerId) && element.textContent.includes(peerName) && !element.closest('button, [role="menu"], .dropdown-menu') && rect.width > 0 && rect.width < 400 && rect.height > 0 && rect.height <= 60 && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity) > 0 && rect.left >= Math.max(0, canvas.left) && rect.top >= Math.max(0, canvas.top) && rect.right <= Math.min(innerWidth, canvas.right) && rect.bottom <= Math.min(innerHeight, canvas.bottom);
+          }).map(element => ({ text: element.textContent.trim(), userId: element.getAttribute('userid'), tag: element.tagName, id: element.id, className: element.className, rect: element.getBoundingClientRect().toJSON() }));
+        }, { peerName: names[peer], peerId: peer, kind });
         frames.push(...labels);
       }
       return frames;
-    }, value => value.length > 0, 12000);
-    await observer.page.screenshot({ path: `${output}/${format}-cursor-observed-by-${observer.user}.png` });
-    evidence.push({ observer: observer.user, peer, labels: result });
+    };
+    try {
+      const result = await until('visible native peer cursor/selection label', findPeerLabels, value => value.length > 0, 12000);
+      await observer.page.screenshot({ path: `${output}/${format}-cursor-observed-by-${observer.user}.png` });
+      evidence.push({ observer: observer.user, peer, labels: result });
+    } catch (error) {
+      const failure = { observer: observer.user, peer, reason: error.message };
+      if (format === 'pptx') {
+        // ONLYOFFICE documents a hover name for an edited presentation object.
+        // This is diagnostic evidence only: it does not satisfy cursor acceptance.
+        const target = peer === 'alice' ? { x: 800, y: 380 } : { x: 700, y: 490 };
+        const hover = [];
+        for (const [dx, dy] of [[0, 0], [-20, 0], [20, 0], [0, -15], [0, 15]]) {
+          await observer.page.mouse.move(target.x + dx, target.y + dy);
+          await pause(700);
+          const labels = await findPeerLabels('locked-object');
+          if (labels.length) { hover.push({ x: target.x + dx, y: target.y + dy, labels }); break; }
+        }
+        failure.hover = hover;
+        await observer.page.screenshot({ path: `${output}/${format}-cursor-failed-${observer.user}.png` });
+      }
+      failures.push(failure);
+    }
   }
-  return evidence;
+  return { passed: failures.length === 0, evidence, failures };
 }
 
 async function runFormat(format) {
@@ -177,7 +201,7 @@ async function runFormat(format) {
   assert(clients.every(client => client.mainNavigations === 1), 'Convergence must not rely on refreshing either page');
   record.convergence = { passed: true, markers, clients: converged, mainNavigations: clients.map(client => client.mainNavigations) };
   console.log(`${format}: both native edits converged without refresh`);
-  try { record.cursors = { passed: true, evidence: await cursorEvidence(clients, format) }; }
+  try { record.cursors = await cursorEvidence(clients, format); }
   catch (error) { record.cursors = { passed: false, reason: error.message }; }
   for (const client of clients) {
     await client.page.screenshot({ path: `${output}/${format}-after-edits-${client.user}.png` });
