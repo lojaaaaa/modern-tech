@@ -63,6 +63,9 @@ class Archive:
             CREATE TABLE IF NOT EXISTS background (
                 chat_id INTEGER NOT NULL, message_id INTEGER NOT NULL, content TEXT NOT NULL,
                 received_at REAL NOT NULL, PRIMARY KEY(chat_id,message_id));
+            CREATE TABLE IF NOT EXISTS message_sides (
+                chat_id INTEGER NOT NULL, message_id INTEGER NOT NULL,
+                own INTEGER NOT NULL, PRIMARY KEY(chat_id,message_id));
             CREATE TABLE IF NOT EXISTS entries (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, update_id INTEGER NOT NULL,
                 chat_id INTEGER NOT NULL, message_id INTEGER NOT NULL, kind TEXT NOT NULL,
@@ -96,6 +99,10 @@ class Archive:
             self.db.execute("INSERT OR IGNORE INTO archive_meta VALUES('owner_id',?)", (str(owner_id),))
             for key in ('notify_edits', 'notify_deletes'):
                 self.db.execute('INSERT OR IGNORE INTO archive_meta VALUES(?,?)', (key, '1'))
+            if not self.db.execute("SELECT 1 FROM archive_meta WHERE key='message_sides_initialized'").fetchone():
+                for row in self.db.execute('SELECT chat_id,message_id,content FROM background').fetchall():
+                    self._remember_side(row['chat_id'], row['message_id'], json.loads(row['content']))
+                self.db.execute("INSERT INTO archive_meta VALUES('message_sides_initialized','1')")
         self._migrate_legacy()
         self.expire()
 
@@ -218,9 +225,17 @@ class Archive:
         return None
 
     def _snapshot(self, chat_id, mid, content, received_at):
+        self._remember_side(chat_id, mid, content)
         self.db.execute('''INSERT INTO background VALUES(?,?,?,?)
             ON CONFLICT(chat_id,message_id) DO UPDATE SET content=excluded.content,received_at=excluded.received_at''',
                         (chat_id, mid, dumps(content), received_at))
+
+    def _remember_side(self, chat_id, mid, content):
+        # Only the side bit survives background expiry, never message content.
+        if content.get('author_id') is not None:
+            self.db.execute('''INSERT INTO message_sides VALUES(?,?,?)
+                ON CONFLICT(chat_id,message_id) DO UPDATE SET own=excluded.own''',
+                            (chat_id, mid, int(content['author_id'] == self.owner_id)))
 
     def process(self, update, notify=True):
         self.expire()
@@ -258,7 +273,12 @@ class Archive:
 
 
     def _append(self, uid, chat_id, mid, kind, before, after, profile, at, received, notify=True, time_source=None):
-        own = kind == 'photo' or bool((after or before or {}).get('author_id') == self.owner_id)
+        content = after or before or {}
+        known_side = self.db.execute('SELECT own FROM message_sides WHERE chat_id=? AND message_id=?',
+                                     (chat_id, mid)).fetchone()
+        own = kind == 'photo' or (content['author_id'] == self.owner_id
+                                  if content.get('author_id') is not None
+                                  else bool(known_side and known_side['own']))
         eid = self.db.execute('''INSERT INTO entries(update_id,chat_id,message_id,kind,own,at,received_at,
             time_source,profile,before_content,after_content,read) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)''',
             (uid, chat_id, mid, kind, int(own), at, received,
@@ -509,29 +529,42 @@ class Archive:
                 path.unlink(missing_ok=True)
             self.db.execute('DELETE FROM photo_assets WHERE id=?', (row['id'],))
 
+    def _scrub_deleted_content(self):
+        # secure_delete clears database pages, while TRUNCATE removes older WAL
+        # frames. Never report completed deletion if an active reader blocks it.
+        busy, _, _ = self.db.execute('PRAGMA wal_checkpoint(TRUNCATE)').fetchone()
+        if busy:
+            raise sqlite3.OperationalError('Archive cleanup is busy; retry the deletion')
+
     def delete_entry(self, id):
         with self.db:
             row = self.db.execute('SELECT chat_id,message_id FROM entries WHERE id=?', (id,)).fetchone()
             if not row:
                 raise KeyError(id)
             self.db.execute('DELETE FROM background WHERE chat_id=? AND message_id=?', (row['chat_id'], row['message_id']))
+            self.db.execute('DELETE FROM message_sides WHERE chat_id=? AND message_id=?', (row['chat_id'], row['message_id']))
             self.db.execute('DELETE FROM entries WHERE id=?', (id,))
             self._remove_orphan_photos()
+        self._scrub_deleted_content()
 
     def clear_conversation(self, chat_id):
         self.conversation_settings(chat_id)
         with self.db:
             self.db.execute('DELETE FROM background WHERE chat_id=?', (chat_id,))
+            self.db.execute('DELETE FROM message_sides WHERE chat_id=?', (chat_id,))
             self.db.execute('DELETE FROM entries WHERE chat_id=?', (chat_id,))
             self.db.execute('DELETE FROM message_heads WHERE chat_id=?', (chat_id,))
             self._remove_orphan_photos()
+        self._scrub_deleted_content()
 
     def clear(self):
         with self.db:
             self.db.execute('DELETE FROM background')
+            self.db.execute('DELETE FROM message_sides')
             self.db.execute('DELETE FROM entries')
             self.db.execute('DELETE FROM message_heads')
             self._remove_orphan_photos()
+        self._scrub_deleted_content()
 
     def mark_read(self, chat_id, ids=None, through_id=None):
         if (ids is None) == (through_id is None):

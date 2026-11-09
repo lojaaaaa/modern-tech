@@ -86,20 +86,26 @@
     );
     container.hidden = false;
   }
+  const mediaLabels = {
+    photo: "Фото",
+    video: "Видео",
+    document: "Файл",
+    voice: "Голосовое сообщение",
+    audio: "Аудио",
+    animation: "Анимация",
+    video_note: "Видеосообщение",
+    sticker: "Стикер",
+  };
+  const photoStatusLabels = {
+    pending: "Получаем фото",
+    saved: "Фото сохранено",
+    unavailable: "Файл недоступен",
+    error: "Не удалось сохранить фото",
+  };
   function contentText(content) {
     if (!content) return "Содержимое не сохранилось";
-    const labels = {
-      photo: "Фото",
-      video: "Видео",
-      document: "Файл",
-      voice: "Голосовое сообщение",
-      audio: "Аудио",
-      animation: "Анимация",
-      video_note: "Видеосообщение",
-      sticker: "Стикер",
-    };
     return (
-      [content.media ? labels[content.media] || "Медиа" : null, content.text]
+      [content.media ? mediaLabels[content.media] || "Медиа" : null, content.text]
         .filter(Boolean)
         .join(" · ") || "Содержимое не сохранилось"
     );
@@ -107,14 +113,7 @@
   function preview(entry) {
     if (!entry) return "";
     if (entry.kind === "photo")
-      return (
-        {
-          pending: "Получаем фото",
-          saved: "Фото сохранено",
-          unavailable: "Файл недоступен",
-          error: "Не удалось сохранить фото",
-        }[entry.photo_status] || "Фото"
-      );
+      return photoStatusLabels[entry.photo_status] || "Фото";
     return (
       (entry.own ? "Вы · " : "") +
       (entry.kind === "edit" ? "Изменено: " : "Удалено: ") +
@@ -322,18 +321,8 @@
       return;
     }
     if (content.media) {
-      const labels = {
-        photo: "Фото",
-        video: "Видео",
-        document: "Файл",
-        voice: "Голосовое сообщение",
-        audio: "Аудио",
-        animation: "Анимация",
-        video_note: "Видеосообщение",
-        sticker: "Стикер",
-      };
       container.append(
-        node("p", "media-type", labels[content.media] || "Медиа"),
+        node("p", "media-type", mediaLabels[content.media] || "Медиа"),
       );
     }
     if (content.text) container.append(node("p", "message-text", content.text));
@@ -801,14 +790,8 @@
   }
 
   function renderPhotoCard(container, entry) {
-    const labels = {
-      pending: "Получаем фото",
-      saved: "Фото сохранено",
-      unavailable: "Файл недоступен",
-      error: "Не удалось сохранить фото",
-    };
     container.querySelector("h3").textContent =
-      labels[entry.photo_status] || "Фото";
+      photoStatusLabels[entry.photo_status] || "Фото";
     if (entry.after?.text)
       container.append(node("p", "message-text", entry.after.text));
     if (entry.photo_status === "saved")
@@ -833,7 +816,7 @@
         const control = event.currentTarget;
         control.disabled = true;
         try {
-          await request(`/api/entries/${entry.id}/retry`, { method: "POST" });
+          await request(`/api/entries/${entry.id}/retry`, { method: "POST", body: {} });
           entry.photo_status = "pending";
           const replacement = entryElement(entry);
           const previous = $("feed")?.querySelector(
