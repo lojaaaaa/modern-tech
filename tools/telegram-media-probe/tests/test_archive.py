@@ -316,6 +316,43 @@ class ArchiveTests(unittest.TestCase):
         self.assertFalse(late.exists())
         self.assertEqual([], self.store.conversations())
 
+    def test_manual_deletions_scrub_deleted_content_from_active_database_and_wal(self):
+        for operation in ('delete_entry', 'clear_conversation', 'clear'):
+            with self.subTest(operation=operation):
+                marker = 'deleted-personal-content-' + operation
+                self.store.process(message(100 + len(marker), marker, mid=40,
+                                           kind='edited_business_message'))
+                entry = next(entry for entry in self.store.events(PARTNER)['items']
+                             if entry['message_id'] == 40)
+                if operation == 'delete_entry':
+                    self.store.delete_entry(entry['id'])
+                elif operation == 'clear_conversation':
+                    self.store.clear_conversation(PARTNER)
+                else:
+                    self.store.clear()
+                self.assertEqual([], self.store.history(PARTNER, 40)['items'])
+                for path in self.directory.glob('archive.sqlite3*'):
+                    self.assertFalse(marker.encode() in path.read_bytes(), path.name)
+
+    def test_expired_own_message_keeps_its_side_without_retaining_content(self):
+        marker = 'expired-own-message-secret-4a61'
+        self.store.process(message(1, marker, author=OWNER))
+        self.now += 31 * 86400
+        self.store.expire()
+        for path in self.directory.glob('archive.sqlite3*'):
+            self.assertFalse(marker.encode() in path.read_bytes(), path.name)
+        self.store.close()
+        self.store = archive.Archive(self.directory, OWNER, clock=lambda: self.now)
+        self.store.process(deletion(2))
+        event = self.store.events(PARTNER)['items'][0]
+        self.assertTrue(event['own'])
+        self.assertIsNone(event['before'])
+        self.assertEqual(0, self.store.conversations()[0]['unread'])
+        self.assertEqual([], self.store.notices())
+        self.store.clear_conversation(PARTNER)
+        self.store.process(deletion(3))
+        self.assertFalse(self.store.events(PARTNER)['items'][0]['own'])
+
     def test_receiver_status_only_claims_active_after_connection_and_recent_success(self):
         self.assertEqual('unknown', self.store.settings()['receiver']['state'])
         self.store.receiver_status(connected=True, success=True)

@@ -108,6 +108,11 @@ async (page) => {
       status = 503;
       body = { error: "История временно недоступна" };
     } else if (url.pathname.endsWith("/retry")) {
+      if (
+        route.request().headers()["content-type"] !== "application/json" ||
+        route.request().postData() !== "{}"
+      )
+        throw new Error("Photo retry must send an empty JSON object to the real API");
       retried = true;
       entries[3].photo_status = "pending";
       body = { ok: true };
