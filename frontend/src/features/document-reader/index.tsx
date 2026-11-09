@@ -210,7 +210,9 @@ export const TextReader = ({
                     for (const comment of anchors) {
                         const start = comment.anchor_start!;
                         const end = comment.anchor_end!;
-                        if (start < offset || end <= start) continue;
+                        if (start < offset || end <= start) {
+                            continue;
+                        }
                         parts.push(text.slice(offset, start));
                         parts.push(
                             <mark
@@ -222,11 +224,15 @@ export const TextReader = ({
                                 aria-label={`Открыть комментарий ${comment.author_name}`}
                                 onClick={() => onSelectComment?.(comment)}
                                 onMouseEnter={() => {
-                                    if (target?.key === comment.id) setHovered(true);
+                                    if (target?.key === comment.id) {
+                                        setHovered(true);
+                                    }
                                 }}
                                 onMouseLeave={() => setHovered(false)}
                                 onFocus={() => {
-                                    if (target?.key === comment.id) setHovered(true);
+                                    if (target?.key === comment.id) {
+                                        setHovered(true);
+                                    }
                                 }}
                                 onBlur={() => setHovered(false)}
                                 onKeyDown={(event) => {
@@ -272,7 +278,7 @@ export const FilePreview = ({ versionId, fallback }: { versionId: string; fallba
         );
     }
     if (preview?.status === 'failed') {
-        return <div className="empty-state">Предпросмотр недоступен. Откройте вкладку «Текст».</div>;
+        return <div className="empty-state">Предпросмотр недоступен. Откройте вкладку «Текст документа».</div>;
     }
     const url = `/api/v1/versions/${versionId}/preview`;
     if (preview?.kind === 'text') {
@@ -319,13 +325,5 @@ export const FilePreview = ({ versionId, fallback }: { versionId: string; fallba
             </div>
         );
     }
-    return (
-        <>
-            <p className="pdf-comment-notice" role="note">
-                Пометки в PDF-просмотрщике браузера не сохраняются в обсуждении. Чтобы добавить комментарий, откройте
-                вкладку «Текст» и выделите фрагмент.
-            </p>
-            <iframe className="pdf-reader" title="Предпросмотр PDF" src={`${url}#view=FitH`} />
-        </>
-    );
+    return <iframe className="pdf-reader" title="Предпросмотр PDF" src={`${url}#view=Fit&navpanes=0`} />;
 };

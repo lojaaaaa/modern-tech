@@ -16,6 +16,7 @@ use App\Modules\Identity\Http\RegistrationController;
 use App\Modules\Identity\Http\UserController;
 use App\Modules\Integrations\Http\ConnectionController;
 use App\Modules\Integrations\Http\TransferController;
+use App\Modules\Integrations\Http\YandexOAuthController;
 use App\Modules\Observability\Http\MetricsController;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -31,6 +32,7 @@ Route::get('/health/ready', function () {
     return response()->json(['status' => 'ready']);
 });
 Route::prefix('api/v1')->group(function (): void {
+    Route::get('/connections/yandex/callback', [YandexOAuthController::class, 'callback'])->middleware('throttle:60,1');
     Route::get('/office/source/{capability}', [OfficeController::class, 'source'])->where('capability', '[A-Za-z0-9._-]+');
     Route::post('/office/callback', [OfficeController::class, 'callback']);
     Route::post('/auth/register', [RegistrationController::class, 'store'])->middleware('throttle:registration');
@@ -42,6 +44,8 @@ Route::prefix('api/v1')->group(function (): void {
         Route::get('/auth/verify-email/{id}/{hash}', [EmailVerificationController::class, 'show'])->whereNumber('id')->middleware('signed')->name('verification.verify');
         Route::get('/admin/metrics', MetricsController::class);
         Route::get('/connections', [ConnectionController::class, 'index']);
+        Route::get('/connections/yandex/authorization', [YandexOAuthController::class, 'availability']);
+        Route::post('/connections/yandex/authorization', [YandexOAuthController::class, 'start'])->middleware('throttle:10,1');
         Route::post('/connections', [ConnectionController::class, 'store']);
         Route::get('/connections/{connection}/files', [ConnectionController::class, 'files']);
         Route::delete('/connections/{connection}', [ConnectionController::class, 'disconnect']);

@@ -93,15 +93,15 @@ it('clears selection when navigating between trash and documents in both directi
     );
     const user = userEvent.setup();
     await user.click(await screen.findByRole('checkbox', { name: 'Выбрать Проверка выбора' }));
-    expect(screen.getByText('Выбрано: 1')).toBeVisible();
+    expect(screen.getByText('Действия · 1')).toBeVisible();
     await user.click(screen.getByRole('link', { name: 'Все документы' }));
     expect(await screen.findByRole('checkbox', { name: 'Выбрать Проверка выбора' })).not.toBeChecked();
-    expect(screen.queryByText('Выбрано: 1')).not.toBeInTheDocument();
+    expect(screen.queryByText('Действия · 1')).not.toBeInTheDocument();
     await user.click(screen.getByRole('checkbox', { name: 'Выбрать Проверка выбора' }));
-    expect(screen.getByText('Выбрано: 1')).toBeVisible();
+    expect(screen.getByText('Действия · 1')).toBeVisible();
     await user.click(screen.getByRole('link', { name: 'Корзина' }));
     expect(await screen.findByRole('checkbox', { name: 'Выбрать Проверка выбора' })).not.toBeChecked();
-    expect(screen.queryByText('Выбрано: 1')).not.toBeInTheDocument();
+    expect(screen.queryByText('Действия · 1')).not.toBeInTheDocument();
 });
 
 it('clears private cached data when a background session request expires', async () => {

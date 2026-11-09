@@ -163,7 +163,14 @@ export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boole
                 <div className="saved-views">
                     {views.map((view, i) => (
                         <span key={view.name}>
-                            <Button variant="ghost" size="small" onClick={() => setParams(view.query)}>
+                            <Button
+                                variant="ghost"
+                                size="small"
+                                onClick={() => {
+                                    setSelected([]);
+                                    setParams(view.query);
+                                }}
+                            >
                                 {view.name}
                             </Button>
                             <Button
@@ -180,7 +187,14 @@ export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boole
                             </Button>
                         </span>
                     ))}
-                    <Button variant="ghost" size="small" onClick={() => setSaving(!saving)}>
+                    <Button
+                        variant="ghost"
+                        size="small"
+                        onClick={() => {
+                            setViewName('');
+                            setSaving((open) => !open);
+                        }}
+                    >
                         <BookmarkPlus size={15} />
                         Сохранить фильтры
                     </Button>
@@ -193,7 +207,12 @@ export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boole
                                 }
                                 const next = [
                                     ...views.filter((v) => v.name !== viewName.trim()),
-                                    { name: viewName.trim(), query: params.toString() },
+                                    {
+                                        name: viewName.trim(),
+                                        query: new URLSearchParams(
+                                            [...params].filter(([key]) => key !== 'page')
+                                        ).toString(),
+                                    },
                                 ].slice(-10);
                                 setViews(next);
                                 localStorage.setItem(viewsKey, JSON.stringify(next));
@@ -202,13 +221,21 @@ export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boole
                             }}
                         >
                             <input
-                                aria-label="Название представления"
+                                autoFocus
+                                required
+                                aria-label="Название фильтра"
                                 maxLength={40}
                                 value={viewName}
                                 onChange={(e) => setViewName(e.target.value)}
                                 placeholder="Название фильтра"
                             />
-                            <Button size="small">Сохранить</Button>
+
+                            <Button type="button" size="small" variant="secondary" onClick={() => setSaving(false)}>
+                                Отмена
+                            </Button>
+                            <Button size="small" disabled={!viewName.trim()}>
+                                Сохранить
+                            </Button>
                         </form>
                     )}
                 </div>
@@ -216,6 +243,17 @@ export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boole
                     <SearchInput initialValue={q} busy={query.isFetching} onSearch={(value) => change('q', value)} />
                 </div>
                 <div className="library-filters">
+                    <Button
+                        variant="ghost"
+                        size="small"
+                        disabled={!hasSearchFilters}
+                        onClick={() => {
+                            setSelected([]);
+                            setParams({});
+                        }}
+                    >
+                        Сбросить поиск и фильтры
+                    </Button>
                     <div className="selection-actions">
                         <details key={selected.join(',')} className="batch-actions-menu">
                             <summary>Действия{selected.length > 0 ? ` · ${selected.length}` : ''}</summary>
@@ -315,7 +353,7 @@ export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boole
                     </details>
                 </div>
                 <ErrorMessage error={query.error || restore.error} />
-                <div className="table-scroll">
+                <div className="table-scroll library-results">
                     <table className="documents-table library-table">
                         <thead>
                             <tr>
@@ -444,43 +482,26 @@ export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boole
                             ))}
                         </tbody>
                     </table>
+                    {query.isPending ? (
+                        <div className="empty-state">
+                            <div className="loading-orbit" />
+                            <h3>Загружаем библиотеку</h3>
+                        </div>
+                    ) : !docs.length && !query.isError ? (
+                        <div className="empty-state">
+                            <span className="empty-icon">
+                                <FolderOpen size={34} />
+                            </span>
+                            <h3>{trash ? 'В корзине пусто' : 'Нет документов'}</h3>
+                            {!q && !trash && user.role !== 'observer' && (
+                                <Button variant="secondary" onClick={() => setUpload(true)}>
+                                    <Plus size={16} />
+                                    Добавить первый документ
+                                </Button>
+                            )}
+                        </div>
+                    ) : null}
                 </div>
-                {query.isPending ? (
-                    <div className="empty-state">
-                        <div className="loading-orbit" />
-                        <h3>Загружаем библиотеку</h3>
-                    </div>
-                ) : !docs.length && !query.isError ? (
-                    <div className="empty-state">
-                        <span className="empty-icon">
-                            <FolderOpen size={34} />
-                        </span>
-                        <h3>
-                            {hasSearchFilters
-                                ? 'Нет документов по этим условиям'
-                                : trash
-                                  ? 'В корзине пусто'
-                                  : 'Нет документов'}
-                        </h3>
-                        {hasSearchFilters && (
-                            <Button
-                                variant="secondary"
-                                onClick={() => {
-                                    setSelected([]);
-                                    setParams({});
-                                }}
-                            >
-                                Сбросить поиск и фильтры
-                            </Button>
-                        )}
-                        {!q && !trash && user.role !== 'observer' && (
-                            <Button variant="secondary" onClick={() => setUpload(true)}>
-                                <Plus size={16} />
-                                Добавить первый документ
-                            </Button>
-                        )}
-                    </div>
-                ) : null}
                 <div className="table-footer">
                     <span>{total ? `Показано ${docs.length} из ${total}` : 'Нет документов'}</span>
                     <div>
@@ -508,6 +529,7 @@ export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boole
                     </div>
                 </div>
             </section>
+
             {upload && <UploadPanel onClose={() => setUpload(false)} />}
         </>
     );

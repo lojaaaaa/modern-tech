@@ -21,7 +21,8 @@ try {
     await page.getByRole('button',{name:'Выйти',exact:true}).waitFor();
     await page.goto(`http://localhost:8892/documents/${seed.id}`);
     await page.getByRole('button',{name:'Совместная работа',exact:true}).click({timeout:30000});
-    await page.getByText('Редактор подключён',{exact:true}).waitFor({timeout:120000});
+    await page.locator('.office-editor[aria-busy="false"]').waitFor({timeout:120000});
+    assert.equal(await page.locator('.office-editor [role="alert"]').count(), 0, 'Office editor failed to connect');
     const frame=page.frames().find(f=>f.url().includes('/documenteditor/'));
     if (!frame) throw Error('documenteditor frame not found');
     clients.push({name,context,page,frame});

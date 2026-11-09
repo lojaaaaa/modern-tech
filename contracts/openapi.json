@@ -6,7 +6,7 @@
     },
     "servers": [
         {
-            "url": "http://localhost/api"
+            "url": "http://localhost:8088/api"
         }
     ],
     "paths": {
@@ -430,17 +430,37 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object"
-                                            }
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "data": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object"
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "data"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "data": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    },
+                                                    "minItems": 0,
+                                                    "maxItems": 0
+                                                }
+                                            },
+                                            "required": [
+                                                "data"
+                                            ]
                                         }
-                                    },
-                                    "required": [
-                                        "data"
                                     ]
                                 }
                             }
@@ -800,17 +820,12 @@
                                     "provider": {
                                         "type": "string",
                                         "enum": [
-                                            "yandex",
                                             "mail"
                                         ]
                                     },
                                     "name": {
                                         "type": "string",
                                         "maxLength": 100
-                                    },
-                                    "token": {
-                                        "type": "string",
-                                        "maxLength": 4096
                                     },
                                     "email": {
                                         "type": "string",
@@ -824,7 +839,9 @@
                                 },
                                 "required": [
                                     "provider",
-                                    "name"
+                                    "name",
+                                    "email",
+                                    "password"
                                 ]
                             }
                         }
@@ -908,9 +925,6 @@
                                         "data": {
                                             "anyOf": [
                                                 {
-                                                    "type": "array"
-                                                },
-                                                {
                                                     "type": "array",
                                                     "items": {
                                                         "type": "object",
@@ -945,6 +959,9 @@
                                                             "size"
                                                         ]
                                                     }
+                                                },
+                                                {
+                                                    "type": "array"
                                                 }
                                             ]
                                         }
@@ -958,6 +975,16 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
+                    },
+                    "503": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                }
+                            }
+                        }
                     },
                     "502": {
                         "description": "An error",
@@ -1076,7 +1103,7 @@
         },
         "/v1/documents": {
             "get": {
-                "operationId": "modules.documents.document.index_28",
+                "operationId": "modules.documents.document.index_33",
                 "tags": [
                     "Document"
                 ],
@@ -1492,7 +1519,7 @@
         },
         "/v1/search": {
             "get": {
-                "operationId": "modules.documents.document.index_29",
+                "operationId": "modules.documents.document.index_34",
                 "tags": [
                     "Document"
                 ],
@@ -2586,7 +2613,7 @@
                                             "properties": {
                                                 "message": {
                                                     "type": "string",
-                                                    "const": "Электронная почта уже подтверждена."
+                                                    "const": "\u042d\u043b\u0435\u043a\u0442\u0440\u043e\u043d\u043d\u0430\u044f \u043f\u043e\u0447\u0442\u0430 \u0443\u0436\u0435 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0430."
                                                 }
                                             },
                                             "required": [
@@ -2613,7 +2640,7 @@
                                             "properties": {
                                                 "message": {
                                                     "type": "string",
-                                                    "const": "Письмо подтверждения поставлено в очередь отправки."
+                                                    "const": "\u041f\u0438\u0441\u044c\u043c\u043e \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u044f \u043f\u043e\u0441\u0442\u0430\u0432\u043b\u0435\u043d\u043e \u0432 \u043e\u0447\u0435\u0440\u0435\u0434\u044c \u043e\u0442\u043f\u0440\u0430\u0432\u043a\u0438."
                                                 }
                                             },
                                             "required": [
@@ -3180,6 +3207,342 @@
                 }
             }
         },
+        "/v1/office/source/{capability}": {
+            "get": {
+                "operationId": "office.source",
+                "tags": [
+                    "Office"
+                ],
+                "parameters": [
+                    {
+                        "name": "capability",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    }
+                }
+            }
+        },
+        "/v1/office/callback": {
+            "post": {
+                "operationId": "office.callback",
+                "tags": [
+                    "Office"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "error": {
+                                                    "type": "integer",
+                                                    "const": 1
+                                                }
+                                            },
+                                            "required": [
+                                                "error"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "error": {
+                                                    "type": "integer",
+                                                    "enum": [
+                                                        0,
+                                                        1
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "error"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "error": {
+                                                    "type": "integer",
+                                                    "const": 0
+                                                }
+                                            },
+                                            "required": [
+                                                "error"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/documents/{document}/editor/session": {
+            "post": {
+                "operationId": "office.session",
+                "tags": [
+                    "Office"
+                ],
+                "parameters": [
+                    {
+                        "name": "document",
+                        "in": "path",
+                        "required": true,
+                        "description": "The document ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "documentServerUrl": {
+                                            "type": "string"
+                                        },
+                                        "config": {
+                                            "type": "object",
+                                            "properties": {
+                                                "documentType": {
+                                                    "type": "string",
+                                                    "const": "word"
+                                                },
+                                                "width": {
+                                                    "type": "string",
+                                                    "const": "100%"
+                                                },
+                                                "height": {
+                                                    "type": "string",
+                                                    "const": "100%"
+                                                },
+                                                "document": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "fileType": {
+                                                            "type": "string",
+                                                            "const": "docx"
+                                                        },
+                                                        "key": {
+                                                            "type": "string"
+                                                        },
+                                                        "title": {
+                                                            "type": "string"
+                                                        },
+                                                        "url": {
+                                                            "type": "string"
+                                                        },
+                                                        "permissions": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "edit": {
+                                                                    "type": "boolean"
+                                                                },
+                                                                "comment": {
+                                                                    "type": "boolean"
+                                                                },
+                                                                "download": {
+                                                                    "type": "boolean"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "edit",
+                                                                "comment",
+                                                                "download"
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "fileType",
+                                                        "key",
+                                                        "title",
+                                                        "url",
+                                                        "permissions"
+                                                    ]
+                                                },
+                                                "editorConfig": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "mode": {
+                                                            "type": "string",
+                                                            "const": "edit"
+                                                        },
+                                                        "lang": {
+                                                            "type": "string",
+                                                            "const": "ru"
+                                                        },
+                                                        "user": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "id": {
+                                                                    "type": "string"
+                                                                },
+                                                                "name": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "id",
+                                                                "name"
+                                                            ]
+                                                        },
+                                                        "callbackUrl": {
+                                                            "type": "string"
+                                                        },
+                                                        "coEditing": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "mode": {
+                                                                    "type": "string",
+                                                                    "const": "fast"
+                                                                },
+                                                                "change": {
+                                                                    "type": "boolean"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "mode",
+                                                                "change"
+                                                            ]
+                                                        },
+                                                        "customization": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "autosave": {
+                                                                    "type": "boolean"
+                                                                },
+                                                                "forcesave": {
+                                                                    "type": "boolean"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "autosave",
+                                                                "forcesave"
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "mode",
+                                                        "lang",
+                                                        "user",
+                                                        "callbackUrl",
+                                                        "coEditing",
+                                                        "customization"
+                                                    ]
+                                                },
+                                                "token": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "documentType",
+                                                "width",
+                                                "height",
+                                                "document",
+                                                "editorConfig",
+                                                "token"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "documentServerUrl",
+                                        "config"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "503": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/v1/auth/forgot-password": {
             "post": {
                 "operationId": "password.forgot",
@@ -3209,7 +3572,7 @@
                                             "properties": {
                                                 "message": {
                                                     "type": "string",
-                                                    "const": "Если учётная запись существует, письмо с инструкцией отправлено."
+                                                    "const": "\u0415\u0441\u043b\u0438 \u0443\u0447\u0451\u0442\u043d\u0430\u044f \u0437\u0430\u043f\u0438\u0441\u044c \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u0443\u0435\u0442, \u043f\u0438\u0441\u044c\u043c\u043e \u0441 \u0438\u043d\u0441\u0442\u0440\u0443\u043a\u0446\u0438\u0435\u0439 \u043e\u0442\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u043e."
                                                 }
                                             },
                                             "required": [
@@ -3288,7 +3651,7 @@
                                             "properties": {
                                                 "message": {
                                                     "type": "string",
-                                                    "const": "Пароль обновлён. Войдите с новым паролем."
+                                                    "const": "\u041f\u0430\u0440\u043e\u043b\u044c \u043e\u0431\u043d\u043e\u0432\u043b\u0451\u043d. \u0412\u043e\u0439\u0434\u0438\u0442\u0435 \u0441 \u043d\u043e\u0432\u044b\u043c \u043f\u0430\u0440\u043e\u043b\u0435\u043c."
                                                 }
                                             },
                                             "required": [
@@ -3912,14 +4275,7 @@
                         }
                     },
                     "403": {
-                        "description": "An error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ApiError"
-                                }
-                            }
-                        }
+                        "$ref": "#/components/responses/AuthorizationException"
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
@@ -3982,13 +4338,146 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "anyOf": [
-                                                {
-                                                    "$ref": "#/components/schemas/User"
-                                                },
-                                                {
-                                                    "type": "null"
+                                            "$ref": "#/components/schemas/User"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/connections/yandex/callback": {
+            "get": {
+                "operationId": "yandexOAuth.callback",
+                "tags": [
+                    "YandexOAuth"
+                ],
+                "parameters": [
+                    {
+                        "name": "state",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "code",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "302": {
+                        "description": "",
+                        "headers": {
+                            "Location": {
+                                "required": true,
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/connections/yandex/authorization": {
+            "get": {
+                "operationId": "yandexOAuth.availability",
+                "tags": [
+                    "YandexOAuth"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "available": {
+                                                    "type": "boolean"
                                                 }
+                                            },
+                                            "required": [
+                                                "available"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "yandexOAuth.start",
+                "tags": [
+                    "YandexOAuth"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "connection_id": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "format": "uuid"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "url": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "url"
                                             ]
                                         }
                                     },
@@ -4009,11 +4498,18 @@
                             }
                         }
                     },
+                    "503": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                }
+                            }
+                        }
+                    },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
@@ -4530,79 +5026,6 @@
                 ],
                 "title": "ForgotPasswordRequest"
             },
-            "LengthAwarePaginator": {
-                "type": "object",
-                "properties": {
-                    "current_page": {
-                        "type": "integer"
-                    },
-                    "data": {
-                        "type": "string"
-                    },
-                    "first_page_url": {
-                        "type": "string"
-                    },
-                    "from": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "last_page": {
-                        "type": "integer"
-                    },
-                    "last_page_url": {
-                        "type": "string"
-                    },
-                    "links": {
-                        "type": "object",
-                        "additionalProperties": {}
-                    },
-                    "next_page_url": {
-                        "type": "string"
-                    },
-                    "path": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
-                    },
-                    "per_page": {
-                        "type": "integer"
-                    },
-                    "prev_page_url": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
-                    },
-                    "to": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "total": {
-                        "type": "integer"
-                    }
-                },
-                "required": [
-                    "current_page",
-                    "data",
-                    "first_page_url",
-                    "from",
-                    "last_page",
-                    "last_page_url",
-                    "links",
-                    "next_page_url",
-                    "path",
-                    "per_page",
-                    "prev_page_url",
-                    "to",
-                    "total"
-                ],
-                "title": "LengthAwarePaginator"
-            },
             "LoginRequest": {
                 "type": "object",
                 "properties": {
@@ -4759,6 +5182,16 @@
             }
         },
         "responses": {
+            "ModelNotFoundException": {
+                "description": "Not found",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/ApiError"
+                        }
+                    }
+                }
+            },
             "ValidationException": {
                 "description": "Validation error",
                 "content": {
@@ -4771,16 +5204,6 @@
             },
             "AuthenticationException": {
                 "description": "Unauthenticated",
-                "content": {
-                    "application/json": {
-                        "schema": {
-                            "$ref": "#/components/schemas/ApiError"
-                        }
-                    }
-                }
-            },
-            "ModelNotFoundException": {
-                "description": "Not found",
                 "content": {
                     "application/json": {
                         "schema": {

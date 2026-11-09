@@ -79,7 +79,7 @@ const DocumentWorkspace = () => {
             api<Resource<{ id: number; type: string; value: string }[]>>(`/versions/${activeVersionId}/entities`, {
                 signal,
             }),
-        enabled: !!activeVersionId && !isImage && tab === 'entities',
+        enabled: !!activeVersionId && !isImage && activeVersion?.status === 'ready',
     });
     const comments = useQuery({
         queryKey: ['comments', id],
@@ -263,7 +263,7 @@ const DocumentWorkspace = () => {
                     >
                         <section
                             ref={readerPanel}
-                            className="content-panel reader-panel"
+                            className={`content-panel reader-panel ${tab === 'preview' ? 'preview-panel' : ''}`}
                             style={
                                 tab === 'editor'
                                     ? { gridColumn: '1 / -1' }
@@ -287,7 +287,7 @@ const DocumentWorkspace = () => {
                                                 Совместная работа
                                             </button>
                                         )}
-                                    {!isImage && (
+                                    {!isImage && !!entities.data?.data.length && (
                                         <button
                                             className={tab === 'entities' ? 'active' : ''}
                                             onClick={() => setTab('entities')}
@@ -295,20 +295,6 @@ const DocumentWorkspace = () => {
                                             Данные
                                         </button>
                                     )}
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        aria-label="Полноэкранный просмотр"
-                                        onClick={() => {
-                                            if (document.fullscreenElement) {
-                                                void document.exitFullscreen();
-                                            } else {
-                                                void readerPanel.current?.requestFullscreen();
-                                            }
-                                        }}
-                                    >
-                                        <Maximize size={16} />
-                                    </Button>
                                     <button
                                         className={tab === 'preview' ? 'active' : ''}
                                         onClick={() => setTab('preview')}
@@ -318,7 +304,7 @@ const DocumentWorkspace = () => {
                                     </button>
                                     <button className={tab === 'text' ? 'active' : ''} onClick={() => setTab('text')}>
                                         <FileText size={16} />
-                                        Текст
+                                        Текст документа
                                     </button>
                                     <button
                                         className={tab === 'versions' ? 'active' : ''}
@@ -338,6 +324,21 @@ const DocumentWorkspace = () => {
                                     )}
                                 </div>
                                 <div className="document-view-tools">
+                                    <Button
+                                        variant="secondary"
+                                        size="small"
+                                        aria-label="Полноэкранный просмотр"
+                                        onClick={() => {
+                                            if (document.fullscreenElement) {
+                                                void document.exitFullscreen();
+                                            } else {
+                                                void readerPanel.current?.requestFullscreen();
+                                            }
+                                        }}
+                                    >
+                                        <Maximize size={16} />
+                                        На весь экран
+                                    </Button>
                                     {showDiscussion && (
                                         <Button
                                             variant="secondary"
@@ -459,7 +460,7 @@ const DocumentWorkspace = () => {
                                         </p>
                                     )}
                                     {d.permissions.edit && (versions.data?.data.length ?? 0) > 1 && (
-                                        <Button variant="secondary" onClick={() => setTab('compare')}>
+                                        <Button variant="secondary" size="small" onClick={() => setTab('compare')}>
                                             Сравнить версии
                                         </Button>
                                     )}
@@ -492,12 +493,19 @@ const DocumentWorkspace = () => {
                                                     </Button>
                                                 )}
                                                 {v.status === 'ready' && d.permissions.export && (
-                                                    <a
-                                                        href={`/api/v1/versions/${v.id}/download`}
-                                                        aria-label={`Скачать версию ${v.number}`}
+                                                    <Button
+                                                        asChild
+                                                        variant="secondary"
+                                                        size="icon"
+                                                        className="version-download"
                                                     >
-                                                        <Download size={17} />
-                                                    </a>
+                                                        <a
+                                                            href={`/api/v1/versions/${v.id}/download`}
+                                                            aria-label={`Скачать версию ${v.number}`}
+                                                        >
+                                                            <Download size={17} />
+                                                        </a>
+                                                    </Button>
                                                 )}
                                             </article>
                                         ))}

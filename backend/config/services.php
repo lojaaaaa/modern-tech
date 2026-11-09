@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 return [
 
+    'yandex' => [
+        'client_id' => env('YANDEX_CLIENT_ID'),
+        'client_secret' => env('YANDEX_CLIENT_SECRET'),
+        'redirect_uri' => env('YANDEX_REDIRECT_URI', rtrim(env('APP_URL', 'http://localhost:8088'), '/').'/api/v1/connections/yandex/callback'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services

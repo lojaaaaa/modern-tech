@@ -33,18 +33,18 @@ final class OfficeController
         }
         $draft = DB::transaction(function () use ($document) {
             $locked = Document::whereKey($document->id)->lockForUpdate()->firstOrFail();
-            $existing = DB::table('office_drafts')->where('document_id', $locked->id)->first();
+            $version = $locked->publishedVersion;
+            abort_unless($version && $version->status === 'ready' && str_ends_with(strtolower($version->original_name), '.docx'), 409, 'Для редактирования нужен опубликованный DOCX.');
+            $existing = DB::table('office_drafts')->where('document_id', $locked->id)->where('source_version_id', $version->id)->first();
             if ($existing) {
                 return $existing;
             }
-            $version = $locked->publishedVersion;
-            abort_unless($version && $version->status === 'ready' && str_ends_with(strtolower($version->original_name), '.docx'), 409, 'Для редактирования нужен опубликованный DOCX.');
             $storage = Storage::disk('local');
             $key = 'office-drafts/'.Str::uuid().'.docx';
             abort_unless($storage->copy($version->storage_key, $key), 503, 'Не удалось создать черновик.');
             DB::table('office_drafts')->insert(['document_id' => $locked->id, 'source_version_id' => $version->id, 'storage_key' => $key, 'editor_key' => (string) Str::uuid(), 'created_at' => now(), 'updated_at' => now()]);
 
-            return DB::table('office_drafts')->where('document_id', $locked->id)->first();
+            return DB::table('office_drafts')->where('document_id', $locked->id)->where('source_version_id', $version->id)->first();
         });
         $capability = $tokens->sign(['purpose' => 'office-source', 'doc' => $document->id, 'key' => $draft->editor_key, 'user' => $user->id, 'exp' => time() + 28800]);
         $base = rtrim((string) config('office.app_internal_url'), '/');
@@ -159,9 +159,11 @@ final class OfficeController
             if (! $updated) {
                 Storage::disk('local')->delete($newPath);
             }
+
             return response()->json(['error' => $updated ? 0 : 1]);
         } catch (\Throwable $error) {
             report($error);
+
             return response()->json(['error' => 1]);
         } finally {
             @unlink($temporary);

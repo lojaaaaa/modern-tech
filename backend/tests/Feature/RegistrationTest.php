@@ -137,7 +137,7 @@ class RegistrationTest extends TestCase
         $connection = CloudConnection::create(['owner_id' => $account->id, 'provider' => 'yandex', 'name' => 'Personal disk', 'credentials' => ['token' => 'test-only-token']]);
         $transfer = CloudTransfer::create(['initiator_id' => $account->id, 'connection_id' => $connection->id, 'direction' => 'import', 'remote_path' => '/sample.txt', 'filename' => 'sample.txt']);
 
-        (new ProcessTransfer($transfer->id))->handle(new ProviderFactory, new UploadDocument);
+        (new ProcessTransfer($transfer->id))->handle(new ProviderFactory, app(UploadDocument::class));
 
         $this->actingAs($account)->getJson('/api/v1/transfers')->assertOk()
             ->assertJsonPath('data.0.status', 'failed')->assertJsonPath('data.0.error_code', 'ACCESS_REVOKED');
