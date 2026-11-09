@@ -51,10 +51,10 @@ secure_delete. Сохранить Python 3.10+, stdlib; тесты unittest.
   enabled/last_success; `close()`.
 
 Диалог: `{id, name, username, avatar: null|'/api/...', unread, last_event,
-last_event_at, notifications, collecting}`. Аватар доступен только из данных
+last_event_at, notifications, collecting}`. `last_event` — Entry object (not a string). Аватар доступен только из данных
 Telegram, нет выдуманного фото. Можно оставить null, если API не предоставил.
 Entry: `{id, chat_id, message_id, kind:'edit'|'delete'|'photo', own, at,
-received_at, profile:{id,name,username}, before:null|Content,
+received_at, read:bool, profile:{id,name,username}, before:null|Content,
 after:null|Content, photo_status:null|'pending'|'saved'|'unavailable'|'error'}`.
 Content: `{text, media:null|'photo'|'video'|'document'|..., author_id, date}`;
 никогда raw reply/nested payload. History items: `{kind, at, content:null|Content}`.
