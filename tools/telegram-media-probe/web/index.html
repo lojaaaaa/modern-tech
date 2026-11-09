@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="color-scheme" content="light dark" />
+    <title>Архив</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <div id="app" class="app">
+      <aside id="sidebar" class="sidebar" aria-label="Диалоги архива">
+        <header class="toolbar">
+          <h1>Архив</h1>
+          <button id="settings" class="text-button" type="button">
+            Настройки
+          </button>
+        </header>
+        <div class="search-wrap">
+          <label class="sr-only" for="search">Поиск диалогов</label
+          ><input
+            id="search"
+            type="search"
+            placeholder="Поиск по имени или @username"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </div>
+        <p id="receiver" class="receiver" role="status"></p>
+        <div id="list-error" class="inline-error" hidden></div>
+        <nav
+          id="conversations"
+          class="conversation-list"
+          aria-label="Список диалогов"
+        >
+          <p class="empty">Загружаем диалоги…</p>
+        </nav>
+      </aside>
+      <main id="detail" class="detail" aria-label="События диалога">
+        <div class="welcome">
+          <p>Выберите диалог</p>
+          <span>Изменения, удаления и сохранённые фото</span>
+        </div>
+      </main>
+    </div>
+    <dialog id="sheet" class="sheet" aria-labelledby="sheet-title">
+      <div class="sheet-header">
+        <h2 id="sheet-title"></h2>
+        <button
+          id="sheet-close"
+          class="icon-button"
+          type="button"
+          aria-label="Закрыть"
+        >
+          ×
+        </button>
+      </div>
+      <div id="sheet-body" class="sheet-body"></div>
+    </dialog>
+    <p id="announcement" class="sr-only" role="status" aria-live="polite"></p>
+    <div id="toast" class="toast" role="status" hidden></div>
+  </body>
+</html>
