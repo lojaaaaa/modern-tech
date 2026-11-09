@@ -2,6 +2,33 @@
 (() => {
   const tg = window.Telegram?.WebApp;
   const $ = (id) => document.getElementById(id);
+  const photoDownloads = new Map();
+  let photoBytes = 0;
+  function savedPhoto(id) {
+    if (photoDownloads.has(id)) return photoDownloads.get(id).promise;
+    const item = { size: 0, promise: null };
+    item.promise = request(`/api/entries/${id}/photo`, { blob: true })
+      .then((blob) => {
+        if (photoDownloads.get(id) === item) {
+          item.size = blob.size;
+          photoBytes += blob.size;
+          for (const [key, value] of photoDownloads) {
+            if (photoBytes <= 24 * 1024 * 1024 && photoDownloads.size <= 8) break;
+            if (value.size) {
+              photoBytes -= value.size;
+              photoDownloads.delete(key);
+            }
+          }
+        }
+        return blob;
+      })
+      .catch((error) => {
+        if (photoDownloads.get(id) === item) photoDownloads.delete(id);
+        throw error;
+      });
+    photoDownloads.set(id, item);
+    return item.promise;
+  }
   const state = {
     pendingPage: null,
     conversations: [],
@@ -67,6 +94,10 @@
             ? "Сеанс истёк. Закройте архив и откройте его из Telegram."
             : "Не удалось выполнить запрос. Повторите попытку."),
       );
+    }
+    if (method === "DELETE") {
+      photoDownloads.clear();
+      photoBytes = 0;
     }
     if (blob) return response.blob();
     try {
@@ -723,6 +754,8 @@
     $("sheet-title").textContent = title;
     $("sheet-body").replaceChildren();
     if (!$("sheet").open) $("sheet").showModal();
+    $("sheet-title").tabIndex = -1;
+    $("sheet-title").focus({ preventScroll: true });
     syncBack();
     return $("sheet-body");
   }
@@ -814,7 +847,7 @@
       );
       tile.setAttribute("aria-label", "Открыть фото");
       container.append(tile);
-      request(`/api/entries/${entry.id}/photo`, { blob: true })
+      savedPhoto(entry.id)
         .then((blob) => {
           if (!tile.isConnected) return;
           const url = URL.createObjectURL(blob);
@@ -876,9 +909,7 @@
       version = layerVersion;
     body.append(node("p", "empty", "Загружаем фото…"));
     try {
-      const blob = await request(`/api/entries/${entry.id}/photo`, {
-        blob: true,
-      });
+      const blob = await savedPhoto(entry.id);
       if (layerVersion !== version) return;
       photoURL = URL.createObjectURL(blob);
       const image = node("img", "photo-viewer");
@@ -975,7 +1006,12 @@
     error.hidden = true;
     input.addEventListener("change", async () => {
       const next = input.checked;
-      input.disabled = true;
+      if (input.dataset.saving) {
+        input.checked = input.dataset.saving === "true";
+        return;
+      }
+      input.dataset.saving = String(next);
+      input.setAttribute("aria-busy", "true");
       error.hidden = true;
       try {
         await save(next);
@@ -986,7 +1022,8 @@
           "Не удалось сохранить настройку. " + failure.message;
         error.hidden = false;
       } finally {
-        input.disabled = false;
+        delete input.dataset.saving;
+        input.removeAttribute("aria-busy");
       }
     });
     row.append(copy, input);
@@ -1042,13 +1079,13 @@
       );
       body.append(storage);
       const connection = node("section", "settings-group");
+      const connectionHeading = node("div", "connection-heading");
+      const connectionStatus = node("span", "connection-status",
+        settings.receiver.state === "active" ? "Сбор работает" : $("receiver").textContent);
+      connectionStatus.classList.toggle("is-active", settings.receiver.state === "active");
+      connectionHeading.append(node("h3", "", "Подключение"), connectionStatus);
       connection.append(
-        node("h3", "", "Подключение"),
-        node(
-          "p",
-          "warning",
-          $("receiver").textContent || "Подключение ещё не проверено",
-        ),
+        connectionHeading,
         node(
           "p",
           "warning",
