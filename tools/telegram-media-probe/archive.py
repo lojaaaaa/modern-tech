@@ -367,12 +367,14 @@ class Archive:
 
 
     def notices(self):
-        pending = self.db.execute('SELECT id,text,attempts,retry_at FROM notices WHERE sent=0 ORDER BY id LIMIT 20').fetchall()
+        pending = self.db.execute('''SELECT n.id,n.text,n.attempts,n.retry_at,e.chat_id
+            FROM notices n JOIN entries e ON e.id=n.entry_id
+            WHERE n.sent=0 ORDER BY n.id LIMIT 20''').fetchall()
         result = []
         for row in pending:
             if row['retry_at'] > self.clock():
                 break
-            result.append({'id': row['id'], 'text': row['text'], 'attempts': row['attempts']})
+            result.append({'id': row['id'], 'text': row['text'], 'attempts': row['attempts'], 'chat_id': row['chat_id']})
         return result
 
     def notice_result(self, id, error=None):
