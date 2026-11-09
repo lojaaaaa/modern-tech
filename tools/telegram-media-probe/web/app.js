@@ -390,6 +390,10 @@
         "text-button destructive",
       ),
     );
+    actions.children[0].textContent = "История";
+    actions.children[0].setAttribute("aria-label", "История сообщения");
+    actions.children[1].textContent = "Удалить";
+    actions.children[1].setAttribute("aria-label", "Удалить запись");
     footer.append(actions, timestamp(entry.at, entry.time_source));
     article.append(footer);
     return article;
@@ -802,14 +806,34 @@
       photoStatusLabels[entry.photo_status] || "Фото";
     if (entry.after?.text)
       container.append(node("p", "message-text", entry.after.text));
-    if (entry.photo_status === "saved")
-      container.append(
-        button(
-          "Открыть фото",
-          (event) => openPhoto(entry, event.currentTarget),
-          "photo-tile",
-        ),
+    if (entry.photo_status === "saved") {
+      const tile = button(
+        "Загружаем фото…",
+        (event) => openPhoto(entry, event.currentTarget),
+        "photo-tile",
       );
+      tile.setAttribute("aria-label", "Открыть фото");
+      container.append(tile);
+      request(`/api/entries/${entry.id}/photo`, { blob: true })
+        .then((blob) => {
+          if (!tile.isConnected) return;
+          const url = URL.createObjectURL(blob);
+          const preview = node("img", "photo-preview");
+          preview.alt = "Сохранённое фото";
+          preview.onload = () => {
+            URL.revokeObjectURL(url);
+            tile.replaceChildren(preview);
+          };
+          preview.onerror = () => {
+            URL.revokeObjectURL(url);
+            tile.textContent = "Не удалось загрузить фото · Открыть";
+          };
+          preview.src = url;
+        })
+        .catch(() => {
+          tile.textContent = "Не удалось загрузить фото · Открыть";
+        });
+    }
     else if (entry.photo_status === "unavailable")
       container.append(
         node("p", "photo-note", "Бот не получил файл этого фото."),
