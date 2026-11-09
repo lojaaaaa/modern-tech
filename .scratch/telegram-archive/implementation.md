@@ -15,7 +15,7 @@ Integration branch: `implement/telegram-archive`. Base: `caf4f68`.
 
 Предложены пользователю 9 ноября: вход `Probe.ingest` с подставным Telegram,
 публичные операции Archive, настоящий HTTP API с подписанным initData,
-пользовательские действия браузера. До подтверждения не писать тесты.
+пользовательские действия браузера. Пользователь подтвердил все границы ответом «да».
 Живое получение временных фото — отдельный эксперимент, не результат fake API.
 
 ## Контракт хранилища (archive.py)
@@ -47,17 +47,19 @@ secure_delete. Сохранить Python 3.10+, stdlib; тесты unittest.
   `path` относительный, назначается при успешном полном скачивании.
 - `notices()` → ожидающие `{id, text, attempts}`; `notice_result(id, error=None)`.
   Старые задания отменяются при удалении/выключении соответствующей настройки.
+- `update_profile(chat_id, profile)`, `avatar_path(chat_id)`, `avatar_result(chat_id, path)` — последние доступные сведения/локальный аватар Telegram; обновление не меняет порядок диалогов и снимки событий.
 - `receiver_status(connected=None, success=False)` — обновление фактического
   enabled/last_success; `close()`.
 
 Диалог: `{id, name, username, avatar: null|'/api/...', unread, last_event,
-last_event_at, notifications, collecting}`. Аватар доступен только из данных
+last_event_at, notifications, collecting}`. `last_event` — Entry object (not a string). Аватар доступен только из данных
 Telegram, нет выдуманного фото. Можно оставить null, если API не предоставил.
-Entry: `{id, chat_id, message_id, kind:'edit'|'delete'|'photo', own, at,
-received_at, profile:{id,name,username}, before:null|Content,
+Entry: `{id, chat_id, message_id, kind:'edit'|'delete'|'photo', own, at, time_source,
+received_at, read:bool, profile:{id,name,username}, before:null|Content,
 after:null|Content, photo_status:null|'pending'|'saved'|'unavailable'|'error'}`.
 Content: `{text, media:null|'photo'|'video'|'document'|..., author_id, date}`;
 никогда raw reply/nested payload. History items: `{kind, at, content:null|Content}`.
+`time_source` = telegram для времени правки из Telegram, received для времени получения удаления/фото. UI подписывает время получения явно.
 Фоновая переписка не возвращается списком/историей до архивного события.
 
 ## HTTP-контракт (server.py, web/)
@@ -71,6 +73,7 @@ owner_id сверяются сервером; никакой dev-авториз�
 - GET `/api/conversations?q=...` → `{items}`
 - GET `/api/conversations/{chat}/events?before=...&limit=50` → страница выше
 - GET `/api/conversations/{chat}/messages/{mid}/history` → история выше
+- GET `/api/conversations/{chat}/avatar` → предоставленный Telegram аватар
 - GET `/api/entries/{id}/photo` → полный сохранённый файл
 - POST `/api/entries/{id}/retry` → `{ok:true}`
 - POST `/api/conversations/{chat}/read` → body `{ids:[...]}` или `{through_id:n}`
@@ -92,7 +95,7 @@ viewport/safe areas. Никакого отправления исходному 
 
 ## Закрытие
 
-Триажные Status сохраняют канонические значения. Выполненная задача получает
-`Resolution: resolved`, отмеченные критерии, ссылки на коммиты/проверки в Comments.
+Триажные Status сохраняют канонические значения. По существующей практике трекера выполненная задача получает `Status: ready-for-human`,
+`Resolution: completed`, отмеченные критерии, ссылки на коммиты/проверки в Comments.
 05 закрывается после приёмки и исправления всех находок ревью. Реальный HTTPS
 адрес пользователь настраивает при запуске; постоянный хостинг вне SPEC.
