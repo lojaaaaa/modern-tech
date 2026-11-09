@@ -4,6 +4,7 @@ import { vi, test, expect } from 'vitest';
 import { UsersPage } from './index';
 
 test('uses cursors and resets them when user filters change', async () => {
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', { configurable: true, value: vi.fn() });
     const requests: string[] = [];
     vi.stubGlobal(
         'fetch',
@@ -21,9 +22,11 @@ test('uses cursors and resets them when user filters change', async () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Дальше' })).toBeEnabled());
     fireEvent.click(screen.getByRole('button', { name: 'Дальше' }));
     await waitFor(() => expect(requests.some((url) => url.includes('cursor=next-token'))).toBe(true));
-    fireEvent.change(screen.getByLabelText('Статус'), { target: { value: '0' } });
+    fireEvent.click(screen.getByRole('combobox', { name: 'Статус' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Заблокирован' }));
     await waitFor(() => expect(requests.at(-1)).toContain('active=0'));
     expect(requests.at(-1)).not.toContain('cursor=');
     expect(screen.queryByText(/Страница/)).not.toBeInTheDocument();
+    Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView');
     vi.unstubAllGlobals();
 });

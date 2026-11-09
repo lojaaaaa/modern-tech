@@ -13,8 +13,14 @@
     flex-basis: 220px;
 }
 .admin-list-filters input,
-.admin-list-filters select {
+.admin-list-filters .select-trigger {
     min-height: 42px;
+}
+.content-panel.admin-table {
+    overflow: clip;
+}
+.admin-table .documents-table th {
+    position: static;
 }
 .admin-cursor-navigation {
     display: flex;

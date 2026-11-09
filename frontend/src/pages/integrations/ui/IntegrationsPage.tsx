@@ -1,7 +1,8 @@
 import { useState, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Folder, FileText, ArrowUp, Download, Unplug } from 'lucide-react';
-import { api } from '@/shared/api/client';
+import { api, ApiError } from '@/shared/api/client';
 import type { Resource } from '@/shared/api/types';
 import { Button } from '@/shared/ui/button';
 import { ErrorMessage } from '@/shared/ui/error-message';
@@ -36,22 +37,48 @@ const statuses: Record<string, string> = {
 export const IntegrationsPage = () => {
     const operationKeys = useRef(new Map<string, string>());
     const client = useQueryClient();
-    const [selected, setSelected] = useState('');
+    const [params, setParams] = useSearchParams();
+    const [selected, setSelected] = useState(() =>
+        params.get('yandex') === 'connected' ? (params.get('connection') ?? '') : ''
+    );
     const [path, setPath] = useState('/');
     const [provider, setProvider] = useState<'yandex' | 'mail'>('yandex');
     const [name, setName] = useState('');
-    const [token, setToken] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const connections = useQuery({
         queryKey: ['connections'],
         queryFn: ({ signal }) => api<Resource<Connection[]>>('/connections', { signal }),
     });
+    const authorization = useQuery({
+        queryKey: ['yandex-authorization'],
+        queryFn: ({ signal }) => api<Resource<{ available: boolean }>>('/connections/yandex/authorization', { signal }),
+        enabled: provider === 'yandex',
+    });
+    const connectYandex = useMutation({
+        mutationFn: (connectionId?: string) =>
+            api<Resource<{ url: string }>>('/connections/yandex/authorization', {
+                method: 'POST',
+                body: JSON.stringify(connectionId ? { connection_id: connectionId } : {}),
+            }),
+        onSuccess: (result) => window.location.assign(result.data.url),
+    });
     const files = useQuery({
         queryKey: ['remote-files', selected, path],
-        queryFn: ({ signal }) =>
-            api<Resource<RemoteFile[]>>(`/connections/${selected}/files?${new URLSearchParams({ path })}`, { signal }),
-        enabled: !!selected,
+        queryFn: async ({ signal }) => {
+            try {
+                return await api<Resource<RemoteFile[]>>(
+                    `/connections/${selected}/files?${new URLSearchParams({ path })}`,
+                    { signal }
+                );
+            } catch (error) {
+                if (error instanceof ApiError && error.status === 422) {
+                    void client.invalidateQueries({ queryKey: ['connections'] });
+                }
+                throw error;
+            }
+        },
+        enabled: connections.data?.data.some((c) => c.id === selected && c.status === 'connected') ?? false,
         retry: false,
     });
     const transfers = useQuery({
@@ -65,13 +92,13 @@ export const IntegrationsPage = () => {
             api('/connections', {
                 method: 'POST',
                 body: JSON.stringify({
-                    provider,
+                    provider: 'mail',
                     name,
-                    ...(provider === 'yandex' ? { token } : { email, password }),
+                    email,
+                    password,
                 }),
             }),
         onSuccess: async () => {
-            setToken('');
             setPassword('');
             setName('');
             await client.invalidateQueries({ queryKey: ['connections'] });
@@ -133,9 +160,9 @@ export const IntegrationsPage = () => {
                             setProvider(service);
                             setSelected('');
                             setPath('/');
-                            setToken('');
                             setPassword('');
                             create.reset();
+                            connectYandex.reset();
                         }}
                     >
                         <span className={`provider-icon ${service}`}>{service === 'yandex' ? 'Я' : '@'}</span>
@@ -145,6 +172,8 @@ export const IntegrationsPage = () => {
             </div>
             <ErrorMessage
                 error={
+                    authorization.error ||
+                    connectYandex.error ||
                     connections.error ||
                     create.error ||
                     disconnect.error ||
@@ -153,6 +182,39 @@ export const IntegrationsPage = () => {
                     transfers.error
                 }
             />
+            {params.get('yandex') && (
+                <div
+                    className="integration-notice"
+                    role={
+                        params.get('yandex') === 'connected' || params.get('yandex') === 'cancelled'
+                            ? 'status'
+                            : 'alert'
+                    }
+                >
+                    <span>
+                        {(
+                            {
+                                connected: 'Яндекс Диск подключён.',
+                                cancelled: 'Подключение отменено.',
+                                expired: 'Время подключения истекло или аккаунт изменился. Попробуйте снова.',
+                                failed: 'Не удалось подключить Яндекс Диск. Проверьте разрешения и попробуйте снова.',
+                            } as Record<string, string>
+                        )[params.get('yandex') ?? ''] ?? 'Повторите подключение Яндекс Диска.'}
+                    </span>
+                    <Button
+                        variant="ghost"
+                        size="small"
+                        onClick={() => {
+                            const next = new URLSearchParams(params);
+                            next.delete('yandex');
+                            next.delete('connection');
+                            setParams(next, { replace: true });
+                        }}
+                    >
+                        Закрыть
+                    </Button>
+                </div>
+            )}
             <section className="content-panel form-panel">
                 <h2>Мои подключения</h2>
                 {connections.isPending && <p role="status">Загружаем подключения…</p>}
@@ -162,11 +224,12 @@ export const IntegrationsPage = () => {
                         <p className="muted">Подключите диск ниже, чтобы выбрать файлы для импорта.</p>
                     )}
                 {providerConnections
-                    .filter((c) => c.status === 'connected')
+                    .filter((c) => c.status !== 'disconnected')
                     .map((c) => (
                         <div className="integration-row" key={c.id}>
                             <Button
                                 variant={selected === c.id ? 'default' : 'secondary'}
+                                disabled={c.status !== 'connected'}
                                 onClick={() => {
                                     setSelected(c.id);
                                     setPath('/');
@@ -174,6 +237,18 @@ export const IntegrationsPage = () => {
                             >
                                 {c.name} · {c.provider === 'yandex' ? 'Яндекс Диск' : 'Облако Mail'}
                             </Button>
+                            {c.status === 'authorization_required' && (
+                                <small className="muted">Нужно войти заново</small>
+                            )}
+                            {c.provider === 'yandex' && (
+                                <Button
+                                    variant="ghost"
+                                    disabled={connectYandex.isPending || !authorization.data?.data.available}
+                                    onClick={() => connectYandex.mutate(c.id)}
+                                >
+                                    Переподключить
+                                </Button>
+                            )}
                             <Button
                                 variant="ghost"
                                 disabled={disconnect.isPending}
@@ -228,60 +303,55 @@ export const IntegrationsPage = () => {
                 </section>
             )}
             <section className="content-panel form-panel">
-                <h2>Подключить диск</h2>
-                <form
-                    className="user-form"
-                    onSubmit={(e) => {
-                        e.preventDefault();
-                        create.mutate();
-                    }}
-                >
-                    <label>
-                        Название
-                        <input
-                            required
-                            maxLength={100}
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder="Мой рабочий диск"
-                        />
-                    </label>
-                    {provider === 'yandex' ? (
+                <h2>{provider === 'yandex' ? 'Подключить Яндекс Диск' : 'Подключить Облако Mail'}</h2>
+                {provider === 'yandex' ? (
+                    <div className="integration-connect">
+                        <p className="muted">Разрешите доступ к файлам на странице Яндекса.</p>
+                        <Button
+                            disabled={connectYandex.isPending || !authorization.data?.data.available}
+                            onClick={() => connectYandex.mutate(undefined)}
+                        >
+                            {connectYandex.isPending ? 'Переходим в Яндекс…' : 'Подключить Яндекс Диск'}
+                        </Button>
+                        {authorization.data && !authorization.data.data.available && (
+                            <p className="muted">Подключение пока недоступно. Обратитесь к администратору.</p>
+                        )}
+                    </div>
+                ) : (
+                    <form
+                        className="user-form"
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            create.mutate();
+                        }}
+                    >
                         <label>
-                            <span id="yandex-token-label">Токен доступа Яндекс Диска</span>
+                            Название
+                            <input
+                                required
+                                maxLength={100}
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="Мой рабочий диск"
+                            />
+                        </label>
+                        <label>
+                            Почта Mail
+                            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                        </label>
+                        <label>
+                            Пароль приложения
                             <input
                                 type="password"
                                 autoComplete="off"
                                 required
-                                aria-describedby="yandex-token-help"
-                                aria-labelledby="yandex-token-label"
-                                value={token}
-                                onChange={(e) => setToken(e.target.value)}
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
                             />
-                            <small id="yandex-token-help" className="muted field-hint">
-                                Токен вашего аккаунта. Client ID и Client secret приложения здесь не подходят.
-                            </small>
                         </label>
-                    ) : (
-                        <>
-                            <label>
-                                Почта Mail
-                                <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-                            </label>
-                            <label>
-                                Пароль приложения
-                                <input
-                                    type="password"
-                                    autoComplete="off"
-                                    required
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                />
-                            </label>
-                        </>
-                    )}
-                    <Button disabled={create.isPending}>{create.isPending ? 'Подключаем…' : 'Подключить'}</Button>
-                </form>
+                        <Button disabled={create.isPending}>{create.isPending ? 'Подключаем…' : 'Подключить'}</Button>
+                    </form>
+                )}
             </section>
             {providerTransfers.length > 0 && (
                 <section className="content-panel form-panel">

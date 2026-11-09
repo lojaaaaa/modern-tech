@@ -109,7 +109,8 @@ input:focus,
 textarea:focus,
 select:focus {
     border-color: var(--blue);
-    box-shadow: 0 0 0 3px var(--soft);
+    box-shadow: none;
+    outline: none;
 }
 :focus-visible {
     outline: 2px solid var(--blue);
@@ -133,6 +134,23 @@ textarea {
     font-weight: 400;
     line-height: 1.5;
     max-width: 60ch;
+}
+.integration-connect {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    padding-top: 16px;
+}
+.integration-notice {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 18px;
+    padding: 12px 16px;
+    background: var(--soft);
+    border-radius: 8px;
 }
 @media (prefers-reduced-motion: reduce) {
     *,
@@ -1065,6 +1083,7 @@ main {
 }
 .tabs button {
     display: flex;
+    flex-shrink: 0;
     gap: 6px;
     align-items: center;
     padding: 18px 0;
@@ -1150,12 +1169,29 @@ main {
 .version-list {
     padding: 20px;
 }
+.version-list > .button {
+    margin-bottom: 8px;
+}
+.version-list .button {
+    height: 32px;
+    min-height: 32px;
+}
 .version-list article {
     display: flex;
     align-items: center;
     gap: 12px;
     padding: 16px 0;
     border-bottom: 1px solid var(--border);
+}
+.version-list article:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+}
+.version-list .version-download {
+    width: 32px;
+    height: 32px;
+    min-height: 32px;
+    flex-shrink: 0;
 }
 .version-list article div {
     flex: 1;
@@ -2325,27 +2361,34 @@ main:has(.document-heading) {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 8px 14px 0;
-    flex-wrap: wrap;
+    padding: 8px 14px;
+    min-height: 50px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+}
+.saved-views > * {
+    flex-shrink: 0;
+}
+.saved-views form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.saved-views input {
+    width: 180px;
+    height: 32px;
+    padding: 5px 9px;
+}
+.saved-views input:focus {
+    border-color: var(--blue);
+    box-shadow: none;
+    outline: none;
 }
 .saved-views > span {
     display: flex;
     align-items: center;
     background: var(--canvas);
     border-radius: 6px;
-}
-.saved-views form {
-    display: flex;
-    gap: 6px;
-}
-.saved-views input {
-    padding: 6px 10px;
-    max-width: 180px;
-}
-.saved-views input:focus-visible {
-    outline: 2px solid var(--blue);
-    outline-offset: -2px;
-    box-shadow: none;
 }
 .compact-library {
     display: flex;
@@ -2482,6 +2525,13 @@ main:has(.document-heading) {
         overflow-y: auto;
         min-height: 0;
         flex: 1;
+    }
+    main:has(.preview-panel) {
+        overflow-y: auto;
+    }
+    main:has(.preview-panel) .detail-grid {
+        flex: 0 0 auto;
+        height: calc(100dvh - 32px);
     }
 }
 .access-editor form {
@@ -2677,23 +2727,37 @@ main:has(.document-heading) {
     color: #a9e0bd;
 }
 .office-editor {
-    min-height: 640px;
+    position: relative;
+    height: 640px;
     display: flex;
     flex-direction: column;
 }
 
-.office-editor > p {
-    margin: 8px 16px;
+.office-editor-loading {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    background: var(--surface);
 }
 .office-editor-frame {
-    min-height: 600px;
+    min-height: 0;
     flex: 1;
 }
 .office-editor > iframe {
     width: 100%;
-    min-height: 600px;
+    min-height: 0;
     flex: 1;
     border: 0;
+}
+
+@media (min-width: 1001px) {
+    .reader-panel > .office-editor {
+        flex: 1;
+        min-height: 0;
+        height: auto;
+    }
 }
 
 .reader-panel:fullscreen {
@@ -2834,7 +2898,10 @@ main:has(.document-heading) {
 .comment-mark {
     cursor: pointer;
 }
-.comment-mark-selected { outline: 2px solid #b27b13; outline-offset: 1px; }
+.comment-mark-selected {
+    outline: 2px solid #b27b13;
+    outline-offset: 1px;
+}
 .dark .selectable-text mark {
     background: #615025;
     color: #fff1bb;
@@ -2920,26 +2987,27 @@ main:has(.document-heading) {
         height: auto;
     }
 }
-@media (min-width: 1001px) {
-    .app-shell {
-        height: 100dvh;
-        min-height: 0;
-        overflow: hidden;
-    }
-    .workspace-main {
-        height: 100dvh;
-        min-height: 0;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-    }
-    .workspace-main > .topbar {
-        flex: 0 0 64px;
-    }
-    .workspace-main > main {
-        flex: 1;
-        min-height: 0;
-        overflow-y: auto;
-        overflow-x: hidden;
-    }
+
+/* Landmarks receive focus through the skip link without a viewport-sized ring. */
+main:focus-visible {
+    outline: none;
+}
+.button:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 2px;
+}
+.button.user-block-action:focus-visible,
+.button.user-unblock-action:focus-visible {
+    color: var(--text);
+}
+.compact-library .library-results {
+    display: flex;
+    flex-direction: column;
+}
+.library-results > table {
+    flex: 0 0 auto;
+}
+.library-results > .empty-state {
+    flex: 1;
+    min-height: 220px;
 }

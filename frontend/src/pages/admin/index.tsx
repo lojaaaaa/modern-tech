@@ -53,7 +53,7 @@ export const UsersPage = () => {
             </div>
             <AdminFilters listing={listing} kind="users" />
             <ErrorMessage error={query.error || create.error || toggle.error || changeRole.error} />
-            <section className="content-panel table-scroll">
+            <section className="content-panel admin-table">
                 <table className="documents-table">
                     <thead>
                         <tr>
@@ -184,7 +184,7 @@ export const AuditPage = () => {
             </div>
             <AdminFilters listing={listing} kind="audit" />
             <ErrorMessage error={query.error} />
-            <section className="content-panel table-scroll">
+            <section className="content-panel admin-table">
                 <table className="documents-table">
                     <thead>
                         <tr>
@@ -338,13 +338,12 @@ const AdminFilters = ({ listing, kind }: { listing: ReturnType<typeof useCursorF
     const select = (key: string, label: string, options: { value: string; label: string }[]) => (
         <label>
             {label}
-            <select value={listing.filters[key] ?? ''} onChange={(event) => listing.change(key, event.target.value)}>
-                {options.map((option) => (
-                    <option key={option.value} value={option.value}>
-                        {option.label}
-                    </option>
-                ))}
-            </select>
+            <Select
+                label={label}
+                value={listing.filters[key] ?? ''}
+                onValueChange={(value) => listing.change(key, value)}
+                options={options}
+            />
         </label>
     );
     return (

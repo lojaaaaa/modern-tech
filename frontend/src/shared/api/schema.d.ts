@@ -203,7 +203,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["modules.documents.document.index_28"];
+        get: operations["modules.documents.document.index_33"];
         put?: never;
         post: operations["document.store"];
         delete?: never;
@@ -219,7 +219,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["modules.documents.document.index_29"];
+        get: operations["modules.documents.document.index_34"];
         put?: never;
         post?: never;
         delete?: never;
@@ -500,6 +500,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/office/source/{capability}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["office.source"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/office/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["office.callback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/documents/{document}/editor/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["office.session"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/auth/forgot-password": {
         parameters: {
             query?: never;
@@ -626,6 +674,38 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["user.update"];
+        trace?: never;
+    };
+    "/v1/connections/yandex/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["yandexOAuth.callback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/connections/yandex/authorization": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["yandexOAuth.availability"];
+        put?: never;
+        post: operations["yandexOAuth.start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
 }
@@ -760,24 +840,6 @@ export interface components {
             /** Format: email */
             email: string;
         };
-        /** LengthAwarePaginator */
-        LengthAwarePaginator: {
-            current_page: number;
-            data: string;
-            first_page_url: string;
-            from: number | null;
-            last_page: number;
-            last_page_url: string;
-            links: {
-                [key: string]: unknown;
-            };
-            next_page_url: string;
-            path: string | null;
-            per_page: number;
-            prev_page_url: string | null;
-            to: number | null;
-            total: number;
-        };
         /** LoginRequest */
         LoginRequest: {
             /** Format: email */
@@ -825,6 +887,15 @@ export interface components {
         };
     };
     responses: {
+        /** @description Not found */
+        ModelNotFoundException: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ApiError"];
+            };
+        };
         /** @description Validation error */
         ValidationException: {
             headers: {
@@ -836,15 +907,6 @@ export interface components {
         };
         /** @description Unauthenticated */
         AuthenticationException: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/json": components["schemas"]["ApiError"];
-            };
-        };
-        /** @description Not found */
-        ModelNotFoundException: {
             headers: {
                 [name: string]: unknown;
             };
@@ -1066,6 +1128,8 @@ export interface operations {
                 content: {
                     "application/json": {
                         data: Record<string, never>[];
+                    } | {
+                        data: string[];
                     };
                 };
             };
@@ -1246,12 +1310,11 @@ export interface operations {
             content: {
                 "application/json": {
                     /** @enum {string} */
-                    provider: "yandex" | "mail";
+                    provider: "mail";
                     name: string;
-                    token?: string;
                     /** Format: email */
-                    email?: string;
-                    password?: string;
+                    email: string;
+                    password: string;
                 };
             };
         };
@@ -1299,13 +1362,13 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        data: unknown[] | {
+                        data: {
                             name: string;
                             path: null | unknown[] | string | number | Record<string, never>;
                             /** @enum {string} */
                             type: "dir" | "file";
                             size: number;
-                        }[];
+                        }[] | unknown[];
                     };
                 };
             };
@@ -1314,6 +1377,15 @@ export interface operations {
             422: components["responses"]["ValidationException"];
             /** @description An error */
             502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description An error */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1378,7 +1450,7 @@ export interface operations {
             422: components["responses"]["ValidationException"];
         };
     };
-    "modules.documents.document.index_28": {
+    "modules.documents.document.index_33": {
         parameters: {
             query?: {
                 q?: string | null;
@@ -1474,7 +1546,7 @@ export interface operations {
             422: components["responses"]["ValidationException"];
         };
     };
-    "modules.documents.document.index_29": {
+    "modules.documents.document.index_34": {
         parameters: {
             query?: {
                 q?: string | null;
@@ -2248,6 +2320,167 @@ export interface operations {
             };
         };
     };
+    "office.source": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                capability: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": string;
+                };
+            };
+            /** @description An error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            404: components["responses"]["ModelNotFoundException"];
+            /** @description An error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    "office.callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        error: 1;
+                    } | {
+                        /** @enum {integer} */
+                        error: 0 | 1;
+                    } | {
+                        /** @constant */
+                        error: 0;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    "office.session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The document ID */
+                document: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        documentServerUrl: string;
+                        config: {
+                            /** @constant */
+                            documentType: "word";
+                            /** @constant */
+                            width: "100%";
+                            /** @constant */
+                            height: "100%";
+                            document: {
+                                /** @constant */
+                                fileType: "docx";
+                                key: string;
+                                title: string;
+                                url: string;
+                                permissions: {
+                                    edit: boolean;
+                                    comment: boolean;
+                                    download: boolean;
+                                };
+                            };
+                            editorConfig: {
+                                /** @constant */
+                                mode: "edit";
+                                /** @constant */
+                                lang: "ru";
+                                user: {
+                                    id: string;
+                                    name: string;
+                                };
+                                callbackUrl: string;
+                                coEditing: {
+                                    /** @constant */
+                                    mode: "fast";
+                                    change: boolean;
+                                };
+                                customization: {
+                                    autosave: boolean;
+                                    forcesave: boolean;
+                                };
+                            };
+                            token: string;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            /** @description An error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     "password.forgot": {
         parameters: {
             query?: never;
@@ -2615,15 +2848,7 @@ export interface operations {
                 };
             };
             401: components["responses"]["AuthenticationException"];
-            /** @description An error */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
+            403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
         };
     };
@@ -2654,7 +2879,86 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        data: components["schemas"]["User"] | null;
+                        data: components["schemas"]["User"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "yandexOAuth.callback": {
+        parameters: {
+            query?: {
+                state?: string;
+                code?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            302: {
+                headers: {
+                    Location: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    "yandexOAuth.availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            available: boolean;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+        };
+    };
+    "yandexOAuth.start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    connection_id?: string | null;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            url: string;
+                        };
                     };
                 };
             };
@@ -2668,8 +2972,16 @@ export interface operations {
                     "application/json": components["schemas"]["ApiError"];
                 };
             };
-            404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description An error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
         };
     };
 }

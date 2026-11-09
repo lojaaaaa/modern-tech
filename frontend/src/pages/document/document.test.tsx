@@ -38,7 +38,7 @@ it('opens the selected ready version and returns to the current one', async () =
     vi.stubGlobal(
         'fetch',
         vi.fn(async (url: string) => {
-            if (url === '/api/v1/documents/image-1')
+            if (url === '/api/v1/documents/image-1') {
                 return Response.json({
                     data: {
                         id: 'image-1',
@@ -50,8 +50,13 @@ it('opens the selected ready version and returns to the current one', async () =
                         version: v2,
                     },
                 });
-            if (url.endsWith('/versions')) return Response.json({ data: [pending, v2, v1] });
-            if (url.endsWith('/comments')) return Response.json({ data: [] });
+            }
+            if (url.endsWith('/versions')) {
+                return Response.json({ data: [pending, v2, v1] });
+            }
+            if (url.endsWith('/comments')) {
+                return Response.json({ data: [] });
+            }
             throw new Error('Unexpected request: ' + url);
         })
     );
@@ -79,7 +84,7 @@ it('does not offer historical version preview without edit permission', async ()
     vi.stubGlobal(
         'fetch',
         vi.fn(async (url: string) => {
-            if (url === '/api/v1/documents/image-1')
+            if (url === '/api/v1/documents/image-1') {
                 return Response.json({
                     data: {
                         id: 'image-1',
@@ -91,8 +96,10 @@ it('does not offer historical version preview without edit permission', async ()
                         version: current,
                     },
                 });
-            if (url.endsWith('/versions'))
+            }
+            if (url.endsWith('/versions')) {
                 return Response.json({ data: [current, { ...current, id: 'v1', number: 1 }] });
+            }
             throw new Error('Unexpected request: ' + url);
         })
     );
@@ -309,7 +316,7 @@ it('brings a comment on selected text into view in an overflowing discussion', a
     const list = document.querySelector<HTMLElement>('.comment-list')!;
     mockOverflowingComments(list);
     expect(list.scrollTop).toBe(0);
-    await user.click(await screen.findByRole('button', { name: 'Текст' }));
+    await user.click(await screen.findByRole('button', { name: 'Текст документа' }));
     const content = await screen.findByText('Важный фрагмент');
     const range = document.createRange();
     range.setStart(content.firstChild!, 0);

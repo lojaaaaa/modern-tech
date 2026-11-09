@@ -23,11 +23,9 @@ final class ConnectionController
     public function store(Request $request): JsonResponse
     {
         abort_if($request->user()->role === 'observer', 403);
-        $data = $request->validate(['provider' => ['required', Rule::in(['yandex', 'mail'])], 'name' => 'required|string|max:100', 'token' => 'required_if:provider,yandex|string|max:4096', 'email' => 'required_if:provider,mail|email|max:255', 'password' => 'required_if:provider,mail|string|max:4096']);
-        if ($data['provider'] === 'yandex') {
-            abort_if(preg_match('/^[a-f0-9]{32}$/iD', $data['token']) === 1, 422, 'Введён Client ID или Client secret приложения. Нужен OAuth-токен пользователя Яндекс Диска.');
-        }
-        $credentials = $data['provider'] === 'yandex' ? ['token' => $data['token']] : ['email' => $data['email'], 'password' => $data['password']];
+        abort_if($request->input('provider') === 'yandex', 422, 'Подключите Яндекс Диск через авторизацию в Яндексе.');
+        $data = $request->validate(['provider' => ['required', Rule::in(['mail'])], 'name' => 'required|string|max:100', 'email' => 'required|email|max:255', 'password' => 'required|string|max:4096']);
+        $credentials = ['email' => $data['email'], 'password' => $data['password']];
 
         return response()->json(['data' => CloudConnection::create(['owner_id' => $request->user()->id, 'provider' => $data['provider'], 'name' => $data['name'], 'credentials' => $credentials])->refresh()], 201);
     }
@@ -40,7 +38,12 @@ final class ConnectionController
             return response()->json(['data' => $providers->for($connection)->files($data['path'] ?? '/')]);
         } catch (\Throwable $error) {
             if ($error instanceof CloudFailure && $error->getMessage() === 'AUTHORIZATION_REQUIRED') {
-                abort(422, 'Яндекс или Mail отклонил данные доступа. Для Яндекса нужен OAuth-токен пользователя с правами Диска, а не Client ID или Client secret. Отключите это подключение и создайте новое с токеном.');
+                abort(422, $connection->provider === 'yandex'
+                    ? 'Доступ к Яндекс Диску истёк или отозван. Подключите диск заново через Яндекс.'
+                    : 'Mail отклонил данные доступа. Проверьте почту и пароль приложения с доступом к Облаку.');
+            }
+            if ($error instanceof CloudFailure && $error->getMessage() === 'OAUTH_NOT_CONFIGURED') {
+                abort(503, 'Подключение Яндекс Диска пока недоступно. Обратитесь к администратору.');
             }
             abort(502, 'Облачный сервис временно недоступен. Повторите запрос позже.');
         }

@@ -9,6 +9,8 @@ use App\Modules\Collaboration\Services\OfficeTokens;
 use App\Modules\Documents\Models\Document;
 use App\Modules\Documents\Models\DocumentVersion;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -46,5 +48,54 @@ class OfficeSessionTest extends TestCase
         $signed = app(OfficeTokens::class)->sign(['key' => $first['document']['key'], 'status' => 4]);
         $this->postJson('/api/v1/office/callback', ['token' => $signed])->assertOk()->assertJsonPath('error', 0);
         $this->assertNotSame($first['document']['key'], \DB::table('office_drafts')->where('document_id', $document->id)->value('editor_key'));
+    }
+
+    public function test_new_publication_uses_its_own_draft_and_late_saves_preserve_the_old_one(): void
+    {
+        config(['office.public_url' => 'http://localhost:8895', 'office.internal_url' => 'http://office-documentserver', 'office.app_internal_url' => 'http://gateway', 'office.jwt_secret' => 'test-office-secret']);
+        Storage::fake('local');
+        $storage = Storage::disk('local');
+        $owner = User::factory()->create(['active' => true, 'role' => 'employee']);
+        $editor = User::factory()->create(['active' => true, 'role' => 'employee']);
+        $document = Document::create(['owner_id' => $owner->id, 'title' => 'Document']);
+        $versions = [];
+        foreach ([1, 2] as $number) {
+            $path = 'originals/version-'.$number.'.docx';
+            $storage->put($path, 'version '.$number);
+            $versions[$number] = DocumentVersion::create(['document_id' => $document->id, 'creator_id' => $owner->id, 'number' => $number, 'storage_key' => $path, 'original_name' => 'source.docx', 'mime' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'size' => 9, 'sha256' => hash('sha256', 'version '.$number), 'status' => 'ready']);
+        }
+        $document->update(['published_version_id' => $versions[1]->id]);
+        $document->grants()->create(['user_id' => $editor->id, 'read' => true, 'edit' => true, 'comment' => true, 'export' => false]);
+        $url = '/api/v1/documents/'.$document->id.'/editor/session';
+        $first = $this->actingAs($owner)->postJson($url)->assertOk()->json('config');
+        $oldDraft = DB::table('office_drafts')->where('editor_key', $first['document']['key'])->first();
+        $storage->put($oldDraft->storage_key, 'edited version 1');
+
+        $document->update(['published_version_id' => $versions[2]->id]);
+        $second = $this->postJson($url)->assertOk()->json('config');
+        $this->assertNotSame($first['document']['key'], $second['document']['key']);
+        $this->assertSame(2, DB::table('office_drafts')->where('document_id', $document->id)->count());
+        $newDraft = DB::table('office_drafts')->where('editor_key', $second['document']['key'])->first();
+        $this->assertSame($versions[2]->id, $newDraft->source_version_id);
+        $this->assertSame('version 2', $storage->get($newDraft->storage_key));
+        $this->assertSame('edited version 1', $storage->get($oldDraft->storage_key));
+        $peer = $this->actingAs($editor)->postJson($url)->assertOk()->json('config');
+        $this->assertSame($second['document']['key'], $peer['document']['key']);
+        $this->get(parse_url($first['document']['url'], PHP_URL_PATH))->assertOk();
+
+        $zip = new \ZipArchive;
+        $zip->open($storage->path('saved.docx'), \ZipArchive::CREATE);
+        $zip->addFromString('[Content_Types].xml', '<Types/>');
+        $zip->addFromString('word/document.xml', '<document>late edit to version 1</document>');
+        $zip->close();
+        $saved = $storage->get('saved.docx');
+        Http::preventStrayRequests();
+        Http::fake(['http://office-documentserver/cache/old.docx' => Http::response($saved)]);
+        $signed = app(OfficeTokens::class)->sign(['key' => $first['document']['key'], 'status' => 2, 'url' => 'http://localhost:8895/cache/old.docx']);
+        $this->postJson('/api/v1/office/callback', ['token' => $signed])->assertOk()->assertJsonPath('error', 0);
+        $oldAfterSave = DB::table('office_drafts')->where('document_id', $document->id)->where('source_version_id', $versions[1]->id)->first();
+        $this->assertSame($saved, $storage->get($oldAfterSave->storage_key));
+        $this->assertSame('version 2', $storage->get($newDraft->storage_key));
+        $this->assertSame($second['document']['key'], DB::table('office_drafts')->where('source_version_id', $versions[2]->id)->value('editor_key'));
     }
 }

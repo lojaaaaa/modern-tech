@@ -48,7 +48,7 @@ const loadEditor = (baseUrl: string): Promise<void> => {
 export const OfficeEditor = ({ documentId }: { documentId: string }) => {
     const [error, setError] = useState<unknown>(null);
     const [attempt, setAttempt] = useState(0);
-    const [status, setStatus] = useState('Подключаем редактор…');
+    const [loading, setLoading] = useState(true);
     const [elementId] = useState(() => `office-editor-${crypto.randomUUID()}`);
 
     useEffect(() => {
@@ -69,7 +69,7 @@ export const OfficeEditor = ({ documentId }: { documentId: string }) => {
                 scriptUrl = undefined;
             }
             editor?.destroyEditor();
-            setStatus('Редактор недоступен');
+            setLoading(false);
             setError(new Error('Редактор не ответил. Проверьте подключение к серверу и попробуйте снова.'));
         }, 30000);
         const open = async () => {
@@ -92,7 +92,7 @@ export const OfficeEditor = ({ documentId }: { documentId: string }) => {
                         onDocumentReady: () => {
                             if (!disposed && !failed) {
                                 window.clearTimeout(timeout);
-                                setStatus('Редактор подключён');
+                                setLoading(false);
                             }
                         },
                         onError: () => {
@@ -102,7 +102,7 @@ export const OfficeEditor = ({ documentId }: { documentId: string }) => {
                                 setError(
                                     new Error('Редактор сообщил об ошибке. Проверьте соединение и попробуйте снова.')
                                 );
-                                setStatus('Ошибка редактора. Проверьте соединение.');
+                                setLoading(false);
                             }
                         },
                     },
@@ -111,7 +111,7 @@ export const OfficeEditor = ({ documentId }: { documentId: string }) => {
                 if (!disposed && !failed) {
                     window.clearTimeout(timeout);
                     setError(cause);
-                    setStatus('Редактор недоступен');
+                    setLoading(false);
                 }
             }
         };
@@ -125,21 +125,19 @@ export const OfficeEditor = ({ documentId }: { documentId: string }) => {
     }, [documentId, elementId, attempt]);
 
     return (
-        <div className="office-editor">
-            <p role="status" className="muted">
-                {status}
-            </p>
-            <p className="muted">
-                Комментарии доступны в панели редактора слева. Для сохранения черновика закройте редактор у всех
-                участников.
-            </p>
+        <div className="office-editor" aria-busy={loading}>
+            {loading && (
+                <div className="office-editor-loading" role="status" aria-label="Загрузка редактора">
+                    <div className="loading-orbit" aria-hidden="true" />
+                </div>
+            )}
             <ErrorMessage error={error} />
             {error !== null && (
                 <Button
                     variant="secondary"
                     onClick={() => {
                         setError(null);
-                        setStatus('Подключаем редактор…');
+                        setLoading(true);
                         setAttempt((value) => value + 1);
                     }}
                 >
