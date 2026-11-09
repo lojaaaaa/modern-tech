@@ -30,8 +30,9 @@ secure_delete. Сохранить Python 3.10+, stdlib; тесты unittest.
 - `offset()`, `advance_cursor(update_id)` (также монотонно для пропусков).
 - `conversations(query='')` → список диалогов (только с записями).
 - `events(chat_id, before=None, limit=50)` → `{items, has_more, next_before,
-  through_id}`; последняя страница в хронологическом порядке, стабильный id
-  разрешает одинаковое время, through_id — максимум на момент запроса.
+  through_id}`; последняя страница в порядке `(at, id)`, стабильный id
+  разрешает одинаковое время. `next_before` — id первой записи страницы;
+  сервер разрешает его в пару `(at, id)`. through_id — максимум id на момент запроса.
 - `history(chat_id, message_id)` → `{items, original_missing}`; нет обхода
   удаления через историю. Порядок состояний и их времена.
 - `mark_read(chat_id, ids=None, through_id=None)` → `{unread}`; только текущий
@@ -45,7 +46,7 @@ secure_delete. Сохранить Python 3.10+, stdlib; тесты unittest.
 - `photo_jobs()` → задания `{id, file_id, attempts}`; `photo_result(id,
   path=None, error=None)`; `retry_photo(id)`; `photo_path(id)` → Path или None.
   `path` относительный, назначается при успешном полном скачивании.
-- `notices()` → ожидающие `{id, text, attempts}`; `notice_result(id, error=None)`.
+- `notices()` → ожидающие `{id, text, attempts, chat_id}`; `notice_result(id, error=None)`.
   Старые задания отменяются при удалении/выключении соответствующей настройки.
 - `update_profile(chat_id, profile)`, `avatar_path(chat_id)`, `avatar_result(chat_id, path)` — последние доступные сведения/локальный аватар Telegram; обновление не меняет порядок диалогов и снимки событий.
 - `receiver_status(connected=None, success=False)` — обновление фактического
@@ -59,7 +60,10 @@ received_at, read:bool, profile:{id,name,username}, before:null|Content,
 after:null|Content, photo_status:null|'pending'|'saved'|'unavailable'|'error'}`.
 Content: `{text, media:null|'photo'|'video'|'document'|..., author_id, date}`;
 никогда raw reply/nested payload. History items: `{kind, at, content:null|Content}`.
-`time_source` = telegram для времени правки из Telegram, received для времени получения удаления/фото. UI подписывает время получения явно.
+У удаления сохранённое содержимое находится в `before`, а `after=null`.
+`time_source` = telegram для известного времени правки из Telegram, received для
+времени получения удаления/фото и правки без `edit_date`. UI подписывает время
+получения явно. Последнее событие диалога также выбирается по `(at, id)`.
 Фоновая переписка не возвращается списком/историей до архивного события.
 
 ## HTTP-контракт (server.py, web/)
@@ -67,6 +71,8 @@ Content: `{text, media:null|'photo'|'video'|'document'|..., author_id, date}`;
 Все ответы JSON (фото — bytes), `/api/*` защищён заголовком
 `Authorization: Telegram <WebApp.initData>`. Подпись HMAC, auth_date/future/expiry,
 owner_id сверяются сервером; никакой dev-авторизации и токена во фронтенде.
+Срок запуска ограничен одним часом; допустимое опережение серверного времени —
+30 секунд. Просроченный запуск требует повторного открытия Mini App из Telegram.
 Ошибки `{error: 'краткое описание'}`, соответствующий 400/401/403/404/409/500.
 Не записывать body/headers переписки в логи. Ответы API и фото no-store.
 
@@ -92,6 +98,24 @@ Telegram WebApp SDK; подписанное initData только в памят�
 Фото загружается fetch с авторизацией → blob URL. Статические файлы доступны
 без секретов; данные только через API. Тема обновляется по themeChanged,
 viewport/safe areas. Никакого отправления исходному собеседнику из Mini App.
+
+## Локальный запуск и состояние интеграции
+
+Общий `config.load_env(path=None, environ=None)` вызывается явно только CLI,
+читает разрешённые ключи из `.env` рядом с модулем и сохраняет приоритет окружения.
+`TELEGRAM_DATA_DIR` должен совпадать для HTTP-сервера и приёмника; по умолчанию
+используется локальный `data/`. HTTP-сервер слушает `127.0.0.1:8787`, параметры
+задаются через `TELEGRAM_HOST` и `TELEGRAM_PORT`. HTTPS-туннель/reverse proxy
+настраивается пользователем; `TELEGRAM_WEBAPP_URL` даёт владельцу кнопку запуска.
+`TELEGRAM_CHAT_ID` пустой — все разрешённые диалоги, положительный — тестовый
+scope, `0` — обнаружение без сбора. Подробная инструкция находится в README.
+
+На `b68ed5d` влиты 01–04; проходят 46 Python-тестов, синтаксические проверки,
+два браузерных сценария с подставным HTTP и общая проверка Mini App с настоящим
+локальным API, временным Archive и подписанными синтетическими данными запуска.
+Ревью ещё выполняется. Подтверждённая находка ручной очистки: удалённое содержимое
+остаётся в активном WAL; её исправление и закрытие задач ожидают приёмки.
+Сводный отчёт и источники результатов — [acceptance.md](acceptance.md).
 
 ## Закрытие
 
