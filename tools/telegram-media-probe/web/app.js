@@ -3,6 +3,14 @@
   const tg = window.Telegram?.WebApp;
   const $ = (id) => document.getElementById(id);
   const photoDownloads = new Map();
+  let settingsSnapshot = null;
+  let settingsPending = null;
+  function getSettings(refresh = false) {
+    if (!refresh && settingsSnapshot) return Promise.resolve(settingsSnapshot);
+    if (!settingsPending)
+      settingsPending = request("/api/settings").finally(() => { settingsPending = null; });
+    return settingsPending;
+  }
   let photoBytes = 0;
   function savedPhoto(id) {
     if (photoDownloads.has(id)) return photoDownloads.get(id).promise;
@@ -101,7 +109,9 @@
     }
     if (blob) return response.blob();
     try {
-      return await response.json();
+      const data = await response.json();
+      if (target.pathname === "/api/settings") settingsSnapshot = data;
+      return data;
     } catch {
       throw new Error(
         "Не удалось прочитать ответ. Закройте архив и откройте его снова.",
@@ -314,7 +324,7 @@
   }
   async function loadStatus() {
     try {
-      const settings = await request("/api/settings");
+      const settings = await getSettings(true);
       const labels = {
         active: "Сбор работает",
         disconnected: "Нет подключения",
@@ -1033,15 +1043,16 @@
     const body = showSheet("Настройки");
     body.append(node("p", "empty", "Загружаем настройки…"));
     try {
-      const settings = await request("/api/settings");
+      const settings = await getSettings();
       if (state.layer !== "Настройки") return;
       body.replaceChildren();
       const group = node("section", "settings-group");
-      group.append(node("h3", "", "Уведомления в личный чат с ботом"));
+      group.append(node("h3", "", "Уведомления"),
+        node("p", "warning", "Бот сообщает о правках и удалениях собеседника в личном чате с вами."));
       settingSwitch(
         group,
         "Изменения сообщений",
-        "Только события собеседника.",
+        "",
         settings.notify_edits,
         (value) =>
           request("/api/settings", {
@@ -1052,7 +1063,7 @@
       settingSwitch(
         group,
         "Удаления сообщений",
-        "Только события собеседника.",
+        "",
         settings.notify_deletes,
         (value) =>
           request("/api/settings", {
@@ -1067,14 +1078,15 @@
         node(
           "p",
           "warning",
-          "Фоновые копии обычных сообщений хранятся 30 дней. События и сохранённые фото — до ручного удаления. После 30 дней содержимое позднее удалённого сообщения может быть недоступно.",
+          "В архиве — правки, удаления и сохранённые фото. Копии обычных сообщений храним 30 дней: если сообщение удалят позже, его текст может не сохраниться. Записи архива остаются до ручной очистки.",
         ),
       );
       storage.append(
+        node("h3", "", "Фото"),
         node(
           "p",
           "warning",
-          "Обычная переписка не показывается. Фото сохраняются после вашего ответа, если Telegram передал полный файл. Автоматическое сохранение временных фото не подтверждено.",
+          "Ответьте на фото в Telegram, чтобы сохранить его. Сохраняются только файлы, доступные боту. Временные фото доступны не всегда.",
         ),
       );
       body.append(storage);
@@ -1089,7 +1101,7 @@
         node(
           "p",
           "warning",
-          "Сбор зависит от запущенного приёмника и доступа к диалогам в Telegram. Пропущенные обновления могут быть недоступны.",
+          "Бот сохраняет новые события, пока запущен и подключён к Telegram. События за время отключения могут не попасть в архив.",
         ),
       );
       body.append(connection);
