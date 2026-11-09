@@ -49,6 +49,7 @@
       method,
       headers: {
         Authorization: `Telegram ${tg.initData}`,
+        "ngrok-skip-browser-warning": "true",
         ...(body ? { "Content-Type": "application/json" } : {}),
       },
       body: body ? JSON.stringify(body) : undefined,
@@ -67,7 +68,14 @@
             : "Не удалось выполнить запрос. Повторите попытку."),
       );
     }
-    return blob ? response.blob() : response.json();
+    if (blob) return response.blob();
+    try {
+      return await response.json();
+    } catch {
+      throw new Error(
+        "Не удалось прочитать ответ. Закройте архив и откройте его снова.",
+      );
+    }
   }
   function announce(text) {
     $("announcement").textContent = text;
