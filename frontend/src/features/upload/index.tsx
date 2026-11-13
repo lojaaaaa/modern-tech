@@ -167,7 +167,11 @@ export const UploadPanel = ({ onClose }: { onClose: () => void }) => {
                     ) : (
                         <Upload size={16} />
                     )}{' '}
-                    {busy ? (duplicate ? 'Выберите действие для совпавшего файла' : `Загрузка ${Math.min(results.length + 1, files.length)} из ${files.length}`) : 'Загрузить'}
+                    {busy
+                        ? duplicate
+                            ? 'Выберите действие для совпавшего файла'
+                            : `Загрузка ${Math.min(results.length + 1, files.length)} из ${files.length}`
+                        : 'Загрузить'}
                 </Button>
             </footer>
         </Modal>

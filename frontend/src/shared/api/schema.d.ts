@@ -4,14 +4,14 @@
  */
 
 export interface paths {
-    "/v1/admin/audit": {
+    '/v1/admin/audit': {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["audit.index"];
+        get: operations['audit.index'];
         put?: never;
         post?: never;
         delete?: never;
@@ -20,7 +20,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/auth/login": {
+    '/v1/auth/login': {
         parameters: {
             query?: never;
             header?: never;
@@ -29,21 +29,21 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["auth.login"];
+        post: operations['auth.login'];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/me": {
+    '/v1/me': {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["auth.me"];
+        get: operations['auth.me'];
         put?: never;
         post?: never;
         delete?: never;
@@ -52,7 +52,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/auth/logout": {
+    '/v1/auth/logout': {
         parameters: {
             query?: never;
             header?: never;
@@ -61,14 +61,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["auth.logout"];
+        post: operations['auth.logout'];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/documents/batch": {
+    '/v1/documents/batch': {
         parameters: {
             query?: never;
             header?: never;
@@ -77,30 +77,30 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["batch.store"];
+        post: operations['batch.store'];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/documents/{document}/comments": {
+    '/v1/documents/{document}/comments': {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["comment.index"];
+        get: operations['comment.index'];
         put?: never;
-        post: operations["comment.store"];
+        post: operations['comment.store'];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/comments/{id}/resolution": {
+    '/v1/comments/{id}/resolution': {
         parameters: {
             query?: never;
             header?: never;
@@ -108,7 +108,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put: operations["comment.resolve"];
+        put: operations['comment.resolve'];
         post?: never;
         delete?: never;
         options?: never;
@@ -116,55 +116,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/comments/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["comment.destroy"];
-        options?: never;
-        head?: never;
-        patch: operations["comment.update"];
-        trace?: never;
-    };
-    "/v1/connections": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["connection.index"];
-        put?: never;
-        post: operations["connection.store"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/connections/{connection}/files": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["connection.files"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/connections/{connection}": {
+    '/v1/comments/{id}': {
         parameters: {
             query?: never;
             header?: never;
@@ -174,52 +126,36 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete: operations["connection.disconnect"];
+        delete: operations['comment.destroy'];
         options?: never;
         head?: never;
-        patch?: never;
+        patch: operations['comment.update'];
         trace?: never;
     };
-    "/v1/documents/duplicates": {
+    '/v1/connections': {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations['connection.index'];
         put?: never;
-        post: operations["document.duplicates"];
+        post: operations['connection.store'];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/documents": {
+    '/v1/connections/{connection}/files': {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["modules.documents.document.index_33"];
-        put?: never;
-        post: operations["document.store"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/search": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["modules.documents.document.index_34"];
+        get: operations['connection.files'];
         put?: never;
         post?: never;
         delete?: never;
@@ -228,183 +164,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/documents/{document}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["document.show"];
-        put?: never;
-        post?: never;
-        delete: operations["document.destroy"];
-        options?: never;
-        head?: never;
-        patch: operations["document.update"];
-        trace?: never;
-    };
-    "/v1/documents/{id}/restore": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["document.restore"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/documents/{document}/versions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["document.versions"];
-        put?: never;
-        post: operations["document.addVersion"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/versions/{version}/download": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["document.download"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/versions/{version}/entities": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["document.entities"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/versions/{version}/text": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["document.text"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/documents/{document}/participants": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["document.participants"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/documents/{document}/grants": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["document.grants"];
-        put: operations["document.setGrants"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/auth/verification-notification": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["emailVerification.store"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/auth/verify-email/{id}/{hash}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["verification.verify"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/folders": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["library.folders"];
-        put?: never;
-        post: operations["library.createFolder"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/folders/{folder}": {
+    '/v1/connections/{connection}': {
         parameters: {
             query?: never;
             header?: never;
@@ -414,20 +174,52 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete: operations["library.removeFolder"];
+        delete: operations['connection.disconnect'];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/tags": {
+    '/v1/documents/duplicates': {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["library.tags"];
+        get?: never;
+        put?: never;
+        post: operations['document.duplicates'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/documents': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations['modules.documents.document.index_33'];
+        put?: never;
+        post: operations['document.store'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/search': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations['modules.documents.document.index_34'];
         put?: never;
         post?: never;
         delete?: never;
@@ -436,78 +228,62 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/documents/{document}/folder": {
+    '/v1/documents/{document}': {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put: operations["library.move"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/documents/{document}/tags": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: operations["library.setTags"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/documents/{document}/favorite": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: operations["library.favorite"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/admin/metrics": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["observability.metrics"];
+        get: operations['document.show'];
         put?: never;
         post?: never;
-        delete?: never;
+        delete: operations['document.destroy'];
         options?: never;
         head?: never;
-        patch?: never;
+        patch: operations['document.update'];
         trace?: never;
     };
-    "/v1/office/source/{capability}": {
+    '/v1/documents/{id}/restore': {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["office.source"];
+        get?: never;
+        put?: never;
+        post: operations['document.restore'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/documents/{document}/versions': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations['document.versions'];
+        put?: never;
+        post: operations['document.addVersion'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/versions/{version}/download': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations['document.download'];
         put?: never;
         post?: never;
         delete?: never;
@@ -516,78 +292,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/office/callback": {
+    '/v1/versions/{version}/entities': {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
-        post: operations["office.callback"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/documents/{document}/editor/session": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["office.session"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/auth/forgot-password": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["password.forgot"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/auth/reset-password": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["password.reset"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/versions/{version}/preview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["preview.show"];
+        get: operations['document.entities'];
         put?: never;
         post?: never;
         delete?: never;
@@ -596,71 +308,103 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/auth/register": {
+    '/v1/versions/{version}/text': {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
-        post: operations["registration.store"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/transfers": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["transfer.index"];
-        put?: never;
-        post: operations["transfer.store"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/transfers/{transfer}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
+        get: operations['document.text'];
         put?: never;
         post?: never;
-        delete: operations["transfer.cancel"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/users": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["user.index"];
-        put?: never;
-        post: operations["user.store"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/users/{user}": {
+    '/v1/documents/{document}/participants': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations['document.participants'];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/documents/{document}/grants': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations['document.grants'];
+        put: operations['document.setGrants'];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/auth/verification-notification': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations['emailVerification.store'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/auth/verify-email/{id}/{hash}': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations['verification.verify'];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/folders': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations['library.folders'];
+        put?: never;
+        post: operations['library.createFolder'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/folders/{folder}': {
         parameters: {
             query?: never;
             header?: never;
@@ -670,20 +414,20 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        delete: operations['library.removeFolder'];
         options?: never;
         head?: never;
-        patch: operations["user.update"];
+        patch?: never;
         trace?: never;
     };
-    "/v1/connections/yandex/callback": {
+    '/v1/tags': {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["yandexOAuth.callback"];
+        get: operations['library.tags'];
         put?: never;
         post?: never;
         delete?: never;
@@ -692,16 +436,272 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/connections/yandex/authorization": {
+    '/v1/documents/{document}/folder': {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["yandexOAuth.availability"];
+        get?: never;
+        put: operations['library.move'];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/documents/{document}/tags': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations['library.setTags'];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/documents/{document}/favorite': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations['library.favorite'];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/admin/metrics': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations['observability.metrics'];
         put?: never;
-        post: operations["yandexOAuth.start"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/office/source/{capability}': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations['office.source'];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/office/callback': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations['office.callback'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/documents/{document}/editor/session': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations['office.session'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/auth/forgot-password': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations['password.forgot'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/auth/reset-password': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations['password.reset'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/versions/{version}/preview': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations['preview.show'];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/auth/register': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations['registration.store'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/transfers': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations['transfer.index'];
+        put?: never;
+        post: operations['transfer.store'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/transfers/{transfer}': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations['transfer.cancel'];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/users': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations['user.index'];
+        put?: never;
+        post: operations['user.store'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/users/{user}': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations['user.update'];
+        trace?: never;
+    };
+    '/v1/connections/yandex/callback': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations['yandexOAuth.callback'];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/connections/yandex/authorization': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations['yandexOAuth.availability'];
+        put?: never;
+        post: operations['yandexOAuth.start'];
         delete?: never;
         options?: never;
         head?: never;
@@ -893,7 +893,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["ApiError"];
+                'application/json': components['schemas']['ApiError'];
             };
         };
         /** @description Validation error */
@@ -902,7 +902,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["ApiError"];
+                'application/json': components['schemas']['ApiError'];
             };
         };
         /** @description Unauthenticated */
@@ -911,7 +911,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["ApiError"];
+                'application/json': components['schemas']['ApiError'];
             };
         };
         /** @description Authorization error */
@@ -920,7 +920,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["ApiError"];
+                'application/json': components['schemas']['ApiError'];
             };
         };
     };
@@ -931,7 +931,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    "audit.index": {
+    'audit.index': {
         parameters: {
             query?: {
                 cursor?: string | null;
@@ -941,8 +941,8 @@ export interface operations {
                 actor_id?: number | null;
                 date_from?: string | null;
                 date_to?: string | null;
-                sort?: "created_at" | "id" | "action" | null;
-                direction?: "asc" | "desc" | null;
+                sort?: 'created_at' | 'id' | 'action' | null;
+                direction?: 'asc' | 'desc' | null;
             };
             header?: never;
             path?: never;
@@ -955,7 +955,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
+                    'application/json': {
                         data: string[];
                         meta: {
                             next_cursor: string | null;
@@ -965,20 +965,20 @@ export interface operations {
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
+            401: components['responses']['AuthenticationException'];
             /** @description An error */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiError"];
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
-            422: components["responses"]["ValidationException"];
+            422: components['responses']['ValidationException'];
         };
     };
-    "auth.login": {
+    'auth.login': {
         parameters: {
             query?: never;
             header?: never;
@@ -987,7 +987,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["LoginRequest"];
+                'application/json': components['schemas']['LoginRequest'];
             };
         };
         responses: {
@@ -996,8 +996,8 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        data: components["schemas"]["User"];
+                    'application/json': {
+                        data: components['schemas']['User'];
                     };
                 };
             };
@@ -1007,7 +1007,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiError"];
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
             /** @description Invalid credentials, including blocked accounts. */
@@ -1016,23 +1016,23 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiError"];
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
             /** @description Five failed attempts per email and IP per minute; Retry-After indicates the delay. */
             429: {
                 headers: {
                     /** @description Seconds before retrying the operation. */
-                    "Retry-After": string;
+                    'Retry-After': string;
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiError"];
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
         };
     };
-    "auth.me": {
+    'auth.me': {
         parameters: {
             query?: never;
             header?: never;
@@ -1046,15 +1046,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        data: components["schemas"]["User"];
+                    'application/json': {
+                        data: components['schemas']['User'];
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
+            401: components['responses']['AuthenticationException'];
         };
     };
-    "auth.logout": {
+    'auth.logout': {
         parameters: {
             query?: never;
             header?: never;
@@ -1068,15 +1068,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
+                    'application/json': {
                         data: null;
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
+            401: components['responses']['AuthenticationException'];
         };
     };
-    "batch.store": {
+    'batch.store': {
         parameters: {
             query?: never;
             header?: never;
@@ -1085,10 +1085,10 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
+                'application/json': {
                     ids: string[];
                     /** @enum {string} */
-                    action: "trash" | "restore" | "favorite";
+                    action: 'trash' | 'restore' | 'favorite';
                 };
             };
         };
@@ -1098,18 +1098,18 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
+                    'application/json': {
                         data: {
                             count: number;
                         };
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            422: components["responses"]["ValidationException"];
+            401: components['responses']['AuthenticationException'];
+            422: components['responses']['ValidationException'];
         };
     };
-    "comment.index": {
+    'comment.index': {
         parameters: {
             query?: never;
             header?: never;
@@ -1126,19 +1126,21 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        data: Record<string, never>[];
-                    } | {
-                        data: string[];
-                    };
+                    'application/json':
+                        | {
+                              data: Record<string, never>[];
+                          }
+                        | {
+                              data: string[];
+                          };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            404: components["responses"]["ModelNotFoundException"];
+            401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
+            404: components['responses']['ModelNotFoundException'];
         };
     };
-    "comment.store": {
+    'comment.store': {
         parameters: {
             query?: never;
             header?: never;
@@ -1150,7 +1152,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
+                'application/json': {
                     body: string;
                     /** Format: uuid */
                     version_id: string;
@@ -1168,27 +1170,27 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
+                    'application/json': {
                         data: Record<string, never> | null;
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            404: components["responses"]["ModelNotFoundException"];
+            401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
+            404: components['responses']['ModelNotFoundException'];
             /** @description An error */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiError"];
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
-            422: components["responses"]["ValidationException"];
+            422: components['responses']['ValidationException'];
         };
     };
-    "comment.resolve": {
+    'comment.resolve': {
         parameters: {
             query?: never;
             header?: never;
@@ -1199,7 +1201,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
+                'application/json': {
                     resolved: boolean;
                 };
             };
@@ -1210,16 +1212,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
+                    'application/json': {
                         data: Record<string, never> | null;
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            422: components["responses"]["ValidationException"];
+            401: components['responses']['AuthenticationException'];
+            422: components['responses']['ValidationException'];
         };
     };
-    "comment.destroy": {
+    'comment.destroy': {
         parameters: {
             query?: never;
             header?: never;
@@ -1235,17 +1237,17 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
+                    'application/json': {
                         data: null;
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            404: components["responses"]["ModelNotFoundException"];
+            401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
+            404: components['responses']['ModelNotFoundException'];
         };
     };
-    "comment.update": {
+    'comment.update': {
         parameters: {
             query?: never;
             header?: never;
@@ -1256,7 +1258,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
+                'application/json': {
                     body: string;
                     revision: number;
                 };
@@ -1268,16 +1270,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
+                    'application/json': {
                         data: Record<string, never> | null;
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            422: components["responses"]["ValidationException"];
+            401: components['responses']['AuthenticationException'];
+            422: components['responses']['ValidationException'];
         };
     };
-    "connection.index": {
+    'connection.index': {
         parameters: {
             query?: never;
             header?: never;
@@ -1291,15 +1293,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        data: components["schemas"]["CloudConnection"][];
+                    'application/json': {
+                        data: components['schemas']['CloudConnection'][];
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
+            401: components['responses']['AuthenticationException'];
         };
     };
-    "connection.store": {
+    'connection.store': {
         parameters: {
             query?: never;
             header?: never;
@@ -1308,9 +1310,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
+                'application/json': {
                     /** @enum {string} */
-                    provider: "mail";
+                    provider: 'mail';
                     name: string;
                     /** Format: email */
                     email: string;
@@ -1324,25 +1326,25 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        data: components["schemas"]["CloudConnection"];
+                    'application/json': {
+                        data: components['schemas']['CloudConnection'];
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
+            401: components['responses']['AuthenticationException'];
             /** @description An error */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiError"];
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
-            422: components["responses"]["ValidationException"];
+            422: components['responses']['ValidationException'];
         };
     };
-    "connection.files": {
+    'connection.files': {
         parameters: {
             query?: {
                 path?: string | null;
@@ -1361,27 +1363,29 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        data: {
-                            name: string;
-                            path: null | unknown[] | string | number | Record<string, never>;
-                            /** @enum {string} */
-                            type: "dir" | "file";
-                            size: number;
-                        }[] | unknown[];
+                    'application/json': {
+                        data:
+                            | {
+                                  name: string;
+                                  path: null | unknown[] | string | number | Record<string, never>;
+                                  /** @enum {string} */
+                                  type: 'dir' | 'file';
+                                  size: number;
+                              }[]
+                            | unknown[];
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            404: components["responses"]["ModelNotFoundException"];
-            422: components["responses"]["ValidationException"];
+            401: components['responses']['AuthenticationException'];
+            404: components['responses']['ModelNotFoundException'];
+            422: components['responses']['ValidationException'];
             /** @description An error */
             502: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiError"];
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
             /** @description An error */
@@ -1390,12 +1394,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiError"];
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
         };
     };
-    "connection.disconnect": {
+    'connection.disconnect': {
         parameters: {
             query?: never;
             header?: never;
@@ -1412,16 +1416,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
+                    'application/json': {
                         data: null;
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            404: components["responses"]["ModelNotFoundException"];
+            401: components['responses']['AuthenticationException'];
+            404: components['responses']['ModelNotFoundException'];
         };
     };
-    "document.duplicates": {
+    'document.duplicates': {
         parameters: {
             query?: never;
             header?: never;
@@ -1430,7 +1434,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "multipart/form-data": components["schemas"]["UploadRequest"];
+                'multipart/form-data': components['schemas']['UploadRequest'];
             };
         };
         responses: {
@@ -1440,17 +1444,17 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        data: components["schemas"]["DocumentResource"][];
+                    'application/json': {
+                        data: components['schemas']['DocumentResource'][];
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            422: components["responses"]["ValidationException"];
+            401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
+            422: components['responses']['ValidationException'];
         };
     };
-    "modules.documents.document.index_33": {
+    'modules.documents.document.index_33': {
         parameters: {
             query?: {
                 q?: string | null;
@@ -1461,14 +1465,25 @@ export interface operations {
                 mine?: boolean | null;
                 folder_id?: string | null;
                 tag_id?: string | null;
-                format?: "pdf" | "docx" | "xlsx" | "pptx" | "txt" | "md" | "csv" | "png" | "jpg" | "jpeg" | null;
-                status?: "quarantined" | "scanning" | "extracting" | "recognizing" | "indexing" | "ready" | "failed" | "rejected" | "cancelled" | null;
+                format?: 'pdf' | 'docx' | 'xlsx' | 'pptx' | 'txt' | 'md' | 'csv' | 'png' | 'jpg' | 'jpeg' | null;
+                status?:
+                    | 'quarantined'
+                    | 'scanning'
+                    | 'extracting'
+                    | 'recognizing'
+                    | 'indexing'
+                    | 'ready'
+                    | 'failed'
+                    | 'rejected'
+                    | 'cancelled'
+                    | null;
                 created_from?: string | null;
                 created_to?: string | null;
                 updated_from?: string | null;
                 updated_to?: string | null;
-                sort?: "relevance" | "title" | "created_at" | "updated_at" | "status" | "format" | "size" | "owner" | null;
-                direction?: "asc" | "desc" | null;
+                sort?:
+                    'relevance' | 'title' | 'created_at' | 'updated_at' | 'status' | 'format' | 'size' | 'owner' | null;
+                direction?: 'asc' | 'desc' | null;
             };
             header?: never;
             path?: never;
@@ -1482,8 +1497,8 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        data: components["schemas"]["DocumentResource"][];
+                    'application/json': {
+                        data: components['schemas']['DocumentResource'][];
                         links: {
                             first: string | null;
                             last: string | null;
@@ -1512,12 +1527,12 @@ export interface operations {
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            422: components["responses"]["ValidationException"];
+            401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
+            422: components['responses']['ValidationException'];
         };
     };
-    "document.store": {
+    'document.store': {
         parameters: {
             query?: never;
             header?: never;
@@ -1526,7 +1541,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "multipart/form-data": components["schemas"]["UploadRequest"];
+                'multipart/form-data': components['schemas']['UploadRequest'];
             };
         };
         responses: {
@@ -1536,17 +1551,17 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        data: components["schemas"]["DocumentResource"];
+                    'application/json': {
+                        data: components['schemas']['DocumentResource'];
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            422: components["responses"]["ValidationException"];
+            401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
+            422: components['responses']['ValidationException'];
         };
     };
-    "modules.documents.document.index_34": {
+    'modules.documents.document.index_34': {
         parameters: {
             query?: {
                 q?: string | null;
@@ -1557,14 +1572,25 @@ export interface operations {
                 mine?: boolean | null;
                 folder_id?: string | null;
                 tag_id?: string | null;
-                format?: "pdf" | "docx" | "xlsx" | "pptx" | "txt" | "md" | "csv" | "png" | "jpg" | "jpeg" | null;
-                status?: "quarantined" | "scanning" | "extracting" | "recognizing" | "indexing" | "ready" | "failed" | "rejected" | "cancelled" | null;
+                format?: 'pdf' | 'docx' | 'xlsx' | 'pptx' | 'txt' | 'md' | 'csv' | 'png' | 'jpg' | 'jpeg' | null;
+                status?:
+                    | 'quarantined'
+                    | 'scanning'
+                    | 'extracting'
+                    | 'recognizing'
+                    | 'indexing'
+                    | 'ready'
+                    | 'failed'
+                    | 'rejected'
+                    | 'cancelled'
+                    | null;
                 created_from?: string | null;
                 created_to?: string | null;
                 updated_from?: string | null;
                 updated_to?: string | null;
-                sort?: "relevance" | "title" | "created_at" | "updated_at" | "status" | "format" | "size" | "owner" | null;
-                direction?: "asc" | "desc" | null;
+                sort?:
+                    'relevance' | 'title' | 'created_at' | 'updated_at' | 'status' | 'format' | 'size' | 'owner' | null;
+                direction?: 'asc' | 'desc' | null;
             };
             header?: never;
             path?: never;
@@ -1578,8 +1604,8 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        data: components["schemas"]["DocumentResource"][];
+                    'application/json': {
+                        data: components['schemas']['DocumentResource'][];
                         links: {
                             first: string | null;
                             last: string | null;
@@ -1608,12 +1634,12 @@ export interface operations {
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            422: components["responses"]["ValidationException"];
+            401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
+            422: components['responses']['ValidationException'];
         };
     };
-    "document.show": {
+    'document.show': {
         parameters: {
             query?: never;
             header?: never;
@@ -1631,17 +1657,17 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        data: components["schemas"]["DocumentResource"];
+                    'application/json': {
+                        data: components['schemas']['DocumentResource'];
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            404: components["responses"]["ModelNotFoundException"];
+            401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
+            404: components['responses']['ModelNotFoundException'];
         };
     };
-    "document.destroy": {
+    'document.destroy': {
         parameters: {
             query?: never;
             header?: never;
@@ -1658,17 +1684,17 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
+                    'application/json': {
                         data: null;
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            404: components["responses"]["ModelNotFoundException"];
+            401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
+            404: components['responses']['ModelNotFoundException'];
         };
     };
-    "document.update": {
+    'document.update': {
         parameters: {
             query?: never;
             header?: never;
@@ -1680,7 +1706,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
+                'application/json': {
                     title: string;
                     revision: number;
                 };
@@ -1693,18 +1719,18 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        data: components["schemas"]["DocumentResource"];
+                    'application/json': {
+                        data: components['schemas']['DocumentResource'];
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            404: components["responses"]["ModelNotFoundException"];
-            422: components["responses"]["ValidationException"];
+            401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
+            404: components['responses']['ModelNotFoundException'];
+            422: components['responses']['ValidationException'];
         };
     };
-    "document.restore": {
+    'document.restore': {
         parameters: {
             query?: never;
             header?: never;
@@ -1721,16 +1747,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        data: components["schemas"]["DocumentResource"];
+                    'application/json': {
+                        data: components['schemas']['DocumentResource'];
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
+            401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
         };
     };
-    "document.versions": {
+    'document.versions': {
         parameters: {
             query?: never;
             header?: never;
@@ -1747,17 +1773,17 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        data: components["schemas"]["DocumentVersion"][];
+                    'application/json': {
+                        data: components['schemas']['DocumentVersion'][];
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            404: components["responses"]["ModelNotFoundException"];
+            401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
+            404: components['responses']['ModelNotFoundException'];
         };
     };
-    "document.addVersion": {
+    'document.addVersion': {
         parameters: {
             query?: never;
             header?: never;
@@ -1769,7 +1795,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "multipart/form-data": components["schemas"]["UploadRequest"];
+                'multipart/form-data': components['schemas']['UploadRequest'];
             };
         };
         responses: {
@@ -1779,18 +1805,18 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        data: components["schemas"]["DocumentResource"];
+                    'application/json': {
+                        data: components['schemas']['DocumentResource'];
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            404: components["responses"]["ModelNotFoundException"];
-            422: components["responses"]["ValidationException"];
+            401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
+            404: components['responses']['ModelNotFoundException'];
+            422: components['responses']['ValidationException'];
         };
     };
-    "document.download": {
+    'document.download': {
         parameters: {
             query?: never;
             header?: never;
@@ -1804,28 +1830,28 @@ export interface operations {
         responses: {
             200: {
                 headers: {
-                    "Transfer-Encoding": "chunked";
+                    'Transfer-Encoding': 'chunked';
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/octet-stream": string;
+                    'application/octet-stream': string;
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            404: components["responses"]["ModelNotFoundException"];
+            401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
+            404: components['responses']['ModelNotFoundException'];
             /** @description An error */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiError"];
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
         };
     };
-    "document.entities": {
+    'document.entities': {
         parameters: {
             query?: never;
             header?: never;
@@ -1842,17 +1868,17 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
+                    'application/json': {
                         data: Record<string, never>[];
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            404: components["responses"]["ModelNotFoundException"];
+            401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
+            404: components['responses']['ModelNotFoundException'];
         };
     };
-    "document.text": {
+    'document.text': {
         parameters: {
             query?: never;
             header?: never;
@@ -1869,7 +1895,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
+                    'application/json': {
                         data: {
                             text: string;
                             status: string;
@@ -1877,12 +1903,12 @@ export interface operations {
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            404: components["responses"]["ModelNotFoundException"];
+            401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
+            404: components['responses']['ModelNotFoundException'];
         };
     };
-    "document.participants": {
+    'document.participants': {
         parameters: {
             query?: never;
             header?: never;
@@ -1899,17 +1925,17 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        data: components["schemas"]["User"][];
+                    'application/json': {
+                        data: components['schemas']['User'][];
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            404: components["responses"]["ModelNotFoundException"];
+            401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
+            404: components['responses']['ModelNotFoundException'];
         };
     };
-    "document.grants": {
+    'document.grants': {
         parameters: {
             query?: never;
             header?: never;
@@ -1926,17 +1952,17 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        data: components["schemas"]["DocumentGrant"][];
+                    'application/json': {
+                        data: components['schemas']['DocumentGrant'][];
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            404: components["responses"]["ModelNotFoundException"];
+            401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
+            404: components['responses']['ModelNotFoundException'];
         };
     };
-    "document.setGrants": {
+    'document.setGrants': {
         parameters: {
             query?: never;
             header?: never;
@@ -1948,7 +1974,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
+                'application/json': {
                     grants: {
                         user_id: number;
                         read: boolean;
@@ -1965,18 +1991,18 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        data: components["schemas"]["DocumentGrant"][];
+                    'application/json': {
+                        data: components['schemas']['DocumentGrant'][];
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            404: components["responses"]["ModelNotFoundException"];
-            422: components["responses"]["ValidationException"];
+            401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
+            404: components['responses']['ModelNotFoundException'];
+            422: components['responses']['ValidationException'];
         };
     };
-    "emailVerification.store": {
+    'emailVerification.store': {
         parameters: {
             query?: never;
             header?: never;
@@ -1990,10 +2016,10 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
+                    'application/json': {
                         data: {
                             /** @constant */
-                            message: "Электронная почта уже подтверждена.";
+                            message: 'Электронная почта уже подтверждена.';
                         };
                     };
                 };
@@ -2003,38 +2029,38 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
+                    'application/json': {
                         data: {
                             /** @constant */
-                            message: "Письмо подтверждения поставлено в очередь отправки.";
+                            message: 'Письмо подтверждения поставлено в очередь отправки.';
                         };
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
+            401: components['responses']['AuthenticationException'];
             /** @description The CSRF session token is missing or expired. */
             419: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiError"];
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
             /** @description Verification mail requests are rate limited per account. */
             429: {
                 headers: {
                     /** @description Seconds before retrying the operation. */
-                    "Retry-After": string;
+                    'Retry-After': string;
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiError"];
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
         };
     };
-    "verification.verify": {
+    'verification.verify': {
         parameters: {
             query: {
                 expires: number;
@@ -2054,8 +2080,8 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        data: components["schemas"]["User"];
+                    'application/json': {
+                        data: components['schemas']['User'];
                     };
                 };
             };
@@ -2066,19 +2092,19 @@ export interface operations {
                 };
                 content?: never;
             };
-            401: components["responses"]["AuthenticationException"];
+            401: components['responses']['AuthenticationException'];
             /** @description The signed link is expired, modified, or belongs to another account. */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiError"];
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
         };
     };
-    "library.folders": {
+    'library.folders': {
         parameters: {
             query?: never;
             header?: never;
@@ -2092,15 +2118,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        data: components["schemas"]["Folder"][];
+                    'application/json': {
+                        data: components['schemas']['Folder'][];
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
+            401: components['responses']['AuthenticationException'];
         };
     };
-    "library.createFolder": {
+    'library.createFolder': {
         parameters: {
             query?: never;
             header?: never;
@@ -2109,7 +2135,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
+                'application/json': {
                     name: string;
                     /** Format: uuid */
                     parent_id?: string | null;
@@ -2122,25 +2148,25 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        data: components["schemas"]["Folder"];
+                    'application/json': {
+                        data: components['schemas']['Folder'];
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
+            401: components['responses']['AuthenticationException'];
             /** @description An error */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiError"];
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
-            422: components["responses"]["ValidationException"];
+            422: components['responses']['ValidationException'];
         };
     };
-    "library.removeFolder": {
+    'library.removeFolder': {
         parameters: {
             query?: never;
             header?: never;
@@ -2157,16 +2183,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
+                    'application/json': {
                         data: null;
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            404: components["responses"]["ModelNotFoundException"];
+            401: components['responses']['AuthenticationException'];
+            404: components['responses']['ModelNotFoundException'];
         };
     };
-    "library.tags": {
+    'library.tags': {
         parameters: {
             query?: never;
             header?: never;
@@ -2180,15 +2206,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
+                    'application/json': {
                         data: Record<string, never>[];
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
+            401: components['responses']['AuthenticationException'];
         };
     };
-    "library.move": {
+    'library.move': {
         parameters: {
             query?: never;
             header?: never;
@@ -2200,7 +2226,7 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": {
+                'application/json': {
                     /** Format: uuid */
                     folder_id?: string | null;
                 };
@@ -2212,18 +2238,18 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
+                    'application/json': {
                         data: null;
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            404: components["responses"]["ModelNotFoundException"];
-            422: components["responses"]["ValidationException"];
+            401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
+            404: components['responses']['ModelNotFoundException'];
+            422: components['responses']['ValidationException'];
         };
     };
-    "library.setTags": {
+    'library.setTags': {
         parameters: {
             query?: never;
             header?: never;
@@ -2235,7 +2261,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
+                'application/json': {
                     tags: string[];
                 };
             };
@@ -2246,18 +2272,18 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
+                    'application/json': {
                         data: null;
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            404: components["responses"]["ModelNotFoundException"];
-            422: components["responses"]["ValidationException"];
+            401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
+            404: components['responses']['ModelNotFoundException'];
+            422: components['responses']['ValidationException'];
         };
     };
-    "library.favorite": {
+    'library.favorite': {
         parameters: {
             query?: never;
             header?: never;
@@ -2269,7 +2295,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
+                'application/json': {
                     favorite: boolean;
                 };
             };
@@ -2280,18 +2306,18 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
+                    'application/json': {
                         data: string;
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            404: components["responses"]["ModelNotFoundException"];
-            422: components["responses"]["ValidationException"];
+            401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
+            404: components['responses']['ModelNotFoundException'];
+            422: components['responses']['ValidationException'];
         };
     };
-    "observability.metrics": {
+    'observability.metrics': {
         parameters: {
             query?: never;
             header?: never;
@@ -2305,22 +2331,22 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": string;
+                    'application/json': string;
                 };
             };
-            401: components["responses"]["AuthenticationException"];
+            401: components['responses']['AuthenticationException'];
             /** @description An error */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiError"];
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
         };
     };
-    "office.source": {
+    'office.source': {
         parameters: {
             query?: never;
             header?: never;
@@ -2336,7 +2362,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": string;
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': string;
                 };
             };
             /** @description An error */
@@ -2345,22 +2371,22 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiError"];
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
-            404: components["responses"]["ModelNotFoundException"];
+            404: components['responses']['ModelNotFoundException'];
             /** @description An error */
             503: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiError"];
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
         };
     };
-    "office.callback": {
+    'office.callback': {
         parameters: {
             query?: never;
             header?: never;
@@ -2374,16 +2400,19 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        /** @constant */
-                        error: 1;
-                    } | {
-                        /** @enum {integer} */
-                        error: 0 | 1;
-                    } | {
-                        /** @constant */
-                        error: 0;
-                    };
+                    'application/json':
+                        | {
+                              /** @constant */
+                              error: 1;
+                          }
+                        | {
+                              /** @enum {integer} */
+                              error: 0 | 1;
+                          }
+                        | {
+                              /** @constant */
+                              error: 0;
+                          };
                 };
             };
             403: {
@@ -2391,7 +2420,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiError"];
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
             503: {
@@ -2399,12 +2428,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiError"];
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
         };
     };
-    "office.session": {
+    'office.session': {
         parameters: {
             query?: never;
             header?: never;
@@ -2421,18 +2450,18 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
+                    'application/json': {
                         documentServerUrl: string;
                         config: {
                             /** @constant */
-                            documentType: "word";
+                            documentType: 'word';
                             /** @constant */
-                            width: "100%";
+                            width: '100%';
                             /** @constant */
-                            height: "100%";
+                            height: '100%';
                             document: {
                                 /** @constant */
-                                fileType: "docx";
+                                fileType: 'docx';
                                 key: string;
                                 title: string;
                                 url: string;
@@ -2444,9 +2473,9 @@ export interface operations {
                             };
                             editorConfig: {
                                 /** @constant */
-                                mode: "edit";
+                                mode: 'edit';
                                 /** @constant */
-                                lang: "ru";
+                                lang: 'ru';
                                 user: {
                                     id: string;
                                     name: string;
@@ -2454,7 +2483,7 @@ export interface operations {
                                 callbackUrl: string;
                                 coEditing: {
                                     /** @constant */
-                                    mode: "fast";
+                                    mode: 'fast';
                                     change: boolean;
                                 };
                                 customization: {
@@ -2467,21 +2496,21 @@ export interface operations {
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            404: components["responses"]["ModelNotFoundException"];
+            401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
+            404: components['responses']['ModelNotFoundException'];
             /** @description An error */
             503: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiError"];
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
         };
     };
-    "password.forgot": {
+    'password.forgot': {
         parameters: {
             query?: never;
             header?: never;
@@ -2490,7 +2519,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ForgotPasswordRequest"];
+                'application/json': components['schemas']['ForgotPasswordRequest'];
             };
         };
         responses: {
@@ -2499,10 +2528,10 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
+                    'application/json': {
                         data: {
                             /** @constant */
-                            message: "Если учётная запись существует, письмо с инструкцией отправлено.";
+                            message: 'Если учётная запись существует, письмо с инструкцией отправлено.';
                         };
                     };
                 };
@@ -2513,24 +2542,24 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiError"];
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
-            422: components["responses"]["ValidationException"];
+            422: components['responses']['ValidationException'];
             /** @description Password recovery requests are rate limited. */
             429: {
                 headers: {
                     /** @description Seconds before retrying the operation. */
-                    "Retry-After": string;
+                    'Retry-After': string;
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiError"];
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
         };
     };
-    "password.reset": {
+    'password.reset': {
         parameters: {
             query?: never;
             header?: never;
@@ -2539,7 +2568,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ResetPasswordRequest"];
+                'application/json': components['schemas']['ResetPasswordRequest'];
             };
         };
         responses: {
@@ -2548,10 +2577,10 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
+                    'application/json': {
                         data: {
                             /** @constant */
-                            message: "Пароль обновлён. Войдите с новым паролем.";
+                            message: 'Пароль обновлён. Войдите с новым паролем.';
                         };
                     };
                 };
@@ -2562,7 +2591,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiError"];
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
             /** @description Invalid, expired, or already consumed reset token, or invalid password. */
@@ -2571,23 +2600,23 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiError"];
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
             /** @description Password reset requests are rate limited. */
             429: {
                 headers: {
                     /** @description Seconds before retrying the operation. */
-                    "Retry-After": string;
+                    'Retry-After': string;
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiError"];
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
         };
     };
-    "preview.show": {
+    'preview.show': {
         parameters: {
             query?: never;
             header?: never;
@@ -2601,36 +2630,36 @@ export interface operations {
         responses: {
             200: {
                 headers: {
-                    "Transfer-Encoding"?: "chunked";
+                    'Transfer-Encoding'?: 'chunked';
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/octet-stream": string;
-                    "application/json": {
+                    'application/octet-stream': string;
+                    'application/json': {
                         data: {
                             /** @enum {string} */
-                            kind: "image" | "pdf" | "text";
+                            kind: 'image' | 'pdf' | 'text';
                             /** @enum {string} */
-                            status: "ready" | "failed" | "pending";
+                            status: 'ready' | 'failed' | 'pending';
                         };
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            404: components["responses"]["ModelNotFoundException"];
+            401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
+            404: components['responses']['ModelNotFoundException'];
             /** @description An error */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiError"];
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
         };
     };
-    "registration.store": {
+    'registration.store': {
         parameters: {
             query?: never;
             header?: never;
@@ -2639,7 +2668,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RegisterRequest"];
+                'application/json': components['schemas']['RegisterRequest'];
             };
         };
         responses: {
@@ -2648,8 +2677,8 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        data: components["schemas"]["User"];
+                    'application/json': {
+                        data: components['schemas']['User'];
                     };
                 };
             };
@@ -2659,24 +2688,24 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiError"];
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
-            422: components["responses"]["ValidationException"];
+            422: components['responses']['ValidationException'];
             /** @description Registration attempts are rate limited per IP address. */
             429: {
                 headers: {
                     /** @description Seconds before retrying the operation. */
-                    "Retry-After": string;
+                    'Retry-After': string;
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiError"];
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
         };
     };
-    "transfer.index": {
+    'transfer.index': {
         parameters: {
             query?: never;
             header?: never;
@@ -2690,15 +2719,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        data: components["schemas"]["CloudTransfer"][];
+                    'application/json': {
+                        data: components['schemas']['CloudTransfer'][];
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
+            401: components['responses']['AuthenticationException'];
         };
     };
-    "transfer.store": {
+    'transfer.store': {
         parameters: {
             query?: never;
             header?: never;
@@ -2707,11 +2736,11 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
+                'application/json': {
                     /** Format: uuid */
                     connection_id: string;
                     /** @enum {string} */
-                    direction: "import" | "export";
+                    direction: 'import' | 'export';
                     path: string;
                     filename: string;
                     /** Format: uuid */
@@ -2725,27 +2754,27 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        data: components["schemas"]["CloudTransfer"];
+                    'application/json': {
+                        data: components['schemas']['CloudTransfer'];
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            404: components["responses"]["ModelNotFoundException"];
+            401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
+            404: components['responses']['ModelNotFoundException'];
             /** @description An error */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiError"];
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
-            422: components["responses"]["ValidationException"];
+            422: components['responses']['ValidationException'];
         };
     };
-    "transfer.cancel": {
+    'transfer.cancel': {
         parameters: {
             query?: never;
             header?: never;
@@ -2762,34 +2791,34 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        data: components["schemas"]["CloudTransfer"];
+                    'application/json': {
+                        data: components['schemas']['CloudTransfer'];
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            404: components["responses"]["ModelNotFoundException"];
+            401: components['responses']['AuthenticationException'];
+            404: components['responses']['ModelNotFoundException'];
             /** @description An error */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiError"];
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
         };
     };
-    "user.index": {
+    'user.index': {
         parameters: {
             query?: {
                 cursor?: string | null;
                 per_page?: number;
                 q?: string | null;
-                role?: "admin" | "employee" | "observer" | null;
+                role?: 'admin' | 'employee' | 'observer' | null;
                 active?: boolean | null;
-                sort?: "name" | "email" | "created_at" | "id" | null;
-                direction?: "asc" | "desc" | null;
+                sort?: 'name' | 'email' | 'created_at' | 'id' | null;
+                direction?: 'asc' | 'desc' | null;
             };
             header?: never;
             path?: never;
@@ -2802,8 +2831,8 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        data: components["schemas"]["User"][];
+                    'application/json': {
+                        data: components['schemas']['User'][];
                         meta: {
                             next_cursor: string | null;
                             prev_cursor: string | null;
@@ -2812,12 +2841,12 @@ export interface operations {
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            422: components["responses"]["ValidationException"];
+            401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
+            422: components['responses']['ValidationException'];
         };
     };
-    "user.store": {
+    'user.store': {
         parameters: {
             query?: never;
             header?: never;
@@ -2826,13 +2855,13 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
+                'application/json': {
                     name: string;
                     /** Format: email */
                     email: string;
                     password: string;
                     /** @enum {string} */
-                    role: "admin" | "employee" | "observer";
+                    role: 'admin' | 'employee' | 'observer';
                 };
             };
         };
@@ -2842,17 +2871,17 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        data: components["schemas"]["User"];
+                    'application/json': {
+                        data: components['schemas']['User'];
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            422: components["responses"]["ValidationException"];
+            401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
+            422: components['responses']['ValidationException'];
         };
     };
-    "user.update": {
+    'user.update': {
         parameters: {
             query?: never;
             header?: never;
@@ -2864,10 +2893,10 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": {
+                'application/json': {
                     name?: string;
                     /** @enum {string} */
-                    role?: "admin" | "employee" | "observer";
+                    role?: 'admin' | 'employee' | 'observer';
                     active?: boolean;
                 };
             };
@@ -2878,18 +2907,18 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        data: components["schemas"]["User"];
+                    'application/json': {
+                        data: components['schemas']['User'];
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            404: components["responses"]["ModelNotFoundException"];
-            422: components["responses"]["ValidationException"];
+            401: components['responses']['AuthenticationException'];
+            403: components['responses']['AuthorizationException'];
+            404: components['responses']['ModelNotFoundException'];
+            422: components['responses']['ValidationException'];
         };
     };
-    "yandexOAuth.callback": {
+    'yandexOAuth.callback': {
         parameters: {
             query?: {
                 state?: string;
@@ -2910,7 +2939,7 @@ export interface operations {
             };
         };
     };
-    "yandexOAuth.availability": {
+    'yandexOAuth.availability': {
         parameters: {
             query?: never;
             header?: never;
@@ -2924,17 +2953,17 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
+                    'application/json': {
                         data: {
                             available: boolean;
                         };
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
+            401: components['responses']['AuthenticationException'];
         };
     };
-    "yandexOAuth.start": {
+    'yandexOAuth.start': {
         parameters: {
             query?: never;
             header?: never;
@@ -2943,7 +2972,7 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": {
+                'application/json': {
                     /** Format: uuid */
                     connection_id?: string | null;
                 };
@@ -2955,31 +2984,31 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
+                    'application/json': {
                         data: {
                             url: string;
                         };
                     };
                 };
             };
-            401: components["responses"]["AuthenticationException"];
+            401: components['responses']['AuthenticationException'];
             /** @description An error */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiError"];
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
-            422: components["responses"]["ValidationException"];
+            422: components['responses']['ValidationException'];
             /** @description An error */
             503: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiError"];
+                    'application/json': components['schemas']['ApiError'];
                 };
             };
         };

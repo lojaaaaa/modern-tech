@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: modern-tech
+    runtime: docker
+    branch: develop
+    region: frankfurt
+    plan: free
+    dockerfilePath: ./infra/render/Dockerfile
+    healthCheckPath: /health/ready
+    envVars:
+      - key: APP_SECRET
+        generateValue: true
+      - key: DB_URL
+        fromDatabase:
+          name: modern-tech-db
+          property: connectionString
+databases:
+  - name: modern-tech-db
+    plan: free
+    region: frankfurt
+    postgresMajorVersion: "18"
+    ipAllowList: []
