@@ -19,7 +19,6 @@ RUN composer install --no-dev --prefer-dist --optimize-autoloader --no-interacti
 COPY --from=frontend /app/dist/ public/
 COPY infra/render/site.conf /etc/apache2/sites-available/000-default.conf
 COPY infra/render/processes.conf /etc/supervisor/conf.d/modern-tech.conf
-COPY infra/render/provision.php /var/www/html/render-provision.php
 COPY infra/render/start.sh /usr/local/bin/start-modern-tech
 ENV APP_ENV=production APP_DEBUG=false LOG_CHANNEL=stderr DB_CONNECTION=pgsql REDIS_CLIENT=predis REDIS_CACHE_HOST=127.0.0.1 CACHE_STORE=redis QUEUE_CONNECTION=redis REDIS_QUEUE_RETRY_AFTER=960 SESSION_SECURE_COOKIE=true
 CMD ["sh", "/usr/local/bin/start-modern-tech"]
