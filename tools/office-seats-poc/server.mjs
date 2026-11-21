@@ -13,7 +13,7 @@ if (!Number.isInteger(publicPort) || publicPort < 1 || publicPort > 65535) throw
 const permissions = new Map();
 const docKey = doc => createHash('sha256').update(doc).digest('hex');
 const permissionKey = (doc, user) => JSON.stringify([doc, user]);
-const defaultRights = {read: true, comment: true, edit: true, blocked: false};
+const defaultRights = {isReadAllowed: true, isCommentAllowed: true, isEditAllowed: true, isBlocked: false};
 const rightsFor = (doc, user) => permissions.get(permissionKey(doc, user)) || defaultRights;
 
 // No expiration is reclaimed by Redis alone: the gateway must first close every
@@ -45,6 +45,11 @@ redis.call('HDEL', KEYS[2], ARGV[1])
 redis.call('ZREM', KEYS[1], ARGV[1])
 return 1`;
 
+const seatCacheKeys = {
+  expirations: (hash) => `poc:seats:{${hash}}:exp`,
+  users: (hash) => `poc:seats:{${hash}}:users`,
+};
+
 function redisCommand(args) {
   return new Promise((resolve, reject) => {
     const socket = net.createConnection({host: process.env.REDIS_HOST || '127.0.0.1', port: Number(process.env.REDIS_PORT || 6379)});
@@ -68,38 +73,38 @@ function redisCommand(args) {
 }
 function run(script, session) {
   const hash = docKey(session.doc);
-  return redisCommand(['EVAL', script, '2', `poc:seats:{${hash}}:exp`, `poc:seats:{${hash}}:users`, session.id, session.user, lease]);
+  return redisCommand(['EVAL', script, '2', seatCacheKeys.expirations(hash), seatCacheKeys.users(hash), session.id, session.user, lease]);
 }
 function closeStreams(session) {
   for (const response of session.streams) response.destroy();
   session.streams.clear();
 }
 async function invalidate(session) {
-  if (!session.active) return;
-  session.active = false;
+  if (!session.isActive) return;
+  session.isActive = false;
   sessions.delete(session.token);
   launches.delete(session.launchCode);
   closeStreams(session);
-  if (session.seated) await run(release, session);
+  if (session.isSeated) await run(release, session);
 }
 async function reserve(session) {
-  if (!session.active) return false;
+  if (!session.isActive) return false;
   const rights = rightsFor(session.doc, session.user);
-  if (!rights.edit || rights.blocked) return false;
+  if (!rights.isEditAllowed || rights.isBlocked) return false;
   const acquired = await run(acquire, session);
   if (acquired !== 1) return false;
   // An access change can happen while Redis is processing the request.
-  if (!session.active || rightsFor(session.doc, session.user) !== rights) {
+  if (!session.isActive || rightsFor(session.doc, session.user) !== rights) {
     await run(release, session);
     return false;
   }
-  session.seated = true;
+  session.isSeated = true;
   session.deadline = Date.now() + lease;
   return true;
 }
 function mode(session) {
   const rights = rightsFor(session.doc, session.user);
-  return session.seated && rights.edit ? 'edit' : rights.comment ? 'comment' : 'view';
+  return session.isSeated && rights.isEditAllowed ? 'edit' : rights.isCommentAllowed ? 'comment' : 'view';
 }
 function json(res, status, value) { res.writeHead(status, {'content-type': 'application/json', 'cache-control': 'no-store'}); res.end(JSON.stringify(value)); }
 async function body(req) {
@@ -112,7 +117,7 @@ function currentSession(req) {
   const bearer = /^Bearer ([A-Za-z0-9_-]+)$/.exec(req.headers.authorization || '')?.[1];
   const token = bearer || /(?:^|;\s*)poc_session=([A-Za-z0-9_-]+)/.exec(req.headers.cookie || '')?.[1];
   const session = sessions.get(token);
-  return session?.active && (bearer || req.headers.host === `${session.id}.localhost:${publicPort}`) ? session : null;
+  return session?.isActive && (bearer || req.headers.host === `${session.id}.localhost:${publicPort}`) ? session : null;
 }
 const bridge = createOfficeBridge({sessionFor: currentSession, rightsFor, lease, sessions});
 const server = http.createServer(async (req, res) => {
@@ -130,7 +135,7 @@ const server = http.createServer(async (req, res) => {
       const input = await body(req);
       const session = launches.get(input.code);
       const host = session && `${session.id}.localhost:${publicPort}`;
-      if (!session?.active || Date.now() >= session.deadline || req.headers.host !== host || req.headers.origin !== `http://${host}`) return json(res, 403, {error:'invalid launch'});
+      if (!session?.isActive || Date.now() >= session.deadline || req.headers.host !== host || req.headers.origin !== `http://${host}`) return json(res, 403, {error:'invalid launch'});
       launches.delete(input.code);
       res.setHeader('set-cookie', `poc_session=${session.token}; HttpOnly; SameSite=Strict; Path=/`);
       return json(res, 200, {ok:true});
@@ -139,11 +144,11 @@ const server = http.createServer(async (req, res) => {
       const input = await body(req);
       if (input.password !== secret || !validId(input.doc) || !validId(input.user)) return json(res, 401, {error: 'unauthorized'});
       const rights = rightsFor(input.doc, input.user);
-      if (!rights.read || rights.blocked) return json(res, 403, {error: 'forbidden'});
-      const session = {id: randomUUID(), token: randomBytes(32).toString('base64url'), sourceCapability: randomBytes(32).toString('base64url'), launchCode: randomBytes(32).toString('base64url'), doc: input.doc, user: input.user, active: true, seated: false, deadline: Date.now() + lease, streams: new Set()};
+      if (!rights.isReadAllowed || rights.isBlocked) return json(res, 403, {error: 'forbidden'});
+      const session = {id: randomUUID(), token: randomBytes(32).toString('base64url'), sourceCapability: randomBytes(32).toString('base64url'), launchCode: randomBytes(32).toString('base64url'), doc: input.doc, user: input.user, isActive: true, isSeated: false, deadline: Date.now() + lease, streams: new Set()};
       sessions.set(session.token, session);
-      try { if (rights.edit) await reserve(session); } catch (error) { await invalidate(session); throw error; }
-      if (!session.active || rightsFor(session.doc, session.user) !== rights) { await invalidate(session); return json(res, 403, {error: 'permission changed'}); }
+      try { if (rights.isEditAllowed) await reserve(session); } catch (error) { await invalidate(session); throw error; }
+      if (!session.isActive || rightsFor(session.doc, session.user) !== rights) { await invalidate(session); return json(res, 403, {error: 'permission changed'}); }
       launches.set(session.launchCode, session);
       return json(res, 200, {token: session.token, user: session.user, mode: mode(session), editorUrl: `http://${session.id}.localhost:${publicPort}/bootstrap#${session.launchCode}`});
     }
@@ -152,7 +157,7 @@ const server = http.createServer(async (req, res) => {
       if (input.secret !== secret) return json(res, 401, {error: 'unauthorized'});
       if (!validId(input.doc) || !validId(input.user) || !['read','comment','edit','blocked'].every(k => typeof input[k] === 'boolean')) return json(res, 400, {error: 'invalid permissions'});
       if (!input.read && (input.comment || input.edit)) return json(res, 400, {error: 'inconsistent permissions'});
-      permissions.set(permissionKey(input.doc, input.user), {read: input.read, comment: input.comment, edit: input.edit, blocked: input.blocked});
+      permissions.set(permissionKey(input.doc, input.user), {isReadAllowed: input.read, isCommentAllowed: input.comment, isEditAllowed: input.edit, isBlocked: input.blocked});
       await Promise.all([...sessions.values()].filter(s => s.doc === input.doc && s.user === input.user).map(invalidate));
       return json(res, 200, {ok: true});
     }
@@ -164,22 +169,22 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && !/^Bearer [A-Za-z0-9_-]+$/.test(req.headers.authorization || '') && req.headers.origin !== `http://${req.headers.host}`) return json(res, 403, {error: 'invalid origin'});
     if (Date.now() >= session.deadline) { await invalidate(session); return json(res, 401, {error: 'expired'}); }
     const rights = rightsFor(session.doc, session.user);
-    if (!rights.read || rights.blocked) { await invalidate(session); return json(res, 403, {error: 'forbidden'}); }
+    if (!rights.isReadAllowed || rights.isBlocked) { await invalidate(session); return json(res, 403, {error: 'forbidden'}); }
     if (req.method === 'POST' && req.url === '/close') { await invalidate(session); return json(res, 200, {ok: true}); }
     if (req.method === 'POST' && req.url === '/heartbeat') {
-      if (session.seated && await run(renew, session) !== 1) { await invalidate(session); return json(res, 401, {error: 'expired'}); }
-      if (!session.active) return json(res, 401, {error: 'revoked'});
+      if (session.isSeated && await run(renew, session) !== 1) { await invalidate(session); return json(res, 401, {error: 'expired'}); }
+      if (!session.isActive) return json(res, 401, {error: 'revoked'});
       session.deadline = Date.now() + lease;
-      return json(res, 200, {mode: mode(session), canRequestEdit: rightsFor(session.doc, session.user).edit && !session.seated});
+      return json(res, 200, {mode: mode(session), canRequestEdit: rightsFor(session.doc, session.user).isEditAllowed && !session.isSeated});
     }
     if (req.method === 'POST' && req.url === '/seat') {
-      if (!session.seated && rights.edit) await reserve(session);
-      if (!session.active) return json(res, 401, {error: 'revoked'});
-      return json(res, 200, {mode: mode(session), canRequestEdit: rightsFor(session.doc, session.user).edit && !session.seated});
+      if (!session.isSeated && rights.isEditAllowed) await reserve(session);
+      if (!session.isActive) return json(res, 401, {error: 'revoked'});
+      return json(res, 200, {mode: mode(session), canRequestEdit: rightsFor(session.doc, session.user).isEditAllowed && !session.isSeated});
     }
     if (req.method === 'GET' && req.url === '/published') return json(res, 200, {content: 'public version fixture'});
     if (req.method === 'GET' && (req.url === '/draft' || req.url === '/draft/stream')) {
-      if (!rights.comment && !rights.edit) return json(res, 403, {error: 'draft forbidden'});
+      if (!rights.isCommentAllowed && !rights.isEditAllowed) return json(res, 403, {error: 'draft forbidden'});
       if (req.url === '/draft') return json(res, 200, {content: 'draft fixture'});
       res.writeHead(200, {'content-type': 'text/plain', 'cache-control': 'no-store'});
       res.write('draft event\n');

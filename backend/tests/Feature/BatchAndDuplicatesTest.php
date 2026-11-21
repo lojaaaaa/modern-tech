@@ -19,8 +19,13 @@ final class BatchAndDuplicatesTest extends TestCase
     {
         $owner = User::factory()->create();
         $other = User::factory()->create();
-        $mine = Document::create(['owner_id' => $owner->id, 'title' => 'Mine']);
-        $private = Document::create(['owner_id' => $other->id, 'title' => 'Private']);
+        $mine = Document::query()->create(['owner_id' => $owner->id, 'title' => 'Mine']);
+        $private = Document::query()->create(['owner_id' => $other->id, 'title' => 'Private']);
+        $this->actingAs($owner)
+            ->postJson('/api/v1/documents/batch', ['ids' => [$mine->id], 'action' => 'delete'])
+            ->assertUnprocessable()
+            ->assertJsonStructure(['error' => ['details' => ['action']]]);
+
         $this->actingAs($owner)->postJson('/api/v1/documents/batch', ['ids' => [$mine->id, $private->id], 'action' => 'trash'])->assertNotFound();
         $this->assertNull($mine->fresh()->deleted_at);
         $this->postJson('/api/v1/documents/batch', ['ids' => [$mine->id], 'action' => 'trash'])->assertOk();
@@ -33,10 +38,28 @@ final class BatchAndDuplicatesTest extends TestCase
     {
         $owner = User::factory()->create();
         $other = User::factory()->create();
-        $doc = Document::create(['owner_id' => $owner->id, 'title' => 'Secret']);
-        DocumentVersion::create(['document_id' => $doc->id, 'creator_id' => $owner->id, 'number' => 1, 'storage_key' => 'not-read', 'original_name' => 'note.txt', 'mime' => 'text/plain', 'size' => 12, 'sha256' => hash('sha256', 'same content'), 'status' => 'ready']);
+        $doc = Document::query()->create(['owner_id' => $owner->id, 'title' => 'Secret']);
+        DocumentVersion::query()->create(['document_id' => $doc->id, 'creator_id' => $owner->id, 'number' => 1, 'storage_key' => 'not-read', 'original_name' => 'note.txt', 'mime' => 'text/plain', 'size' => 12, 'sha256' => hash('sha256', 'same content'), 'status' => 'ready']);
         $file = fn () => UploadedFile::fake()->createWithContent('note.txt', 'same content');
         $this->actingAs($other)->postJson('/api/v1/documents/duplicates', ['file' => $file()])->assertOk()->assertJsonCount(0, 'data');
         $this->actingAs($owner)->postJson('/api/v1/documents/duplicates', ['file' => $file()])->assertOk()->assertJsonPath('data.0.id', $doc->id);
+    }
+
+    public function test_upload_and_duplicate_lookup_validate_file_contents_against_the_extension(): void
+    {
+        $user = User::factory()->create();
+        $file = fn () => UploadedFile::fake()->createWithContent('report.pdf', 'This is a plain text document.');
+
+        $this->actingAs($user)
+            ->postJson('/api/v1/documents', ['file' => $file()], ['Idempotency-Key' => 'invalid-file-test'])
+            ->assertUnprocessable()
+            ->assertJsonStructure(['error' => ['details' => ['file']]]);
+
+        $this->postJson('/api/v1/documents/duplicates', ['file' => $file()])
+            ->assertUnprocessable()
+            ->assertJsonStructure(['error' => ['details' => ['file']]]);
+
+        $this->assertDatabaseCount('documents', 0);
+        $this->assertDatabaseCount('outbox_events', 0);
     }
 }

@@ -108,7 +108,7 @@ def inspect_file(path):
     raise ValueError('Unsupported fixture')
 
 
-def verify(directory, edited):
+def verify(directory, is_edited):
     reports = {}
     for extension in ('docx', 'xlsx', 'pptx'):
         path = directory / f'sample.{extension}'
@@ -126,7 +126,7 @@ def verify(directory, edited):
     assert sheet['header_bold'] is True and sheet['freeze_panes'] == 'A2', 'XLSX formatting lost'
     slides = reports['pptx']['slides']
     assert len(slides) == 2 and slides[0][0].startswith('План проекта') and slides[1][0].startswith('Результаты'), 'PPTX slide count/order lost'
-    if edited:
+    if is_edited:
         text = '\n'.join(word['paragraphs'])
         assert 'ALICE_DOCX' in text and 'BOB_DOCX' in text, 'DOCX collaborator edits missing'
         assert sheet['cells']['Расчёт']['A3'] == 17 and sheet['cells']['Расчёт']['B3'] == 25, 'XLSX collaborator edits missing'
@@ -142,12 +142,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('command', choices=('generate', 'inspect', 'verify'))
     parser.add_argument('directory', nargs='?', type=Path, default=ROOT / 'corpus')
-    parser.add_argument('--edited', action='store_true', help='Require both participants edits and recalculated XLSX')
+    parser.add_argument('--edited', dest='is_edited', action='store_true', help='Require both participants edits and recalculated XLSX')
     args = parser.parse_args()
     if args.command == 'generate':
         result = generate(args.directory)
     elif args.command == 'verify':
-        result = verify(args.directory, args.edited)
+        result = verify(args.directory, args.is_edited)
     else:
         result = {path.name: inspect_file(path) for path in sorted(args.directory.glob('sample.*')) if path.suffix in ('.docx', '.xlsx', '.pptx')}
     print(json.dumps(result, ensure_ascii=False, indent=2))

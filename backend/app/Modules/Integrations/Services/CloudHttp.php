@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Integrations\Services;
 
+use App\Modules\Integrations\Enums\CloudProviderId;
+use App\Modules\Integrations\Exceptions\CloudAuthorizationRequired;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
@@ -15,14 +17,20 @@ final class CloudHttp
         return Http::connectTimeout(10)->timeout(180)->withOptions(['allow_redirects' => false]);
     }
 
-    public static function check(Response $response): void
+    public static function check(Response $response, CloudProviderId $provider): void
     {
         if ($response->successful()) {
             return;
         }
-        throw new CloudFailure(match ($response->status()) {
-            401,403 => 'AUTHORIZATION_REQUIRED',404 => 'REMOTE_NOT_FOUND',409,412 => 'REMOTE_CONFLICT',413 => 'FILE_TOO_LARGE',429 => 'RATE_LIMITED',507 => 'QUOTA_EXCEEDED',default => 'PROVIDER_ERROR'
-        });
+        throw match ($response->status()) {
+            401, 403 => new CloudAuthorizationRequired($provider),
+            404 => new CloudFailure('REMOTE_NOT_FOUND'),
+            409, 412 => new CloudFailure('REMOTE_CONFLICT'),
+            413 => new CloudFailure('FILE_TOO_LARGE'),
+            429 => new CloudFailure('RATE_LIMITED'),
+            507 => new CloudFailure('QUOTA_EXCEEDED'),
+            default => new CloudFailure('PROVIDER_ERROR'),
+        };
     }
 
     /** @return array<string,mixed> */

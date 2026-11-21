@@ -3,10 +3,11 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use App\Modules\Documents\DTO\IncomingFile;
 use App\Modules\Documents\Services\UploadDocument;
+use App\Modules\Identity\Enums\UserRole;
 use App\Modules\Processing\Jobs\ProcessVersion;
 use Illuminate\Contracts\Console\Kernel;
-use App\Modules\Documents\Services\IncomingFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -21,16 +22,23 @@ $stored = null;
 DB::beginTransaction();
 try {
     file_put_contents($temporary, 'Контрольный документ: управление архивом. Reliable searchable archive.');
-    $user = User::create(['name' => 'Smoke test', 'email' => 'smoke-'.bin2hex(random_bytes(8)).'@example.invalid', 'password' => bin2hex(random_bytes(32)), 'role' => 'employee', 'active' => true]);
-    $document = app(UploadDocument::class)->execute($user, new IncomingFile($temporary, 'smoke.txt'), null, 'smoke-test');
+    $user = User::query()->create([
+        'name' => 'Smoke test',
+        'email' => 'smoke-' . bin2hex(random_bytes(8)) . '@example.invalid',
+        'password' => bin2hex(random_bytes(32)),
+        'role' => UserRole::EMPLOYEE,
+        'active' => true,
+    ]);
+    $user->markEmailAsVerified();
+    $document = app(UploadDocument::class)->import($user, new IncomingFile($temporary, 'smoke.txt'), 'smoke-test');
     $version = $document->versions()->firstOrFail();
     $stored = $version->storage_key;
     app()->call([new ProcessVersion($version->id), 'handle']);
-    if ($version->fresh()->status !== 'ready' || $document->fresh()->published_version_id !== $version->id) {
+    if (! $version->fresh()->isReady() || $document->fresh()->published_version_id !== $version->id) {
         throw new RuntimeException('Pipeline failed to publish the version.');
     }
-    $found = DB::table('text_segments')->where('version_id', $version->id)->whereRaw("search_ru @@ websearch_to_tsquery('russian', ?)", ['документов'])->exists();
-    if (! $found) {
+    $isTextIndexed = DB::table('text_segments')->where('version_id', $version->id)->whereRaw("search_ru @@ websearch_to_tsquery('russian', ?)", ['документов'])->exists();
+    if (! $isTextIndexed) {
         throw new RuntimeException('PostgreSQL full-text search failed.');
     }
     echo "PASS: actual ClamAV → Tika → PostgreSQL indexing/publication/search.\n";

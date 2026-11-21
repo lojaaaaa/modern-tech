@@ -1,4 +1,4 @@
-import type { components } from './schema';
+import type { components, paths } from './schema';
 export type Role = 'admin' | 'employee' | 'observer';
 export type User = Pick<components['schemas']['User'], 'id' | 'name' | 'email' | 'active' | 'email_verified_at'> & {
     role: Role;
@@ -7,6 +7,8 @@ export type RegistrationInput = components['schemas']['RegisterRequest'];
 export type DocumentRecord = components['schemas']['DocumentResource'] & { snippet?: string | null };
 export type Version = NonNullable<DocumentRecord['version']>;
 export type CloudConnection = components['schemas']['CloudConnection'];
+export type RemoteFile =
+    paths['/v1/connections/{connection}/files']['get']['responses'][200]['content']['application/json']['data'][number];
 export type CloudTransfer = components['schemas']['CloudTransfer'];
 export interface Page<T> {
     data: T[];

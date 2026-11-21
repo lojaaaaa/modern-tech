@@ -1,3 +1,4 @@
+import { queryKeys } from '@/shared/api/query-keys';
 import type { DocumentRecord, Resource } from '@/shared/api/types';
 import { useRef, useState } from 'react';
 import { Upload, X, FileUp, CheckCircle2 } from 'lucide-react';
@@ -9,12 +10,12 @@ import { ErrorMessage } from '@/shared/ui/error-message';
 import { formatBytes } from '@/shared/lib/utils';
 interface Result {
     name: string;
-    ok: boolean;
+    isSuccessful: boolean;
     message: string;
 }
 export const UploadPanel = ({ onClose }: { onClose: () => void }) => {
     const [files, setFiles] = useState<File[]>([]);
-    const [busy, setBusy] = useState(false);
+    const [isBusy, setBusy] = useState(false);
     const [results, setResults] = useState<Result[]>([]);
     const [error, setError] = useState<string | null>(null);
     const decision = useRef<((value: string) => void) | null>(null);
@@ -56,7 +57,7 @@ export const UploadPanel = ({ onClose }: { onClose: () => void }) => {
                     decision.current = null;
                 }
                 if (action === 'open' && match) {
-                    completed.push({ name: file.name, ok: true, message: 'Существующий документ найден' });
+                    completed.push({ name: file.name, isSuccessful: true, message: 'Существующий документ найден' });
                     setResults([...completed]);
                     continue;
                 }
@@ -65,21 +66,25 @@ export const UploadPanel = ({ onClose }: { onClose: () => void }) => {
                     body: data,
                     headers: { 'Idempotency-Key': crypto.randomUUID() },
                 });
-                completed.push({ name: file.name, ok: true, message: 'Загружен. Ожидает проверки и обработки' });
+                completed.push({
+                    name: file.name,
+                    isSuccessful: true,
+                    message: 'Загружен. Ожидает проверки и обработки',
+                });
             } catch (e) {
                 completed.push({
                     name: file.name,
-                    ok: false,
+                    isSuccessful: false,
                     message: e instanceof Error ? e.message : 'Ошибка загрузки',
                 });
             }
             setResults([...completed]);
         }
         setBusy(false);
-        await client.invalidateQueries({ queryKey: ['documents'] });
+        await client.invalidateQueries({ queryKey: [queryKeys.documents] });
     };
     return (
-        <Modal titleId="upload-title" onClose={onClose} busy={busy}>
+        <Modal titleId="upload-title" onClose={onClose} isBusy={isBusy}>
             {duplicate && (
                 <section className="duplicate-choice">
                     <strong>Файл совпадает с документом «{duplicate.title}»</strong>
@@ -110,7 +115,7 @@ export const UploadPanel = ({ onClose }: { onClose: () => void }) => {
                     <span className="eyebrow">Загрузка файлов</span>
                     <h2 id="upload-title">Загрузить документы</h2>
                 </div>
-                <Button variant="ghost" size="icon" aria-label="Закрыть загрузку" onClick={onClose} disabled={busy}>
+                <Button variant="ghost" size="icon" aria-label="Закрыть загрузку" onClick={onClose} disabled={isBusy}>
                     <X size={20} />
                 </Button>
             </header>
@@ -122,7 +127,7 @@ export const UploadPanel = ({ onClose }: { onClose: () => void }) => {
                     e.preventDefault();
                     choose(e.dataTransfer.files);
                 }}
-                disabled={busy}
+                disabled={isBusy}
             >
                 <span className="upload-icon">
                     <FileUp size={28} />
@@ -147,7 +152,7 @@ export const UploadPanel = ({ onClose }: { onClose: () => void }) => {
                         <span>{file.name}</span>
                         <small>{formatBytes(file.size)}</small>
                         {results[i] && (
-                            <span className={results[i]?.ok ? 'text-success' : 'text-danger'}>
+                            <span className={results[i]?.isSuccessful ? 'text-success' : 'text-danger'}>
                                 {results[i]?.message}
                             </span>
                         )}
@@ -155,11 +160,11 @@ export const UploadPanel = ({ onClose }: { onClose: () => void }) => {
                 ))}
             </div>
             <footer>
-                <Button variant="secondary" onClick={onClose} disabled={busy}>
+                <Button variant="secondary" onClick={onClose} disabled={isBusy}>
                     Закрыть
                 </Button>
                 <Button
-                    disabled={!files.length || busy || results.length === files.length}
+                    disabled={!files.length || isBusy || results.length === files.length}
                     onClick={() => void submit()}
                 >
                     {results.length === files.length && files.length ? (
@@ -167,7 +172,7 @@ export const UploadPanel = ({ onClose }: { onClose: () => void }) => {
                     ) : (
                         <Upload size={16} />
                     )}{' '}
-                    {busy
+                    {isBusy
                         ? duplicate
                             ? 'Выберите действие для совпавшего файла'
                             : `Загрузка ${Math.min(results.length + 1, files.length)} из ${files.length}`

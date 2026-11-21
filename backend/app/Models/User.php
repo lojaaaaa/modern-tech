@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Modules\Identity\Enums\UserRole;
 use App\Modules\Identity\Notifications\ResetPassword;
 use App\Modules\Identity\Notifications\VerifyEmail;
 use Database\Factories\UserFactory;
@@ -17,7 +18,8 @@ use Illuminate\Support\Str;
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory;
+    use Notifiable;
 
     protected $fillable = ['name', 'email', 'password', 'role', 'active'];
 
@@ -25,7 +27,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     protected function casts(): array
     {
-        return ['email_verified_at' => 'datetime', 'password' => 'hashed', 'active' => 'boolean'];
+        return ['email_verified_at' => 'datetime', 'password' => 'hashed', 'active' => 'boolean', 'role' => UserRole::class];
     }
 
     /** @return Attribute<string, string> */
@@ -36,7 +38,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function sendEmailVerificationNotification(): void
     {
-        $this->notify(new VerifyEmail);
+        $this->notify(new VerifyEmail());
     }
 
     public function sendPasswordResetNotification($token): void
@@ -44,8 +46,13 @@ class User extends Authenticatable implements MustVerifyEmail
         $this->notify(new ResetPassword($token));
     }
 
+    public function isActive(): bool
+    {
+        return $this->active === true;
+    }
+
     public function isAdministrator(): bool
     {
-        return $this->active && $this->role === 'admin';
+        return $this->isActive() && $this->role === UserRole::ADMIN;
     }
 }

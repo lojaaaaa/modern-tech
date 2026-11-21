@@ -1,3 +1,4 @@
+import { queryKeys } from '@/shared/api/query-keys';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { X, Send, MessageSquarePlus, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
@@ -16,7 +17,7 @@ export interface AnchorTarget extends TextAnchor {
 }
 export const TextReader = ({
     text,
-    canComment,
+    isCommentAllowed,
     target,
     onComment,
     onSubmitComment,
@@ -25,7 +26,7 @@ export const TextReader = ({
     onSelectComment,
 }: {
     text: string;
-    canComment: boolean;
+    isCommentAllowed: boolean;
     target: AnchorTarget | null;
     activeComment?: CommentRecord | null;
     comments?: CommentRecord[];
@@ -33,10 +34,10 @@ export const TextReader = ({
     onComment: (anchor: TextAnchor) => void;
     onSubmitComment?: (anchor: TextAnchor, body: string) => Promise<void>;
 }) => {
-    const [hovered, setHovered] = useState(false);
-    const [composing, setComposing] = useState(false);
+    const [isHovered, setHovered] = useState(false);
+    const [isComposing, setComposing] = useState(false);
     const [body, setBody] = useState('');
-    const [busy, setBusy] = useState(false);
+    const [isBusy, setBusy] = useState(false);
     const [error, setError] = useState<unknown>(null);
     const [position, setPosition] = useState({ left: 20, top: 20 });
     const root = useRef<HTMLDivElement>(null);
@@ -53,7 +54,7 @@ export const TextReader = ({
     }, [target, text]);
     const capture = () => {
         const selected = window.getSelection();
-        if (!canComment || !selected?.rangeCount || !root.current || selected.isCollapsed) {
+        if (!isCommentAllowed || !selected?.rangeCount || !root.current || selected.isCollapsed) {
             setSelection(null);
             return;
         }
@@ -80,15 +81,15 @@ export const TextReader = ({
         const quote = range.toString();
         setSelection(quote.trim() && quote.length <= 2000 ? { start, end: start + quote.length, quote } : null);
     };
-    const valid = target && text.slice(target.start, target.end) === target.quote;
+    const isValid = target && text.slice(target.start, target.end) === target.quote;
     return (
         <div className="text-reader">
-            {target && !valid && (
+            {target && !isValid && (
                 <p role="status" className="muted">
                     Фрагмент не найден в тексте этой версии. Комментарий сохранён в обсуждении.
                 </p>
             )}
-            {activeComment && hovered && (
+            {activeComment && isHovered && (
                 <aside
                     className="annotation-card"
                     onMouseEnter={() => setHovered(true)}
@@ -113,7 +114,7 @@ export const TextReader = ({
             )}
             {selection && (
                 <div className="selection-composer" style={position}>
-                    {composing && onSubmitComment ? (
+                    {isComposing && onSubmitComment ? (
                         <form
                             onSubmit={async (e) => {
                                 e.preventDefault();
@@ -145,7 +146,7 @@ export const TextReader = ({
                                     type="button"
                                     variant="ghost"
                                     size="small"
-                                    disabled={busy}
+                                    disabled={isBusy}
                                     onClick={() => {
                                         setSelection(null);
                                         setComposing(false);
@@ -153,7 +154,7 @@ export const TextReader = ({
                                 >
                                     Отмена
                                 </Button>
-                                <Button size="small" disabled={busy || !body.trim()}>
+                                <Button size="small" disabled={isBusy || !body.trim()}>
                                     <Send size={14} />
                                     Отправить
                                 </Button>
@@ -176,7 +177,7 @@ export const TextReader = ({
                             Комментировать выделение
                         </Button>
                     )}
-                    {!composing && (
+                    {!isComposing && (
                         <Button variant="ghost" size="icon" aria-label="Закрыть" onClick={() => setSelection(null)}>
                             <X size={14} />
                         </Button>
@@ -195,7 +196,7 @@ export const TextReader = ({
                                 text.slice(comment.anchor_start, comment.anchor_end) === comment.anchor_quote
                         )
                         .sort((a, b) => (a.anchor_start ?? 0) - (b.anchor_start ?? 0));
-                    if (valid && !anchors.some((comment) => comment.id === target.key)) {
+                    if (isValid && !anchors.some((comment) => comment.id === target.key)) {
                         anchors.push({
                             id: target.key,
                             anchor_start: target.start,
@@ -257,7 +258,7 @@ export const TextReader = ({
 export const FilePreview = ({ versionId, fallback }: { versionId: string; fallback: React.ReactNode }) => {
     const [zoom, setZoom] = useState(1);
     const query = useQuery({
-        queryKey: ['preview', versionId],
+        queryKey: [queryKeys.preview, versionId],
         queryFn: ({ signal }) =>
             api<Resource<{ kind: 'image' | 'pdf' | 'text'; status: string }>>(
                 `/versions/${versionId}/preview?status=1`,

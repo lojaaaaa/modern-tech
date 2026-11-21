@@ -12,9 +12,9 @@ export const DatePicker = ({
     label: string;
 }) => {
     const root = useRef<HTMLDivElement>(null);
-    const [open, setOpen] = useState(false);
+    const [isOpen, setOpen] = useState(false);
     const [month, setMonth] = useState(() => (value ? new Date(`${value}T12:00:00`) : new Date()));
-    useDismiss(root, open, () => setOpen(false));
+    useDismiss(root, isOpen, () => setOpen(false));
     const year = month.getFullYear();
     const index = month.getMonth();
     const count = new Date(year, index + 1, 0).getDate();
@@ -34,13 +34,13 @@ export const DatePicker = ({
                 type="button"
                 className="date-trigger"
                 aria-label={label}
-                aria-expanded={open}
-                onClick={() => setOpen(!open)}
+                aria-expanded={isOpen}
+                onClick={() => setOpen(!isOpen)}
             >
                 <CalendarDays size={15} />
                 <span>{value ? new Date(`${value}T12:00:00`).toLocaleDateString('ru-RU') : 'Выбрать дату'}</span>
             </button>
-            {open && (
+            {isOpen && (
                 <div
                     className="calendar-popover"
                     onKeyDown={(e) => {

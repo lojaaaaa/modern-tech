@@ -19,13 +19,13 @@ final class ApiErrorResponses implements DocumentTransformer
 {
     public function handle(OpenApi $document, OpenApiContext $context): void
     {
-        $error = (new ObjectType)
-            ->addProperty('code', new StringType)
-            ->addProperty('message', new StringType)
-            ->addProperty('details', (new ObjectType)->additionalProperties((new ArrayType)->setItems(new StringType)))
-            ->addProperty('request_id', (new StringType)->format('uuid'))
+        $error = (new ObjectType())
+            ->addProperty('code', new StringType())
+            ->addProperty('message', new StringType())
+            ->addProperty('details', (new ObjectType())->additionalProperties((new ArrayType())->setItems(new StringType())))
+            ->addProperty('request_id', (new StringType())->format('uuid'))
             ->setRequired(['code', 'message', 'details', 'request_id']);
-        $schema = $document->components->addSchema('ApiError', Schema::fromType((new ObjectType)->addProperty('error', $error)->setRequired(['error'])));
+        $schema = $document->components->addSchema('ApiError', Schema::fromType((new ObjectType())->addProperty('error', $error)->setRequired(['error'])));
         foreach ($document->paths as $path) {
             foreach ($path->operations as $operation) {
                 foreach ($operation->responses ?? [] as $response) {
@@ -35,7 +35,7 @@ final class ApiErrorResponses implements DocumentTransformer
                     }
                     $response->content = ['application/json' => $schema];
                     if ((int) $response->code === 429) {
-                        $response->addHeader('Retry-After', new Header(description: 'Seconds before retrying the operation.', required: true, schema: Schema::fromType(new StringType)));
+                        $response->addHeader('Retry-After', new Header(description: 'Seconds before retrying the operation.', required: true, schema: Schema::fromType(new StringType())));
                     }
                 }
             }

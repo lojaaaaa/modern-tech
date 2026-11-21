@@ -14,8 +14,9 @@ const buttonVariants = cva('button', {
     },
     defaultVariants: { variant: 'default', size: 'default' },
 });
-type Props = ButtonHTMLAttributes<HTMLButtonElement> & VariantProps<typeof buttonVariants> & { asChild?: boolean };
-export const Button = ({ className, variant, size, asChild = false, ...props }: Props) => {
-    const Component = asChild ? Slot : 'button';
+type Props = ButtonHTMLAttributes<HTMLButtonElement> &
+    VariantProps<typeof buttonVariants> & { isRenderedAsChild?: boolean };
+export const Button = ({ className, variant, size, isRenderedAsChild = false, ...props }: Props) => {
+    const Component = isRenderedAsChild ? Slot : 'button';
     return <Component className={cn(buttonVariants({ variant, size }), className)} {...props} />;
 };

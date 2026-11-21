@@ -18,7 +18,7 @@ if (! app()->environment('local', 'testing')) {
     throw new RuntimeException('Local smoke only');
 }
 $temporary = tempnam(sys_get_temp_dir(), 'preview-fixture-');
-$zip = new ZipArchive;
+$zip = new ZipArchive();
 $zip->open($temporary, ZipArchive::OVERWRITE);
 $zip->addFromString('[Content_Types].xml', '<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>');
 $zip->addFromString('_rels/.rels', '<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');
@@ -29,10 +29,10 @@ $preview = null;
 DB::beginTransaction();
 try {
     Storage::disk('local')->put($key, file_get_contents($temporary));
-    $user = User::create(['name' => 'Preview smoke', 'email' => Str::uuid().'@example.invalid', 'password' => Str::random(40), 'role' => 'employee', 'active' => true]);
-    $doc = Document::create(['owner_id' => $user->id, 'title' => 'Preview smoke']);
-    $version = DocumentVersion::create(['document_id' => $doc->id, 'creator_id' => $user->id, 'number' => 1, 'storage_key' => $key, 'original_name' => 'fixture.docx', 'mime' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'size' => filesize($temporary), 'sha256' => hash_file('sha256', $temporary), 'status' => 'ready']);
-    (new GeneratePreview($version->id))->handle();
+    $user = User::query()->create(['name' => 'Preview smoke', 'email' => Str::uuid().'@example.invalid', 'password' => Str::random(40), 'role' => 'employee', 'active' => true]);
+    $doc = Document::query()->create(['owner_id' => $user->id, 'title' => 'Preview smoke']);
+    $version = DocumentVersion::query()->create(['document_id' => $doc->id, 'creator_id' => $user->id, 'number' => 1, 'storage_key' => $key, 'original_name' => 'fixture.docx', 'mime' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'size' => filesize($temporary), 'sha256' => hash_file('sha256', $temporary), 'status' => 'ready']);
+    GeneratePreview::dispatchSync($version);
     $preview = $version->fresh()->preview_key;
     if (! $preview || ! str_starts_with(Storage::disk('local')->get($preview), '%PDF-')) {
         throw new RuntimeException('Preview smoke failed');

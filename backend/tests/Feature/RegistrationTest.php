@@ -13,11 +13,14 @@ use App\Modules\Integrations\Jobs\ProcessTransfer;
 use App\Modules\Integrations\Models\CloudConnection;
 use App\Modules\Integrations\Models\CloudTransfer;
 use App\Modules\Integrations\Services\ProviderFactory;
+use Illuminate\Auth\Events\Verified;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -46,11 +49,12 @@ class RegistrationTest extends TestCase
             ->assertJsonMissingPath('data.password');
 
         $this->getJson('/api/v1/me')->assertOk()->assertJsonPath('data.id', $registration->json('data.id'));
-        Notification::assertSentTo(User::findOrFail($registration->json('data.id')), VerifyEmail::class);
+        Notification::assertSentTo(User::query()->findOrFail($registration->json('data.id')), VerifyEmail::class);
     }
 
     public function test_registration_rejects_an_existing_email_regardless_of_case_without_authenticating_the_visitor(): void
     {
+        $this->app->setLocale('ru');
         $account = User::factory()->create(['email' => 'existing@example.test']);
         Notification::fake();
 
@@ -69,7 +73,8 @@ class RegistrationTest extends TestCase
     public function test_the_email_link_verifies_the_signed_in_account_and_repeating_it_preserves_the_confirmation(): void
     {
         $account = User::factory()->unverified()->create();
-        $url = (new VerifyEmail)->toMail($account)->actionUrl;
+        $url = (new VerifyEmail())->toMail($account)->actionUrl;
+        Event::fake([Verified::class]);
 
         $verified = $this->actingAs($account)->getJson($url)->assertOk()->assertJsonPath('data.id', $account->id)->json('data.email_verified_at');
         $this->assertNotNull($verified);
@@ -78,6 +83,8 @@ class RegistrationTest extends TestCase
         $this->actingAs($account->fresh())->getJson('/api/v1/me')->assertOk()->assertJsonPath('data.email_verified_at', $verified);
         $this->getJson($url)->assertOk()->assertJsonPath('data.email_verified_at', $verified);
         $this->getJson('/api/v1/me')->assertOk()->assertJsonPath('data.email_verified_at', $verified);
+        Event::assertDispatchedTimes(Verified::class, 1);
+        $this->assertDatabaseCount('audit_events', 1);
     }
 
     public function test_an_unverified_employee_can_log_in_and_request_another_verification_email(): void
@@ -96,14 +103,20 @@ class RegistrationTest extends TestCase
     {
         Storage::fake('local');
         $account = User::factory()->unverified()->create(['role' => $role]);
-        $document = Document::create(['owner_id' => $account->id, 'title' => 'Original title']);
-        $version = DocumentVersion::create(['document_id' => $document->id, 'creator_id' => $account->id, 'number' => 1, 'storage_key' => 'original.txt', 'original_name' => 'original.txt', 'mime' => 'text/plain', 'size' => 4, 'sha256' => hash('sha256', 'text'), 'status' => 'ready']);
+        $document = Document::query()->create(['owner_id' => $account->id, 'title' => 'Original title']);
+        $version = DocumentVersion::query()->create(['document_id' => $document->id, 'creator_id' => $account->id, 'number' => 1, 'storage_key' => 'original.txt', 'original_name' => 'original.txt', 'mime' => 'text/plain', 'size' => 4, 'sha256' => hash('sha256', 'text'), 'status' => 'ready']);
         $document->update(['published_version_id' => $version->id, 'desired_version_id' => $version->id]);
 
         $this->actingAs($account)->getJson('/api/v1/documents/'.$document->id)
             ->assertOk()->assertJsonPath('data.permissions.read', true)
             ->assertJsonPath('data.permissions.edit', false)->assertJsonPath('data.permissions.comment', false);
-        $this->postJson('/api/v1/documents', ['file' => UploadedFile::fake()->createWithContent('new.txt', 'new text')], ['Idempotency-Key' => 'unverified-upload-123'])->assertForbidden();
+        $file = fn () => UploadedFile::fake()->createWithContent('new.txt', 'new text');
+        $this->post('/api/v1/documents', ['file' => $file()], ['Idempotency-Key' => 'unverified-upload-123'])
+            ->assertForbidden()
+            ->assertJsonPath('error.code', 'HTTP_403');
+        $this->postJson('/api/v1/documents/duplicates', ['file' => $file()])->assertForbidden();
+        $this->postJson('/api/v1/documents/' . $document->id . '/versions', ['file' => $file()])
+            ->assertForbidden();
         $this->patchJson('/api/v1/documents/'.$document->id, ['title' => 'Changed title', 'revision' => 1])->assertForbidden();
         $this->postJson('/api/v1/documents/'.$document->id.'/comments', ['body' => 'Blocked comment', 'version_id' => $version->id])->assertForbidden();
         $this->getJson('/api/v1/documents/'.$document->id)->assertOk()->assertJsonPath('data.title', 'Original title');
@@ -119,7 +132,7 @@ class RegistrationTest extends TestCase
     public function test_an_unverified_account_cannot_use_cloud_import_to_bypass_the_upload_restriction(): void
     {
         $account = User::factory()->unverified()->create();
-        $connection = CloudConnection::create(['owner_id' => $account->id, 'provider' => 'yandex', 'name' => 'Personal disk', 'credentials' => ['token' => 'test-only-token']]);
+        $connection = CloudConnection::query()->create(['owner_id' => $account->id, 'provider' => 'yandex', 'name' => 'Personal disk', 'credentials' => ['token' => 'test-only-token']]);
 
         $this->actingAs($account)->postJson('/api/v1/transfers', [
             'connection_id' => $connection->id,
@@ -134,10 +147,10 @@ class RegistrationTest extends TestCase
     {
         Http::preventStrayRequests();
         $account = User::factory()->unverified()->create();
-        $connection = CloudConnection::create(['owner_id' => $account->id, 'provider' => 'yandex', 'name' => 'Personal disk', 'credentials' => ['token' => 'test-only-token']]);
-        $transfer = CloudTransfer::create(['initiator_id' => $account->id, 'connection_id' => $connection->id, 'direction' => 'import', 'remote_path' => '/sample.txt', 'filename' => 'sample.txt']);
+        $connection = CloudConnection::query()->create(['owner_id' => $account->id, 'provider' => 'yandex', 'name' => 'Personal disk', 'credentials' => ['token' => 'test-only-token']]);
+        $transfer = CloudTransfer::query()->create(['initiator_id' => $account->id, 'connection_id' => $connection->id, 'direction' => 'import', 'remote_path' => '/sample.txt', 'filename' => 'sample.txt']);
 
-        (new ProcessTransfer($transfer->id))->handle(new ProviderFactory, app(UploadDocument::class));
+        (new ProcessTransfer($transfer->id))->handle(app(ProviderFactory::class), app(UploadDocument::class));
 
         $this->actingAs($account)->getJson('/api/v1/transfers')->assertOk()
             ->assertJsonPath('data.0.status', 'failed')->assertJsonPath('data.0.error_code', 'ACCESS_REVOKED');
@@ -158,14 +171,17 @@ class RegistrationTest extends TestCase
 
     public function test_a_signed_link_cannot_confirm_another_account_or_survive_tampering_and_expiry(): void
     {
+        $this->app->setLocale('ru');
         $account = User::factory()->unverified()->create();
         $other = User::factory()->unverified()->create();
-        $url = (new VerifyEmail)->toMail($account)->actionUrl;
+        $url = (new VerifyEmail())->toMail($account)->actionUrl;
         $this->actingAs($other)->getJson($url)->assertForbidden();
         $this->getJson('/api/v1/me')->assertOk()->assertJsonPath('data.email_verified_at', null);
 
         $tampered = str_replace(sha1($account->email), str_repeat('0', 40), $url);
         $this->actingAs($account)->getJson($tampered)->assertForbidden();
+        $signedWrongHash = URL::temporarySignedRoute('verification.verify', now()->addHour(), ['id' => $account->id, 'hash' => str_repeat('0', 40)]);
+        $this->getJson($signedWrongHash)->assertForbidden();
         $this->travel(61)->minutes();
         $this->getJson($url)->assertForbidden()->assertJsonPath('error.message', 'Ссылка подтверждения недействительна или срок её действия истёк. Запросите новое письмо в приложении.');
         $this->getJson('/api/v1/me')->assertOk()->assertJsonPath('data.email_verified_at', null);
@@ -178,6 +194,9 @@ class RegistrationTest extends TestCase
         Notification::fake();
         $this->actingAs($verified)->postJson('/api/v1/auth/verification-notification')->assertOk();
         $this->actingAs($blocked)->postJson('/api/v1/auth/verification-notification')->assertUnauthorized();
+        $blockedUrl = (new VerifyEmail())->toMail($blocked)->actionUrl;
+        $this->actingAs($blocked)->getJson($blockedUrl)->assertUnauthorized();
+        $this->assertFalse($blocked->fresh()->hasVerifiedEmail());
         Notification::assertNothingSent();
     }
 

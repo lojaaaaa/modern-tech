@@ -40,12 +40,12 @@ export const App = () => {
     const location = useLocation();
     const session = useSession();
     const logout = useLogout();
-    const dark = useTheme((s) => s.dark);
+    const isDark = useTheme((s) => s.isDark);
     const toggle = useTheme((s) => s.toggle);
-    const [menu, setMenu] = useState(false);
+    const [isMenuOpen, setMenu] = useState(false);
     useEffect(() => {
-        document.documentElement.classList.toggle('dark', dark);
-    }, [dark]);
+        document.documentElement.classList.toggle('dark', isDark);
+    }, [isDark]);
     useEffect(() => {
         const expired = () => {
             replaceSession(client, null);
@@ -107,10 +107,10 @@ export const App = () => {
             <a className="skip-link" href="#main-content">
                 Перейти к содержимому
             </a>
-            {menu && (
+            {isMenuOpen && (
                 <button className="mobile-nav-backdrop" aria-label="Закрыть меню" onClick={() => setMenu(false)} />
             )}
-            <aside className={`sidebar ${menu ? 'sidebar-open' : ''}`}>
+            <aside className={`sidebar ${isMenuOpen ? 'sidebar-open' : ''}`}>
                 <NavLink to="/" className="brand">
                     <span>
                         <Layers3 size={21} />
@@ -181,10 +181,10 @@ export const App = () => {
                             variant="ghost"
                             size="icon"
                             aria-label="Меню"
-                            aria-expanded={menu}
-                            onClick={() => setMenu(!menu)}
+                            aria-expanded={isMenuOpen}
+                            onClick={() => setMenu(!isMenuOpen)}
                         >
-                            {menu ? <PanelLeftClose size={19} /> : <PanelLeftOpen size={19} />}
+                            {isMenuOpen ? <PanelLeftClose size={19} /> : <PanelLeftOpen size={19} />}
                         </Button>
                         {location.pathname.startsWith('/documents/') && (
                             <Link to="/" className="topbar-back" aria-label="Все документы">
@@ -197,10 +197,10 @@ export const App = () => {
                         <Button
                             variant="ghost"
                             size="icon"
-                            aria-label={dark ? 'Светлая тема' : 'Тёмная тема'}
+                            aria-label={isDark ? 'Светлая тема' : 'Тёмная тема'}
                             onClick={toggle}
                         >
-                            {dark ? <Sun size={18} /> : <Moon size={18} />}
+                            {isDark ? <Sun size={18} /> : <Moon size={18} />}
                         </Button>
                     </div>
                 </header>
@@ -225,7 +225,10 @@ export const App = () => {
                             />
                             <Route path="/verify-email" element={<VerificationPage user={user} />} />
                             <Route path="/" element={<LibraryPage key={`documents:${user.id}`} user={user} />} />
-                            <Route path="/trash" element={<LibraryPage key={`trash:${user.id}`} user={user} trash />} />
+                            <Route
+                                path="/trash"
+                                element={<LibraryPage key={`trash:${user.id}`} user={user} isTrash />}
+                            />
                             <Route
                                 path="/integrations"
                                 element={user.role !== 'observer' ? <IntegrationsPage /> : <Navigate to="/" replace />}

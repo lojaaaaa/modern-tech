@@ -1,9 +1,10 @@
+import { queryKeys } from '@/shared/api/query-keys';
 import { useState, useRef } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { CloudUpload } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '@/shared/api/client';
-import type { Resource, Version } from '@/shared/api/types';
+import type { CloudConnection, Resource, Version } from '@/shared/api/types';
 import { Modal } from '@/shared/ui/modal';
 import { Select } from '@/shared/ui/select';
 import { Button } from '@/shared/ui/button';
@@ -11,14 +12,13 @@ import { ErrorMessage } from '@/shared/ui/error-message';
 
 export const CloudExport = ({ version }: { version: Version }) => {
     const operationKey = useRef(crypto.randomUUID());
-    const [open, setOpen] = useState(false);
+    const [isOpen, setOpen] = useState(false);
     const [connection, setConnection] = useState('');
     const [path, setPath] = useState('/');
     const connections = useQuery({
-        queryKey: ['connections'],
-        queryFn: ({ signal }) =>
-            api<Resource<{ id: string; name: string; status: string }[]>>('/connections', { signal }),
-        enabled: open,
+        queryKey: [queryKeys.connections],
+        queryFn: ({ signal }) => api<Resource<CloudConnection[]>>('/connections', { signal }),
+        enabled: isOpen,
     });
     const transfer = useMutation({
         mutationFn: () =>
@@ -36,11 +36,11 @@ export const CloudExport = ({ version }: { version: Version }) => {
     });
     return (
         <div className="export-control">
-            <Button variant="secondary" onClick={() => setOpen(!open)} aria-expanded={open}>
+            <Button variant="secondary" onClick={() => setOpen(!isOpen)} aria-expanded={isOpen}>
                 <CloudUpload size={16} /> В облако
             </Button>
-            {open && (
-                <Modal titleId="export-title" onClose={() => setOpen(false)} busy={transfer.isPending}>
+            {isOpen && (
+                <Modal titleId="export-title" onClose={() => setOpen(false)} isBusy={transfer.isPending}>
                     <header>
                         <h3 id="export-title">Экспорт версии {version.number}</h3>
                         <Button

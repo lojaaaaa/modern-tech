@@ -8,13 +8,31 @@ use Illuminate\Support\Facades\DB;
 
 final class SearchIndexer
 {
-    public function replace(string $versionId, string $text): void
+    private const SEGMENT_LENGTH = 12000;
+    private const OVERLAP = 200;
+
+    /** @return list<string> */
+    public function segments(string $text): array
+    {
+        $chunks = mb_str_split($text, self::SEGMENT_LENGTH - self::OVERLAP);
+        $segments = [];
+        foreach ($chunks as $index => $chunk) {
+            $segments[] = $chunk . mb_substr($chunks[$index + 1] ?? '', 0, self::OVERLAP);
+        }
+
+        return $segments;
+    }
+
+    /** @param list<string> $segments */
+    public function replace(string $versionId, array $segments): void
     {
         DB::table('text_segments')->where('version_id', $versionId)->delete();
-        $length = mb_strlen($text);
-        $ordinal = 0;
-        for ($offset = 0; $offset < $length; $offset += 11800) {
-            DB::table('text_segments')->insert(['version_id' => $versionId, 'ordinal' => $ordinal++, 'content' => mb_substr($text, $offset, 12000)]);
+        foreach (array_chunk($segments, 100, preserve_keys: true) as $batch) {
+            $rows = [];
+            foreach ($batch as $ordinal => $content) {
+                $rows[] = ['version_id' => $versionId, 'ordinal' => $ordinal, 'content' => $content];
+            }
+            DB::table('text_segments')->insert($rows);
         }
     }
 }

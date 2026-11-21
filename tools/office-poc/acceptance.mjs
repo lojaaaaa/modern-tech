@@ -83,13 +83,13 @@ function cellValues(snapshot) {
   return snapshot.values.flat(Infinity).map(Number);
 }
 
-function contains(format, snapshot, markers, both = true) {
+function contains(format, snapshot, markers, isCrossClientRequired = true) {
   if (format === 'xlsx') {
     const values = cellValues(snapshot);
-    return values[0] === 17 && (!both || values[1] === 25 && values[2] === 42);
+    return values[0] === 17 && (!isCrossClientRequired || values[1] === 25 && values[2] === 42);
   }
   const text = JSON.stringify(snapshot);
-  return text.includes(markers.alice) && (!both || text.includes(markers.bob));
+  return text.includes(markers.alice) && (!isCrossClientRequired || text.includes(markers.bob));
 }
 
 async function closed(clients, format, key) {
@@ -253,16 +253,16 @@ try {
     }
     await persist();
   }
-  const allFormats = ['docx', 'xlsx', 'pptx'].every(format => report.formats[format]?.save?.passed);
+  const isArtifactCoverageComplete = ['docx', 'xlsx', 'pptx'].every(format => report.formats[format]?.save?.passed);
   report.artifactVerification = { passed: false, reason: 'All three callback artifacts are required' };
-  if (allFormats) {
+  if (isArtifactCoverageComplete) {
     const python = process.env.POC_PYTHON ?? fileURLToPath(new URL('./.venv/bin/python', import.meta.url));
     const verification = spawnSync(python, [fileURLToPath(new URL('./corpus.py', import.meta.url)), 'verify', output, '--edited'], { encoding: 'utf8', timeout: 45000 });
     await writeFile(`${output}/artifact-verification.txt`, `${verification.stdout ?? ''}${verification.stderr ?? ''}${verification.error?.message ?? ''}`);
     report.artifactVerification = { passed: verification.status === 0, exitCode: verification.status, error: verification.error?.message };
   }
-  const clientChecks = formats.every(format => report.formats[format]?.result === 'passed');
-  report.result = clientChecks && (formats.length < 3 || report.artifactVerification.passed) ? (formats.length === 3 ? 'passed' : 'passed-selected-live-format-checks') : 'failed';
+  const isClientVerificationComplete = formats.every(format => report.formats[format]?.result === 'passed');
+  report.result = isClientVerificationComplete && (formats.length < 3 || report.artifactVerification.passed) ? (formats.length === 3 ? 'passed' : 'passed-selected-live-format-checks') : 'failed';
   if (report.result === 'failed') process.exitCode = 1;
 } catch (error) {
   report.result = 'failed';

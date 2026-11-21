@@ -28,15 +28,15 @@ test('отзыв закрывает уже начатую передачу фа�
   const ended = new Promise((resolve, reject) => {
     let bytes = 0;
     response.on('data', chunk => { bytes += chunk.length; });
-    response.on('aborted', () => resolve({aborted:true, bytes}));
-    response.on('end', () => resolve({aborted:false, bytes}));
-    response.on('error', () => resolve({aborted:true, bytes}));
+    response.on('aborted', () => resolve({isAborted:true, bytes}));
+    response.on('end', () => resolve({isAborted:false, bytes}));
+    response.on('error', () => resolve({isAborted:true, bytes}));
     setTimeout(() => reject(Error('active source stream did not close')), 5000).unref();
   });
   assert.equal((await post('/admin/permissions', {secret, doc, user, read:false, comment:false, edit:false, blocked:false})).status, 200);
   response.resume();
   const result = await ended;
-  assert.equal(result.aborted, true);
+  assert.equal(result.isAborted, true);
   assert.ok(result.bytes < 32 * 1024 * 1024);
   assert.equal((await fetch(base + source)).status, 403);
 });

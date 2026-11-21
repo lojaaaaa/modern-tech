@@ -8,7 +8,7 @@ import { ErrorMessage } from '@/shared/ui/error-message';
 export const VerificationPage = ({ user }: { user: User }) => {
     const resend = useResendVerification();
     const session = useSession();
-    const [checked, setChecked] = useState(false);
+    const [isChecked, setChecked] = useState(false);
     if (user.email_verified_at) {
         return (
             <section className="content-panel form-panel">
@@ -29,7 +29,7 @@ export const VerificationPage = ({ user }: { user: User }) => {
             </p>
             <ErrorMessage error={resend.error ?? session.error} />
             {resend.isSuccess && <p role="status">{resend.data.data.message}</p>}
-            {checked && !session.isFetching && (
+            {isChecked && !session.isFetching && (
                 <p role="status">Адрес ещё не подтверждён. Откройте ссылку из письма или запросите новое письмо.</p>
             )}
             <div className="action-group">

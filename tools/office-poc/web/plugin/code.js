@@ -3,23 +3,23 @@
   const context = location.pathname.match(/^\/plugin\/(alice|bob)\/(sample\.(?:docx|xlsx|pptx))\/index\.html$/);
   const user = context?.[1];
   const file = context?.[2];
-  let busy = false;
+  let isBusy = false;
   const authorNames = { alice: 'Алиса Петрова', bob: 'Борис Иванов' };
   // Identity is explicit only for the fixed synthetic participants; the
   // marker is visible in the native editor and is not authenticated.
   const nativeAuthorName = authorNames[user] + ' [PoC:' + user + ']';
   let methods = Promise.resolve();
   let discussionOperations = Promise.resolve();
-  let methodFailed = false;
+  let isMethodFailed = false;
 
   // executeMethod uses an SDK callback slot. Serialize calls so responses cannot be
   // attributed to the wrong request; after a timeout a reload is required.
   function method(name, args) {
     const call = methods.then(function () {
-      if (methodFailed) throw new Error('Связь с редактором потеряна; перезагрузите страницу');
+      if (isMethodFailed) throw new Error('Связь с редактором потеряна; перезагрузите страницу');
       return new Promise(function (resolve, reject) {
         const timer = setTimeout(function () {
-          methodFailed = true;
+          isMethodFailed = true;
           reject(new Error('Редактор не ответил; перезагрузите страницу'));
         }, 12000);
         Asc.plugin.executeMethod(name, args, function (result) {
@@ -73,12 +73,12 @@
   });
 
   function run(action) {
-    if (busy) return Promise.reject(new Error('Wait for the previous native operation'));
-    busy = true;
+    if (isBusy) return Promise.reject(new Error('Wait for the previous native operation'));
+    isBusy = true;
     const args = { ...action, user, file, editorType: Asc.plugin.info.editorType };
     Asc.scope.validation = args;
     return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => { busy = false; reject(new Error('Native plugin command timed out')); }, 15000);
+      const timeout = setTimeout(() => { isBusy = false; reject(new Error('Native plugin command timed out')); }, 15000);
       Asc.plugin.callCommand(function () {
         try {
           const args = Asc.scope.validation;
@@ -130,7 +130,7 @@
         } catch (error) { return JSON.stringify({ error: error.message }); }
       }, false, ['edit', 'prepare'].includes(action.op), function (encoded) {
         clearTimeout(timeout);
-        busy = false;
+        isBusy = false;
         try {
           const result = JSON.parse(encoded);
           document.querySelector('#result').textContent = JSON.stringify(result, null, 2);

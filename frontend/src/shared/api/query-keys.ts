@@ -1,0 +1,18 @@
+export const queryKeys = {
+    audit: 'audit',
+    comments: 'comments',
+    connections: 'connections',
+    document: 'document',
+    documentText: 'document-text',
+    documents: 'documents',
+    entities: 'entities',
+    grants: 'grants',
+    participants: 'participants',
+    preview: 'preview',
+    remoteFiles: 'remote-files',
+    session: 'session',
+    transfers: 'transfers',
+    users: 'users',
+    versions: 'versions',
+    yandexAuthorization: 'yandex-authorization',
+} as const;

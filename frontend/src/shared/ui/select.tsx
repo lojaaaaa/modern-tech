@@ -6,25 +6,25 @@ export const Select = ({
     onValueChange,
     options,
     label,
-    disabled = false,
+    isDisabled = false,
     placeholder = 'Выберите…',
 }: {
     value: string;
     onValueChange: (value: string) => void;
     options: { value: string; label: string }[];
     label: string;
-    disabled?: boolean;
+    isDisabled?: boolean;
     placeholder?: string;
 }) => {
-    const [open, setOpen] = useState(false);
+    const [isOpen, setOpen] = useState(false);
     const [active, setActive] = useState(0);
     const root = useRef<HTMLDivElement>(null);
     const menu = useRef<HTMLDivElement>(null);
     const trigger = useRef<HTMLButtonElement>(null);
     const id = useId();
-    useDismiss(root, open, () => setOpen(false));
+    useDismiss(root, isOpen, () => setOpen(false));
     useEffect(() => {
-        if (open && menu.current && trigger.current) {
+        if (isOpen && menu.current && trigger.current) {
             const rect = trigger.current.getBoundingClientRect();
             const height = Math.min(240, options.length * 39 + 10);
             Object.assign(menu.current.style, {
@@ -37,12 +37,12 @@ export const Select = ({
             });
             menu.current.showPopover?.();
         }
-    }, [open, options.length]);
+    }, [isOpen, options.length]);
     useEffect(() => {
-        if (open) {
+        if (isOpen) {
             document.getElementById(`${id}-${active}`)?.scrollIntoView({ block: 'nearest' });
         }
-    }, [active, id, open]);
+    }, [active, id, isOpen]);
     const choose = (index: number) => {
         const option = options[index];
         if (option) {
@@ -64,12 +64,12 @@ export const Select = ({
             <button
                 ref={trigger}
                 type="button"
-                disabled={disabled}
+                disabled={isDisabled}
                 role="combobox"
                 aria-label={label}
-                aria-expanded={open}
+                aria-expanded={isOpen}
                 aria-controls={`${id}-list`}
-                aria-activedescendant={open ? `${id}-${active}` : undefined}
+                aria-activedescendant={isOpen ? `${id}-${active}` : undefined}
                 aria-haspopup="listbox"
                 className="select-trigger"
                 onClick={() => {
@@ -79,7 +79,7 @@ export const Select = ({
                             options.findIndex((o) => o.value === value)
                         )
                     );
-                    setOpen(!open);
+                    setOpen(!isOpen);
                 }}
                 onKeyDown={(e) => {
                     if (e.key === 'Escape') {
@@ -91,10 +91,10 @@ export const Select = ({
                         setActive((i) =>
                             Math.max(0, Math.min(options.length - 1, i + (e.key === 'ArrowDown' ? 1 : -1)))
                         );
-                    } else if (open && (e.key === 'Enter' || e.key === ' ')) {
+                    } else if (isOpen && (e.key === 'Enter' || e.key === ' ')) {
                         e.preventDefault();
                         choose(active);
-                    } else if (open && (e.key === 'Home' || e.key === 'End')) {
+                    } else if (isOpen && (e.key === 'Home' || e.key === 'End')) {
                         e.preventDefault();
                         setActive(e.key === 'Home' ? 0 : options.length - 1);
                     }
@@ -103,7 +103,7 @@ export const Select = ({
                 <span>{options.find((o) => o.value === value)?.label ?? placeholder}</span>
                 <ChevronDown size={16} />
             </button>
-            {open && (
+            {isOpen && (
                 <div
                     ref={menu}
                     popover="manual"

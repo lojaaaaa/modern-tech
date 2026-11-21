@@ -1,3 +1,4 @@
+import { queryKeys } from '@/shared/api/query-keys';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, initializeCsrf, ApiError } from '@/shared/api/client';
 import type { Resource, User, RegistrationInput } from '@/shared/api/types';
@@ -8,7 +9,7 @@ export { replaceSession } from './transition';
 export const useSession = () => {
     const client = useQueryClient();
     return useQuery({
-        queryKey: ['session'],
+        queryKey: [queryKeys.session],
         queryFn: async ({ signal }) => {
             let session: Resource<User> | null;
             try {
@@ -20,7 +21,7 @@ export const useSession = () => {
                     throw error;
                 }
             }
-            const previous = client.getQueryData<Resource<User> | null>(['session']);
+            const previous = client.getQueryData<Resource<User> | null>([queryKeys.session]);
             if (previous?.data.id && previous.data.id !== session?.data.id) {
                 clearPrivateSession(client);
             }

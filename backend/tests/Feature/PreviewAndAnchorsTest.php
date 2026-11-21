@@ -7,11 +7,18 @@ namespace Tests\Feature;
 use App\Models\User;
 use App\Modules\Documents\Models\Document;
 use App\Modules\Documents\Models\DocumentVersion;
+use App\Modules\Processing\Cache\PreviewCache;
+use App\Modules\Processing\Enums\ProcessingError;
+use App\Modules\Processing\Exceptions\ProcessingException;
 use App\Modules\Processing\Jobs\GeneratePreview;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use ReflectionClass;
 use Tests\TestCase;
 
 class PreviewAndAnchorsTest extends TestCase
@@ -22,9 +29,9 @@ class PreviewAndAnchorsTest extends TestCase
     {
         Storage::fake('local');
         $owner = User::factory()->create();
-        $doc = Document::create(['owner_id' => $owner->id, 'title' => $name]);
+        $doc = Document::query()->create(['owner_id' => $owner->id, 'title' => $name]);
         Storage::disk('local')->put('original', 'test');
-        $version = DocumentVersion::create(['document_id' => $doc->id, 'creator_id' => $owner->id, 'number' => 1, 'storage_key' => 'original', 'original_name' => $name, 'mime' => $mime, 'size' => 4, 'sha256' => hash('sha256', 'test'), 'status' => 'ready', 'extracted_text' => "Начало 😀\nВажный фрагмент\nКонец"]);
+        $version = DocumentVersion::query()->create(['document_id' => $doc->id, 'creator_id' => $owner->id, 'number' => 1, 'storage_key' => 'original', 'original_name' => $name, 'mime' => $mime, 'size' => 4, 'sha256' => hash('sha256', 'test'), 'status' => 'ready', 'extracted_text' => "Начало 😀\nВажный фрагмент\nКонец"]);
 
         return [$owner, $doc, $version];
     }
@@ -44,13 +51,80 @@ class PreviewAndAnchorsTest extends TestCase
 
     public function test_office_preview_is_queued_once_and_does_not_return_original(): void
     {
-        Queue::fake();
+        Queue::fake()->serializeAndRestore();
         [$owner, $doc, $v] = $this->document('report.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
         $url = '/api/v1/versions/'.$v->id.'/preview';
+        $this->actingAs($owner)->getJson($url . '?status=invalid')
+            ->assertUnprocessable()
+            ->assertJsonStructure(['error' => ['details' => ['status']]]);
+        Queue::assertNothingPushed();
+
         $this->actingAs($owner)->getJson($url.'?status=1')->assertOk()->assertJsonPath('data.status', 'pending');
-        $this->getJson($url.'?status=1')->assertOk();
+        $this->getJson($url . '?status=true')->assertOk()->assertJsonPath('data.kind', 'pdf');
         Queue::assertPushed(GeneratePreview::class, 1);
         $this->getJson($url)->assertNotFound();
+    }
+
+    public function test_office_preview_can_retry_after_a_failed_write(): void
+    {
+        [, , $version] = $this->document('report.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        $key = 'previews/' . $version->id . '.pdf';
+        $cache = app(PreviewCache::class);
+        $pdf = "%PDF-1.7\npreview";
+        $url = config('processing.gotenberg_url') . '/forms/libreoffice/convert';
+        Http::preventStrayRequests()->fake([$url => fn () => Http::response($pdf)]);
+
+        $disk = Storage::disk('local');
+        $disk->makeDirectory($key);
+        $job = (new ReflectionClass(GeneratePreview::class))->newInstanceWithoutConstructor();
+        $job->__unserialize(['versionId' => $version->id]);
+
+        $this->assertThrows(
+            fn () => app()->call([$job, 'handle']),
+            fn (ProcessingException $error) => $error->reason === ProcessingError::PREVIEW_WRITE_FAILED,
+        );
+        $this->assertNull($version->fresh()->preview_key);
+        $this->assertTrue($cache->hasError($version->id));
+
+        $disk->deleteDirectory($key);
+        GeneratePreview::dispatchSync($version);
+
+        $this->assertSame($key, $version->fresh()->preview_key);
+        $this->assertSame($pdf, $disk->get($key));
+        $this->assertFalse($cache->hasError($version->id));
+        Http::assertSent(fn (Request $request) => $request->hasFile('files', filename: 'document.docx')
+            && (collect($request->data())->firstWhere('name', 'nativePageRanges')['contents'] ?? null) === '1-200');
+    }
+
+    public function test_queued_preview_is_discarded_when_the_version_is_deleted(): void
+    {
+        [, , $version] = $this->document('report.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        Http::preventStrayRequests();
+        $queue = Queue::connection('database');
+        $queue->push(new GeneratePreview($version), queue: 'processing');
+        $version->delete();
+
+        $job = $queue->pop('processing');
+        $this->assertNotNull($job);
+        $job->fire();
+
+        $this->assertTrue($job->isDeleted());
+        $this->assertFalse($job->hasFailed());
+    }
+
+    public function test_preview_conversion_error_keeps_the_connection_failure_as_its_cause(): void
+    {
+        [$owner, , $version] = $this->document('report.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        $url = config('processing.gotenberg_url') . '/forms/libreoffice/convert';
+        Http::preventStrayRequests()->fake([$url => Http::failedConnection('Gotenberg unavailable')]);
+
+        $this->assertThrows(
+            fn () => GeneratePreview::dispatchSync($version),
+            fn (ProcessingException $error) => $error->reason === ProcessingError::PREVIEW_CONVERSION_FAILED
+                && $error->getPrevious() instanceof ConnectionException,
+        );
+        $this->actingAs($owner)->getJson('/api/v1/versions/' . $version->id . '/preview?status=1')
+            ->assertOk()->assertJsonPath('data.status', 'failed');
     }
 
     public function test_anchor_is_version_bound_and_uses_browser_utf16_offsets(): void

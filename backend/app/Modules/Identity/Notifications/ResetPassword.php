@@ -22,7 +22,7 @@ final class ResetPassword extends FrameworkResetPassword implements ShouldQueue
 
     public function toMail($notifiable): MailMessage
     {
-        return (new MailMessage)
+        return (new MailMessage())
             ->subject('Восстановление доступа — Modern Tech')
             ->greeting('Здравствуйте!')
             ->line('Для этой учётной записи запрошен новый пароль.')

@@ -26,7 +26,7 @@ try {
  const elapsed=closed.get(socketId)-began;
  const iframeAfter=await page.locator('#editor-container iframe').count();
  const configStatus=await page.evaluate(async()=> (await fetch('/office-config')).status);
- const websocketAfter=await page.evaluate(url=>new Promise(resolve=>{const ws=new WebSocket(url);let opened=false;ws.onopen=()=>{opened=true;ws.close();};ws.onclose=()=>resolve(opened);ws.onerror=()=>{};setTimeout(()=>resolve(opened),2500);}),socketUrl);
+ const websocketAfter=await page.evaluate(url=>new Promise(resolve=>{const ws=new WebSocket(url);let isOpened=false;ws.onopen=()=>{isOpened=true;ws.close();};ws.onclose=()=>resolve(isOpened);ws.onerror=()=>{};setTimeout(()=>resolve(isOpened),2500);}),socketUrl);
  if(configStatus!==401||websocketAfter||iframeBefore!==1||iframeAfter!==1)throw Error(`Unexpected boundary: config=${configStatus} reconnect=${websocketAfter} iframe=${iframeBefore}/${iframeAfter}`);
  console.log(JSON.stringify({actualEditorSocketClosed:true,elapsedMs:elapsed,foreignOrigin:403,configAfter:configStatus,reconnectOpened:websocketAfter,iframeStillPresent:iframeAfter===1}));
 } finally {await browser.close();}

@@ -4,11 +4,11 @@ import { Button } from './button';
 export const SearchInput = ({
     initialValue,
     onSearch,
-    busy = false,
+    isBusy = false,
 }: {
     initialValue: string;
     onSearch: (value: string) => void;
-    busy?: boolean;
+    isBusy?: boolean;
 }) => {
     const [draft, setDraft] = useState({ base: initialValue, value: initialValue });
     if (draft.base !== initialValue) {
@@ -24,7 +24,7 @@ export const SearchInput = ({
         return () => window.clearTimeout(timer);
     }, [value, initialValue, onSearch]);
     return (
-        <div className="search-field" aria-busy={busy}>
+        <div className="search-field" aria-busy={isBusy}>
             <Search size={18} />
             <input
                 maxLength={500}
@@ -55,7 +55,7 @@ export const SearchInput = ({
                     <X size={15} />
                 </Button>
             )}
-            {busy && <span className="search-spinner" aria-label="Поиск…" />}
+            {isBusy && <span className="search-spinner" aria-label="Поиск…" />}
         </div>
     );
 };

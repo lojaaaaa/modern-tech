@@ -1,7 +1,7 @@
 import { useEffect, type RefObject } from 'react';
-export const useDismiss = (ref: RefObject<HTMLElement | null>, open: boolean, close: () => void) => {
+export const useDismiss = (ref: RefObject<HTMLElement | null>, isOpen: boolean, close: () => void) => {
     useEffect(() => {
-        if (!open) {
+        if (!isOpen) {
             return;
         }
         const outside = (event: PointerEvent) => {
@@ -20,5 +20,5 @@ export const useDismiss = (ref: RefObject<HTMLElement | null>, open: boolean, cl
             document.removeEventListener('pointerdown', outside, true);
             document.removeEventListener('keydown', escape);
         };
-    }, [ref, open, close]);
+    }, [ref, isOpen, close]);
 };

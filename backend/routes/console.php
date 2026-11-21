@@ -1,13 +1,15 @@
 <?php
 
 declare(strict_types=1);
+
 use App\Models\User;
-use App\Modules\Documents\Models\DocumentVersion;
+use App\Modules\Identity\Enums\UserRole;
+use App\Modules\Integrations\Enums\CloudTransferStatus;
 use App\Modules\Integrations\Jobs\ProcessTransfer;
 use App\Modules\Integrations\Models\CloudTransfer;
 use App\Modules\Processing\Jobs\ProcessVersion;
+use App\Modules\Processing\VersionProcessing;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schedule;
 
@@ -35,7 +37,7 @@ Artisan::command('app:create-admin {email} {--name=Администратор}',
 
         return;
     }
-    if (User::where('email', $email)->exists()) {
+    if (User::query()->where('email', $email)->exists()) {
         $this->error('Пользователь уже существует.');
 
         return;
@@ -46,30 +48,24 @@ Artisan::command('app:create-admin {email} {--name=Администратор}',
 
         return;
     }
-    User::create(['name' => $this->option('name'), 'email' => $email, 'password' => $password, 'role' => 'admin', 'active' => true]);
+    User::query()->create([
+        'name' => $this->option('name'),
+        'email' => $email,
+        'password' => $password,
+        'role' => UserRole::ADMIN,
+        'active' => true,
+    ]);
     $this->info('Администратор создан.');
 })->purpose('Create the first administrator without default passwords');
 
-Artisan::command('processing:reconcile', function (): void {
-    $versions = DocumentVersion::whereHas('document')->whereIn('status', ['quarantined', 'scanning', 'extracting'])->where('updated_at', '<', now()->subMinutes(20))->limit(100)->get();
-    foreach ($versions as $version) {
-        $lock = Cache::lock('process-version:'.$version->id, 960);
-        if (! $lock->get()) {
-            continue;
-        }
-        try {
-            if ($version->processing_attempts >= 5) {
-                $version->update(['status' => 'failed', 'error_code' => 'ATTEMPTS_EXHAUSTED']);
-
-                continue;
-            }
-            $version->update(['status' => 'quarantined']);
-            ProcessVersion::dispatch($version->id);
-        } finally {
-            $lock->release();
-        }
+Artisan::command('processing:reconcile', function (VersionProcessing $processing): void {
+    foreach ($processing->recoverInterrupted() as $versionId) {
+        ProcessVersion::dispatch($versionId);
     }
     // Remote writes are never replayed when their outcome cannot be determined.
-    CloudTransfer::where('status', 'running')->where('updated_at', '<', now()->subMinutes(20))->update(['status' => 'failed', 'error_code' => 'OUTCOME_UNKNOWN']);
+    CloudTransfer::query()
+        ->where('status', CloudTransferStatus::RUNNING)
+        ->where('updated_at', '<', now()->subMinutes(20))
+        ->update(['status' => CloudTransferStatus::FAILED, 'error_code' => 'OUTCOME_UNKNOWN']);
 })->purpose('Recover interrupted local processing without replaying remote writes');
 Schedule::command('processing:reconcile')->everyFiveMinutes()->withoutOverlapping();
