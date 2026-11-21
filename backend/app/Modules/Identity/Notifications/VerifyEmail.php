@@ -21,7 +21,7 @@ final class VerifyEmail extends FrameworkVerifyEmail implements ShouldQueue
 
     public function toMail($notifiable): MailMessage
     {
-        return (new MailMessage)
+        return (new MailMessage())
             ->subject('Подтвердите электронную почту — Modern Tech')
             ->greeting('Здравствуйте!')
             ->line('Подтвердите адрес, чтобы загружать документы, редактировать их и добавлять комментарии.')

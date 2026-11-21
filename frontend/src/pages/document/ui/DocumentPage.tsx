@@ -1,3 +1,4 @@
+import { queryKeys } from '@/shared/api/query-keys';
 import { Maximize } from 'lucide-react';
 import { lazy, Suspense, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -29,12 +30,12 @@ const DocumentWorkspace = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const client = useQueryClient();
-    const [confirmDelete, setConfirmDelete] = useState(false);
-    const [discussionOpen, setDiscussionOpen] = useState(false);
+    const [isDeleteConfirmationOpen, setConfirmDelete] = useState(false);
+    const [isDiscussionOpen, setDiscussionOpen] = useState(false);
     const [tab, setTab] = useState<'preview' | 'text' | 'versions' | 'access' | 'compare' | 'entities' | 'editor'>(
         'preview'
     );
-    const showDiscussion = tab === 'preview' || tab === 'text';
+    const isDiscussionVisible = tab === 'preview' || tab === 'text';
     const [anchor, setAnchor] = useState<TextAnchor | null>(null);
     const [target, setTarget] = useState<AnchorTarget | null>(null);
     const [newCommentId, setNewCommentId] = useState<string | null>(null);
@@ -42,7 +43,7 @@ const DocumentWorkspace = () => {
     const readerPanel = useRef<HTMLElement>(null);
     const fileInput = useRef<HTMLInputElement>(null);
     const doc = useQuery({
-        queryKey: ['document', id],
+        queryKey: [queryKeys.document, id],
         queryFn: ({ signal }) => api<Resource<DocumentRecord>>(`/documents/${id}`, { signal }),
         refetchInterval: (q) =>
             ['quarantined', 'scanning', 'extracting'].includes(q.state.data?.data.processing_status ?? '')
@@ -52,7 +53,7 @@ const DocumentWorkspace = () => {
     const d = doc.data?.data;
     const activeVersionId = selectedVersion ?? d?.version?.id;
     const versions = useQuery({
-        queryKey: ['versions', id, d?.processing_status],
+        queryKey: [queryKeys.versions, id, d?.processing_status],
         queryFn: ({ signal }) => api<Resource<Version[]>>(`/documents/${id}/versions`, { signal }),
         enabled: !!d && (tab === 'versions' || tab === 'compare' || selectedVersion !== null),
     });
@@ -63,7 +64,7 @@ const DocumentWorkspace = () => {
         : d?.version;
     const isImage = activeVersion?.mime.startsWith('image/') ?? false;
     const text = useQuery({
-        queryKey: ['document-text', activeVersionId],
+        queryKey: [queryKeys.documentText, activeVersionId],
         queryFn: ({ signal }) =>
             api<Resource<{ text: string | null; status: string }>>(`/versions/${activeVersionId}/text`, {
                 signal,
@@ -74,7 +75,7 @@ const DocumentWorkspace = () => {
             (tab === 'text' || (tab === 'preview' && /\.(txt|md|csv)$/i.test(activeVersion.original_name))),
     });
     const entities = useQuery({
-        queryKey: ['entities', activeVersionId],
+        queryKey: [queryKeys.entities, activeVersionId],
         queryFn: ({ signal }) =>
             api<Resource<{ id: number; type: string; value: string }[]>>(`/versions/${activeVersionId}/entities`, {
                 signal,
@@ -82,14 +83,14 @@ const DocumentWorkspace = () => {
         enabled: !!activeVersionId && !isImage && activeVersion?.status === 'ready',
     });
     const comments = useQuery({
-        queryKey: ['comments', id],
+        queryKey: [queryKeys.comments, id],
         queryFn: ({ signal }) => api<Resource<CommentRecord[]>>(`/documents/${id}/comments`, { signal }),
         enabled: !!d && tab !== 'editor' && (d.permissions.comment || d.permissions.edit),
     });
     const remove = useMutation({
         mutationFn: () => api(`/documents/${id}`, { method: 'DELETE' }),
         onSuccess: async () => {
-            await client.invalidateQueries({ queryKey: ['documents'] });
+            await client.invalidateQueries({ queryKey: [queryKeys.documents] });
             navigate('/');
         },
     });
@@ -104,8 +105,8 @@ const DocumentWorkspace = () => {
             });
         },
         onSuccess: async () => {
-            await client.invalidateQueries({ queryKey: ['document', id] });
-            await client.invalidateQueries({ queryKey: ['versions', id] });
+            await client.invalidateQueries({ queryKey: [queryKeys.document, id] });
+            await client.invalidateQueries({ queryKey: [queryKeys.versions, id] });
         },
     });
     const chooseAnchor = (value: TextAnchor) => {
@@ -144,7 +145,7 @@ const DocumentWorkspace = () => {
                 <TextReader
                     key={activeVersionId}
                     text={text.data.data.text}
-                    canComment={!!d?.permissions.comment}
+                    isCommentAllowed={!!d?.permissions.comment}
                     target={target}
                     activeComment={comments.data?.data.find((c) => c.id === target?.key) ?? null}
                     comments={(comments.data?.data ?? []).filter((comment) => comment.version_id === activeVersionId)}
@@ -166,7 +167,7 @@ const DocumentWorkspace = () => {
                             }),
                         });
                         setNewCommentId(result.data.id);
-                        await client.invalidateQueries({ queryKey: ['comments', id] });
+                        await client.invalidateQueries({ queryKey: [queryKeys.comments, id] });
                     }}
                 />
             ) : (
@@ -177,8 +178,8 @@ const DocumentWorkspace = () => {
     );
     return (
         <>
-            {confirmDelete && (
-                <Modal titleId="delete-title" onClose={() => setConfirmDelete(false)} busy={remove.isPending}>
+            {isDeleteConfirmationOpen && (
+                <Modal titleId="delete-title" onClose={() => setConfirmDelete(false)} isBusy={remove.isPending}>
                     <h2 id="delete-title">Переместить в корзину?</h2>
                     <p className="muted">Документ можно будет восстановить.</p>
                     <ErrorMessage error={remove.error} />
@@ -223,7 +224,7 @@ const DocumentWorkspace = () => {
                                 </Button>
                             )}
                             {d.permissions.export && d.version?.status === 'ready' && (
-                                <Button asChild>
+                                <Button isRenderedAsChild>
                                     <a href={`/api/v1/versions/${d.version.id}/download`}>
                                         <Download size={16} />
                                         Скачать
@@ -259,7 +260,7 @@ const DocumentWorkspace = () => {
                         }}
                     />
                     <div
-                        className={`detail-grid document-layout ${discussionOpen && showDiscussion ? 'discussion-open' : ''}`}
+                        className={`detail-grid document-layout ${isDiscussionOpen && isDiscussionVisible ? 'discussion-open' : ''}`}
                     >
                         <section
                             ref={readerPanel}
@@ -339,14 +340,14 @@ const DocumentWorkspace = () => {
                                         <Maximize size={16} />
                                         На весь экран
                                     </Button>
-                                    {showDiscussion && (
+                                    {isDiscussionVisible && (
                                         <Button
                                             variant="secondary"
                                             size="small"
-                                            aria-expanded={discussionOpen}
-                                            onClick={() => setDiscussionOpen((open) => !open)}
+                                            aria-expanded={isDiscussionOpen}
+                                            onClick={() => setDiscussionOpen((isOpen) => !isOpen)}
                                         >
-                                            {discussionOpen ? 'Скрыть обсуждение' : 'Обсуждение'}
+                                            {isDiscussionOpen ? 'Скрыть обсуждение' : 'Обсуждение'}
                                         </Button>
                                     )}
                                 </div>
@@ -494,7 +495,7 @@ const DocumentWorkspace = () => {
                                                 )}
                                                 {v.status === 'ready' && d.permissions.export && (
                                                     <Button
-                                                        asChild
+                                                        isRenderedAsChild
                                                         variant="secondary"
                                                         size="icon"
                                                         className="version-download"
@@ -513,17 +514,17 @@ const DocumentWorkspace = () => {
                             )}
                             {tab === 'access' && <AccessEditor id={d.id} />}
                         </section>
-                        {discussionOpen && showDiscussion && !d.permissions.edit && !d.permissions.comment ? (
+                        {isDiscussionOpen && isDiscussionVisible && !d.permissions.edit && !d.permissions.comment ? (
                             <aside className="content-panel comments-panel">
                                 <p className="muted">Обсуждения опубликованной версии пока недоступны.</p>
                             </aside>
                         ) : (
-                            discussionOpen &&
-                            showDiscussion && (
+                            isDiscussionOpen &&
+                            isDiscussionVisible && (
                                 <DiscussionPanel
                                     documentId={d.id}
                                     versionId={activeVersionId}
-                                    canComment={d.permissions.comment}
+                                    isCommentAllowed={d.permissions.comment}
                                     comments={comments.data?.data ?? []}
                                     error={comments.error}
                                     anchor={anchor}
@@ -551,15 +552,15 @@ interface Grant {
 }
 const AccessEditor = ({ id }: { id: string }) => {
     const participants = useQuery({
-        queryKey: ['participants', id],
+        queryKey: [queryKeys.participants, id],
         queryFn: ({ signal }) =>
             api<Resource<{ id: number; name: string; role: string }[]>>(`/documents/${id}/participants`, { signal }),
     });
     const client = useQueryClient();
     const [userId, setUserId] = useState('');
-    const [rights, setRights] = useState({ comment: false, edit: false, export: false });
+    const [rights, setRights] = useState({ isCommentAllowed: false, isEditAllowed: false, isExportAllowed: false });
     const query = useQuery({
-        queryKey: ['grants', id],
+        queryKey: [queryKeys.grants, id],
         queryFn: ({ signal }) => api<Resource<Grant[]>>(`/documents/${id}/grants`, { signal }),
     });
     const update = useMutation({
@@ -567,7 +568,7 @@ const AccessEditor = ({ id }: { id: string }) => {
             api(`/documents/${id}/grants`, { method: 'PUT', body: JSON.stringify({ grants }) }),
         onSuccess: async () => {
             setUserId('');
-            await client.invalidateQueries({ queryKey: ['grants', id] });
+            await client.invalidateQueries({ queryKey: [queryKeys.grants, id] });
         },
     });
     return (
@@ -600,7 +601,13 @@ const AccessEditor = ({ id }: { id: string }) => {
                     e.preventDefault();
                     update.mutate([
                         ...(query.data?.data ?? []).filter((g) => g.user_id !== Number(userId)),
-                        { user_id: Number(userId), read: true, ...rights },
+                        {
+                            user_id: Number(userId),
+                            read: true,
+                            comment: rights.isCommentAllowed,
+                            edit: rights.isEditAllowed,
+                            export: rights.isExportAllowed,
+                        },
                     ]);
                 }}
             >
@@ -611,7 +618,7 @@ const AccessEditor = ({ id }: { id: string }) => {
                         value={userId}
                         onValueChange={(value) => {
                             setUserId(value);
-                            setRights({ comment: false, edit: false, export: false });
+                            setRights({ isCommentAllowed: false, isEditAllowed: false, isExportAllowed: false });
                         }}
                         options={(participants.data?.data ?? []).map((p) => ({
                             value: String(p.id),
@@ -620,14 +627,20 @@ const AccessEditor = ({ id }: { id: string }) => {
                     />
                 </label>
                 <div className="checkbox-row">
-                    {(['comment', 'edit', 'export'] as const).map((right) => (
+                    {(['isCommentAllowed', 'isEditAllowed', 'isExportAllowed'] as const).map((right) => (
                         <label key={right}>
                             <input
                                 type="checkbox"
                                 checked={rights[right]}
                                 onChange={(e) => setRights({ ...rights, [right]: e.target.checked })}
                             />
-                            {{ comment: 'Комментарии', edit: 'Редактирование', export: 'Экспорт' }[right]}
+                            {
+                                {
+                                    isCommentAllowed: 'Комментарии',
+                                    isEditAllowed: 'Редактирование',
+                                    isExportAllowed: 'Экспорт',
+                                }[right]
+                            }
                         </label>
                     ))}
                 </div>

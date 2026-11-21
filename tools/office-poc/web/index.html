@@ -14,8 +14,8 @@ const params = new URLSearchParams(location.search);
 const file = params.get('file') || 'sample.docx';
 const user = params.get('user') || 'alice';
 const validation = params.get('validation') === '1' ? '&validation=1' : '';
-const discussionEnabled = params.get('discussion') === '1';
-const response = await fetch(`/config?file=${encodeURIComponent(file)}&user=${encodeURIComponent(user)}${validation}${discussionEnabled ? '&discussion=1' : ''}`);
+const isDiscussionEnabled = params.get('discussion') === '1';
+const response = await fetch(`/config?file=${encodeURIComponent(file)}&user=${encodeURIComponent(user)}${validation}${isDiscussionEnabled ? '&discussion=1' : ''}`);
 const config = await response.json();
 const state = document.querySelector('#status');
 let disconnectDiscussion = () => {};
@@ -26,7 +26,7 @@ config.events = {
  onDocumentStateChange: event => state.textContent = event.data ? 'Изменения передаются редактору' : 'Редактор принял изменения; файл ещё требует callback',
  onError: event => { document.querySelector('#error').hidden = false; document.querySelector('#error').textContent = JSON.stringify(event.data); window.pocError = event.data; }
 };
-if (discussionEnabled) {
+if (isDiscussionEnabled) {
  document.querySelector('#discussion').hidden = false;
  const status = document.querySelector('#discussion-status');
  const list = document.querySelector('#comments');
@@ -34,7 +34,7 @@ if (discussionEnabled) {
  // Ephemeral, read-only observations; the editor remains the sole writable
  // source. A missing entry is not proof of a deleted thread or fragment.
  const observations = new Map();
- let bridge, sequence = 0, refreshInProgress = false, refreshAgain = false;
+ let bridge, sequence = 0, isRefreshInProgress = false, isRefreshQueued = false;
  disconnectDiscussion = () => {
   bridge = null;
   for (const item of pending.values()) { clearTimeout(item.timer); item.reject(new Error('Редактор закрыт')); }
@@ -80,14 +80,14 @@ if (discussionEnabled) {
   for (const { id, data } of incoming) {
    const previous = observations.get(id);
    const originalQuote = previous?.originalQuote || (typeof data.QuoteText === 'string' ? data.QuoteText : '');
-   observations.set(id, { data, originalQuote, present: true });
+   observations.set(id, { data, originalQuote, isPresent: true });
   }
-  for (const [id, item] of observations) if (!ids.has(id)) item.present = false;
+  for (const [id, item] of observations) if (!ids.has(id)) item.isPresent = false;
   list.replaceChildren();
   for (const [id, item] of observations) {
-   const { data, originalQuote, present } = item, article = document.createElement('article');
+   const { data, originalQuote, isPresent } = item, article = document.createElement('article');
    article.dataset.nativeId = id;
-   if (!present) {
+   if (!isPresent) {
     const note = document.createElement('small');
     note.textContent = 'Ветка не найдена в последнем списке; причина неизвестна. Последнее наблюдаемое состояние доступно только для чтения.';
     article.append(note);
@@ -111,19 +111,19 @@ if (discussionEnabled) {
     name.style.color = color(identity.key);
     line.append(name, document.createTextNode(reply.Text || '')); article.append(line);
    }
-   if (present && file.endsWith('.docx') && !(originalQuote && !currentQuote)) {
+   if (isPresent && file.endsWith('.docx') && !(originalQuote && !currentQuote)) {
     const move = document.createElement('button'); move.type = 'button'; move.textContent = 'Перейти к фрагменту';
     move.onclick = () => request('move', id).catch(error => { status.textContent = error.message; }); article.append(move);
-   } else if (present) { const note = document.createElement('small'); note.textContent = 'Переход к фрагменту не подтверждён'; article.append(note); }
+   } else if (isPresent) { const note = document.createElement('small'); note.textContent = 'Переход к фрагменту не подтверждён'; article.append(note); }
    list.append(article);
   }
  }
  async function refresh() {
-  if (refreshInProgress) { refreshAgain = true; return; }
-  refreshInProgress = true;
+  if (isRefreshInProgress) { isRefreshQueued = true; return; }
+  isRefreshInProgress = true;
   try { render(await request('list')); status.textContent = 'Обсуждение из редактора'; }
   catch (error) { status.textContent = `Не удалось обновить обсуждение: ${error.message}`; }
-  finally { refreshInProgress = false; if (refreshAgain) { refreshAgain = false; refresh(); } }
+  finally { isRefreshInProgress = false; if (isRefreshQueued) { isRefreshQueued = false; refresh(); } }
  }
  window.addEventListener('message', event => {
   const data = event.data;

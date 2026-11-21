@@ -48,19 +48,19 @@ const loadEditor = (baseUrl: string): Promise<void> => {
 export const OfficeEditor = ({ documentId }: { documentId: string }) => {
     const [error, setError] = useState<unknown>(null);
     const [attempt, setAttempt] = useState(0);
-    const [loading, setLoading] = useState(true);
+    const [isLoading, setLoading] = useState(true);
     const [elementId] = useState(() => `office-editor-${crypto.randomUUID()}`);
 
     useEffect(() => {
         const controller = new AbortController();
         let editor: EditorInstance | undefined;
-        let disposed = false;
-        let failed = false;
+        let isDisposed = false;
+        let isFailed = false;
         const timeout = window.setTimeout(() => {
-            if (disposed || failed) {
+            if (isDisposed || isFailed) {
                 return;
             }
-            failed = true;
+            isFailed = true;
             controller.abort();
             if (loadingScript) {
                 loadingScript.remove();
@@ -79,7 +79,7 @@ export const OfficeEditor = ({ documentId }: { documentId: string }) => {
                     signal: controller.signal,
                 });
                 await loadEditor(session.documentServerUrl);
-                if (disposed || failed) {
+                if (isDisposed || isFailed) {
                     return;
                 }
                 const DocsAPI = (window as OfficeWindow).DocsAPI;
@@ -90,15 +90,15 @@ export const OfficeEditor = ({ documentId }: { documentId: string }) => {
                     ...session.config,
                     events: {
                         onDocumentReady: () => {
-                            if (!disposed && !failed) {
+                            if (!isDisposed && !isFailed) {
                                 window.clearTimeout(timeout);
                                 setLoading(false);
                             }
                         },
                         onError: () => {
-                            if (!disposed && !failed) {
+                            if (!isDisposed && !isFailed) {
                                 window.clearTimeout(timeout);
-                                failed = true;
+                                isFailed = true;
                                 setError(
                                     new Error('Редактор сообщил об ошибке. Проверьте соединение и попробуйте снова.')
                                 );
@@ -108,7 +108,7 @@ export const OfficeEditor = ({ documentId }: { documentId: string }) => {
                     },
                 });
             } catch (cause) {
-                if (!disposed && !failed) {
+                if (!isDisposed && !isFailed) {
                     window.clearTimeout(timeout);
                     setError(cause);
                     setLoading(false);
@@ -117,7 +117,7 @@ export const OfficeEditor = ({ documentId }: { documentId: string }) => {
         };
         void open();
         return () => {
-            disposed = true;
+            isDisposed = true;
             window.clearTimeout(timeout);
             controller.abort();
             editor?.destroyEditor();
@@ -125,8 +125,8 @@ export const OfficeEditor = ({ documentId }: { documentId: string }) => {
     }, [documentId, elementId, attempt]);
 
     return (
-        <div className="office-editor" aria-busy={loading}>
-            {loading && (
+        <div className="office-editor" aria-busy={isLoading}>
+            {isLoading && (
                 <div className="office-editor-loading" role="status" aria-label="Загрузка редактора">
                     <div className="loading-orbit" aria-hidden="true" />
                 </div>

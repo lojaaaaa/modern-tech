@@ -27,7 +27,7 @@ const json = (res, status, value) => { res.writeHead(status, {'content-type': 'a
 const filePath = doc => join(dataDir, `${createHash('sha256').update(doc).digest('hex')}.docx`);
 function documentState(doc) {
   let state = docs.get(doc);
-  if (!state || state.closed) { state = {doc, key: randomUUID(), sessions: new Set(), hosts: new Set(), closed: false, saving: false}; docs.set(doc, state); }
+  if (!state || state.isClosed) { state = {doc, key: randomUUID(), sessions: new Set(), hosts: new Set(), isClosed: false, isSaving: false}; docs.set(doc, state); }
   return state;
 }
 async function source(doc) {
@@ -64,7 +64,7 @@ const headers = req => ({...req.headers, host: origin.host, 'x-forwarded-host': 
 const editorPage = new URL('./editor.html', import.meta.url);
 
 export function createOfficeBridge({ sessionFor, rightsFor, lease, sessions }) {
-  const permitted = session => session?.active && Date.now() < session.deadline && (() => { const r = rightsFor(session.doc, session.user); return r.read && !r.blocked && (r.edit || r.comment); })();
+  const permitted = session => session?.isActive && Date.now() < session.deadline && (() => { const r = rightsFor(session.doc, session.user); return r.isReadAllowed && !r.isBlocked && (r.isEditAllowed || r.isCommentAllowed); })();
   async function handle(req, res) {
     const url = new URL(req.url, 'http://localhost');
     if (req.method === 'GET' && url.pathname.startsWith('/office-source/')) {
@@ -87,21 +87,21 @@ export function createOfficeBridge({ sessionFor, rightsFor, lease, sessions }) {
       let payload;
       try { const body = JSON.parse(data); payload = verify(body.token || req.headers.authorization?.replace(/^Bearer /i, '')); } catch { json(res, 403, {error: 1}); return true; }
       const state = [...docs.values()].find(doc => doc.key === payload.key);
-      if (!state || state.closed || state.saving) { json(res, 409, {error: 1}); return true; }
+      if (!state || state.isClosed || state.isSaving) { json(res, 409, {error: 1}); return true; }
       if (payload.status === 2) {
-        state.saving = true;
+        state.isSaving = true;
         try {
           const result = await save(state, payload.url);
-          state.closed = true;
+          state.isClosed = true;
           console.log(`Saved isolated DOCX: ${result.bytes} bytes sha256=${result.sha256}`);
           json(res, 200, {error: 0});
         } catch (error) {
           console.error('DOCX save failed:', error.message);
           json(res, 200, {error: 1});
-        } finally { state.saving = false; }
+        } finally { state.isSaving = false; }
         return true;
       }
-      if (payload.status === 4) state.closed = true;
+      if (payload.status === 4) state.isClosed = true;
       // Force-save ordering is not established; reject it instead of overwriting a newer draft.
       json(res, 200, {error: [1, 4].includes(payload.status) ? 0 : 1}); return true;
     }
@@ -115,14 +115,14 @@ export function createOfficeBridge({ sessionFor, rightsFor, lease, sessions }) {
       if (!permitted(session)) { json(res, 403, {error: 'draft forbidden'}); return true; }
       const r = rightsFor(session.doc, session.user);
       const state = documentState(session.doc);
-      if (state.saving || (state.sessions.size && ![...state.sessions].some(token => sessions.get(token)?.active))) {
+      if (state.isSaving || (state.sessions.size && ![...state.sessions].some(token => sessions.get(token)?.isActive))) {
         json(res, 409, {error: 'waiting for editor save callback'}); return true;
       }
       state.sessions.add(session.token);
       state.hosts.add(`${session.id}.localhost:${Number(process.env.POC_PUBLIC_PORT || 8894)}`);
       const config = {documentType: 'word', width: '100%', height: '100%',
-        document: {fileType: 'docx', key: state.key, title: 'sample.docx', url: `http://gateway:8894/office-source/${session.sourceCapability}.docx`, permissions: {edit: Boolean(session.seated && r.edit), comment: r.comment, download: false}},
-        editorConfig: {mode: session.seated && r.edit || r.comment ? 'edit' : 'view', user: {id: session.user, name: session.user}, callbackUrl: 'http://gateway:8894/office-callback', customization: {autosave: true, forcesave: false}}};
+        document: {fileType: 'docx', key: state.key, title: 'sample.docx', url: `http://gateway:8894/office-source/${session.sourceCapability}.docx`, permissions: {edit: Boolean(session.isSeated && r.isEditAllowed), comment: r.isCommentAllowed, download: false}},
+        editorConfig: {mode: session.isSeated && r.isEditAllowed || r.isCommentAllowed ? 'edit' : 'view', user: {id: session.user, name: session.user}, callbackUrl: 'http://gateway:8894/office-callback', customization: {autosave: true, forcesave: false}}};
       config.token = jwt(config); json(res, 200, config); return true;
     }
     if (!permitted(session)) { json(res, 403, {error: 'draft forbidden'}); return true; }

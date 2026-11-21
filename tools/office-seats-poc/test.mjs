@@ -61,8 +61,8 @@ test('последнее место атомарно, вкладки учиты�
   assert.equal((await reader.read()).done, false);
   const revoked = await request('/admin/permissions', {body: {secret, doc, user: denied.user, read: true, comment: false, edit: false, blocked: false}});
   assert.equal(revoked.status, 200);
-  const ended = await Promise.race([reader.read().then(() => true, () => true), new Promise(resolve => setTimeout(() => resolve(false), 2000))]);
-  assert.equal(ended, true, 'open stream must close');
+  const isStreamEnded = await Promise.race([reader.read().then(() => true, () => true), new Promise(resolve => setTimeout(() => resolve(false), 2000))]);
+  assert.equal(isStreamEnded, true, 'open stream must close');
   assert.equal((await request('/draft', {token: denied.token})).status, 401);
   const readOnly = await login(denied.user, doc);
   assert.equal(readOnly.mode, 'view');

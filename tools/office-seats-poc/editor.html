@@ -25,23 +25,23 @@
     const close = document.querySelector('#close');
     const container = document.querySelector('#editor-container');
     let editor;
-    let stopped = false;
-    let pending = false;
+    let isStopped = false;
+    let isPending = false;
     let editorMode;
     let cancelEditorLoad;
 
     function showMode(state, full = false) {
-      if (stopped) return;
-      const restartNeeded = state.mode === 'edit' && editorMode !== 'edit';
-      retry.hidden = !state.canRequestEdit && !restartNeeded;
-      retry.textContent = restartNeeded ? 'Открыть редактор' : 'Попробовать редактировать';
-      if (restartNeeded) { status.textContent = 'Место получено. Откройте редактор заново.'; return; }
+      if (isStopped) return;
+      const isRestartNeeded = state.mode === 'edit' && editorMode !== 'edit';
+      retry.hidden = !state.canRequestEdit && !isRestartNeeded;
+      retry.textContent = isRestartNeeded ? 'Открыть редактор' : 'Попробовать редактировать';
+      if (isRestartNeeded) { status.textContent = 'Место получено. Откройте редактор заново.'; return; }
       status.textContent = state.mode === 'edit' ? 'Можно редактировать' :
         full ? 'Все места заняты. Можно повторить попытку позже.' :
         state.mode === 'comment' ? 'Доступно комментирование' : 'Доступен просмотр';
     }
     function denyAccess() {
-      stopped = true;
+      isStopped = true;
       retry.hidden = true;
       close.disabled = true;
       if (cancelEditorLoad) cancelEditorLoad();
@@ -58,17 +58,17 @@
     async function openEditor() {
       // Obtain the new signed permissions before replacing the current editor.
       const config = await api('/office-config');
-      if (stopped) return;
+      if (isStopped) return;
       if (editor) editor.destroyEditor();
       editor = undefined;
       editorMode = undefined;
       container.replaceChildren(Object.assign(document.createElement('div'), {id: 'editor'}));
       await new Promise((resolve, reject) => {
-        let finished = false;
+        let isFinished = false;
         const timer = setTimeout(() => finish(Error('Редактор не ответил')), 60000);
         function finish(error) {
-          if (finished) return;
-          finished = true;
+          if (isFinished) return;
+          isFinished = true;
           clearTimeout(timer);
           cancelEditorLoad = undefined;
           if (error) { reject(error); return; }
@@ -82,15 +82,15 @@
       });
     }
     async function heartbeat() {
-      if (stopped) return;
+      if (isStopped) return;
       try {
         const state = await api('/heartbeat', {method: 'POST'});
-        if (!pending) showMode(state);
-      } catch (error) { if (!stopped) status.textContent = 'Связь потеряна. Ожидаем восстановления.'; }
+        if (!isPending) showMode(state);
+      } catch (error) { if (!isStopped) status.textContent = 'Связь потеряна. Ожидаем восстановления.'; }
     }
     retry.addEventListener('click', async () => {
-      if (pending || stopped) return;
-      pending = true;
+      if (isPending || isStopped) return;
+      isPending = true;
       retry.disabled = true;
       try {
         const state = await api('/seat', {method: 'POST'});
@@ -99,8 +99,8 @@
           await openEditor();
           showMode(state);
         } else showMode(state, true);
-      } catch (error) { if (!stopped) status.textContent = 'Не удалось обновить редактор. Повторите попытку.'; }
-      finally { pending = false; retry.disabled = false; }
+      } catch (error) { if (!isStopped) status.textContent = 'Не удалось обновить редактор. Повторите попытку.'; }
+      finally { isPending = false; retry.disabled = false; }
     });
     close.addEventListener('click', async () => {
       close.disabled = true;
@@ -108,14 +108,14 @@
       denyAccess();
     });
     async function start() {
-      pending = true;
+      isPending = true;
       try {
         const state = await api('/heartbeat', {method: 'POST'});
         setInterval(heartbeat, __HEARTBEAT_MS__);
         await openEditor();
         showMode(state);
-      } catch (error) { if (!stopped) status.textContent = 'Не удалось открыть редактор. Обновите страницу.'; }
-      finally { pending = false; }
+      } catch (error) { if (!isStopped) status.textContent = 'Не удалось открыть редактор. Обновите страницу.'; }
+      finally { isPending = false; }
     }
     // Abrupt tab closure and reload are indistinguishable: preserve the lease on
     // pagehide; the server closes streams and releases the seat after expiry.

@@ -5,46 +5,94 @@ declare(strict_types=1);
 namespace App\Modules\Documents\Policies;
 
 use App\Models\User;
+use App\Modules\Documents\Enums\BatchDocumentOperation;
+use App\Modules\Documents\Enums\DocumentPermission;
 use App\Modules\Documents\Models\Document;
+use App\Modules\Documents\Models\DocumentVersion;
+use App\Modules\Identity\Enums\UserRole;
 use Illuminate\Auth\Access\Response;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 final class DocumentPolicy
 {
+    public function create(User $user): Response
+    {
+        if (! $user->isActive() || $user->role === UserRole::OBSERVER) {
+            return Response::deny(__('documents.upload_unavailable'));
+        }
+
+        return $user->hasVerifiedEmail()
+            ? Response::allow()
+            : Response::deny(__('documents.upload_requires_verified_email'));
+    }
+
+    public function uploadVersion(User $user, Document $document): Response
+    {
+        $upload = $this->create($user);
+
+        return $upload->denied() ? $upload : $this->edit($user, $document);
+    }
+
     public function read(User $user, Document $document): Response
     {
-        return $this->allows($user, $document, 'read')
+        return $this->allows($user, $document, DocumentPermission::READ)
             ? Response::allow()
             : Response::denyAsNotFound();
     }
 
-    public function comment(User $user, Document $document): Response
+    public function batch(User $user, Document $document, BatchDocumentOperation $operation): Response
     {
-        return $this->permissionResponse($user, $document, 'comment');
+        return $operation === BatchDocumentOperation::FAVORITE
+            ? $this->read($user, $document)
+            : $this->manage($user, $document);
     }
 
-    public function edit(User $user, Document $document): Response
+    public function preview(User $user, DocumentVersion $version): Response
     {
-        return $this->permissionResponse($user, $document, 'edit');
-    }
+        $document = $version->document;
+        if ($document === null) {
+            return Response::denyAsNotFound();
+        }
 
-    public function export(User $user, Document $document): Response
-    {
-        return $this->permissionResponse($user, $document, 'export');
-    }
-
-    public function manage(User $user, Document $document): Response
-    {
-        return $this->permissionResponse($user, $document, 'manage');
-    }
-
-    private function permissionResponse(User $user, Document $document, string $permission): Response
-    {
         $read = $this->read($user, $document);
         if ($read->denied()) {
             return $read;
         }
-        if (in_array($permission, ['edit', 'comment', 'manage'], true) && ! $user->hasVerifiedEmail()) {
-            return Response::deny('Подтвердите электронную почту перед изменением документа.');
+
+        return $version->isReady() ? Response::allow() : Response::denyWithStatus(HttpResponse::HTTP_CONFLICT);
+    }
+
+    public function comment(User $user, Document $document): Response
+    {
+        return $this->getPermissionResponse($user, $document, DocumentPermission::COMMENT);
+    }
+
+    public function edit(User $user, Document $document): Response
+    {
+        return $this->getPermissionResponse($user, $document, DocumentPermission::EDIT);
+    }
+
+    public function export(User $user, Document $document): Response
+    {
+        return $this->getPermissionResponse($user, $document, DocumentPermission::EXPORT);
+    }
+
+    public function manage(User $user, Document $document): Response
+    {
+        return $this->getPermissionResponse($user, $document, DocumentPermission::MANAGE);
+    }
+
+    private function getPermissionResponse(
+        User $user,
+        Document $document,
+        DocumentPermission $permission,
+    ): Response {
+        $read = $this->read($user, $document);
+        if ($read->denied()) {
+            return $read;
+        }
+        if ($permission->isRequiredVerifiedEmail() && ! $user->hasVerifiedEmail()) {
+            return Response::deny(__('documents.edit_requires_verified_email'));
         }
 
         return $this->allows($user, $document, $permission)
@@ -52,27 +100,33 @@ final class DocumentPolicy
             : Response::deny();
     }
 
-    private function allows(User $user, Document $document, string $permission): bool
+    private function allows(User $user, Document $document, DocumentPermission $permission): bool
     {
-        if (! $user->active) {
+        if (! $user->isActive()) {
             return false;
         }
         if ($user->isAdministrator()) {
             return true;
         }
-        if ($user->role === 'observer' && $permission !== 'read') {
+        if ($user->role === UserRole::OBSERVER && $permission !== DocumentPermission::READ) {
             return false;
         }
         if ((int) $document->owner_id === $user->id) {
             return true;
         }
-        if ($permission === 'manage') {
+        if ($permission === DocumentPermission::MANAGE) {
             return false;
         }
         if ($document->relationLoaded('grants')) {
-            return $document->grants->contains(fn ($grant) => (int) $grant->user_id === $user->id && $grant->read && $grant->{$permission});
+            return $document->grants->contains(
+                fn ($grant) => (int) $grant->user_id === $user->id && $grant->read && $grant->{$permission->value},
+            );
         }
 
-        return $document->grants()->where('user_id', $user->id)->where('read', true)->where($permission, true)->exists();
+        return $document->grants()
+            ->where('user_id', $user->id)
+            ->where(DocumentPermission::READ->value, true)
+            ->where($permission->value, true)
+            ->exists();
     }
 }

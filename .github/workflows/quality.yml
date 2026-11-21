@@ -27,6 +27,20 @@ jobs:
       - run: npm audit --omit=dev --audit-level=high
   api:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: modern_tech_postgres_test
+          POSTGRES_USER: modern_tech_test
+          POSTGRES_PASSWORD: modern-tech-test-only
+        ports:
+          - 5432/tcp
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U modern_tech_test -d modern_tech_postgres_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     defaults:
       run:
         working-directory: backend
@@ -42,6 +56,9 @@ jobs:
       - run: vendor/bin/pint --test
       - run: vendor/bin/phpstan analyse --memory-limit=512M --no-progress
       - run: php artisan test
+      - run: vendor/bin/phpunit tests/Postgres
+        env:
+          POSTGRES_TEST_PORT: ${{ job.services.postgres.ports[5432] }}
       - run: composer audit
   container:
     runs-on: ubuntu-latest

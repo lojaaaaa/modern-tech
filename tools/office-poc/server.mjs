@@ -38,9 +38,19 @@ export async function createHarness(options = {}) {
   await mkdir(data, { recursive: true });
   const stateFile = join(data, 'sessions.json');
   let sessions;
-  try { sessions = JSON.parse(await readFile(stateFile, 'utf8')); } catch (error) { if (error.code !== 'ENOENT') throw error; sessions = {}; }
+  try {
+    const savedSessions = JSON.parse(await readFile(stateFile, 'utf8'));
+    sessions = Object.fromEntries(Object.entries(savedSessions).map(([file, { key, closed: isClosed }]) => [file, { key, isClosed }]));
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+    sessions = {};
+  }
   const events = [];
-  const persist = async () => { await writeFile(`${stateFile}.tmp`, JSON.stringify(sessions, null, 2)); await rename(`${stateFile}.tmp`, stateFile); };
+  const persist = async () => {
+    const savedSessions = Object.fromEntries(Object.entries(sessions).map(([file, { key, isClosed }]) => [file, { key, closed: isClosed }]));
+    await writeFile(`${stateFile}.tmp`, JSON.stringify(savedSessions, null, 2));
+    await rename(`${stateFile}.tmp`, stateFile);
+  };
   const json = (res, status, body) => { res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': new URL(officePublic).origin }); res.end(JSON.stringify(body)); };
   const source = async name => {
     try { return await readFile(join(data, name)); } catch (error) { if (error.code !== 'ENOENT') throw error; return await readFile(join(corpus, name)); }
@@ -62,8 +72,8 @@ export async function createHarness(options = {}) {
         const user = url.searchParams.get('user');
         if (!validFile(file) || !names[user]) return json(res, 404, { error: 'Unknown fixture or participant' });
         await source(file);
-        if (!sessions[file] || sessions[file].closed) {
-          sessions[file] = { key: randomUUID(), closed: false };
+        if (!sessions[file] || sessions[file].isClosed) {
+          sessions[file] = { key: randomUUID(), isClosed: false };
           await persist();
         }
         const extension = file.split('.').pop();
@@ -114,7 +124,7 @@ export async function createHarness(options = {}) {
         const received = JSON.parse(body);
         let payload;
         try { payload = verified(received.token ?? req.headers.authorization?.replace(/^Bearer /i, ''), secret); } catch { return json(res, 403, { error: 1 }); }
-        if (payload.key !== sessions[file].key || sessions[file].closed) return json(res, 409, { error: 1 });
+        if (payload.key !== sessions[file].key || sessions[file].isClosed) return json(res, 409, { error: 1 });
         const event = { file, key: payload.key, status: payload.status, users: payload.users ?? [] };
         if ([2, 6].includes(payload.status)) {
           const download = new URL(payload.url);
@@ -129,7 +139,7 @@ export async function createHarness(options = {}) {
           event.sha256 = createHash('sha256').update(bytes).digest('hex');
           event.bytes = bytes.length;
         }
-        if ([2, 4].includes(payload.status)) { sessions[file].closed = true; await persist(); }
+        if ([2, 4].includes(payload.status)) { sessions[file].isClosed = true; await persist(); }
         await record(event);
         return json(res, 200, { error: 0 });
       }

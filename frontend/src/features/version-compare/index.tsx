@@ -1,3 +1,4 @@
+import { queryKeys } from '@/shared/api/query-keys';
 import { diffLines } from 'diff';
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -10,12 +11,12 @@ export const VersionCompare = ({ versions }: { versions: Version[] }) => {
     const [left, setLeft] = useState(versions[1]?.id ?? '');
     const [right, setRight] = useState(versions[0]?.id ?? '');
     const before = useQuery({
-        queryKey: ['document-text', left],
+        queryKey: [queryKeys.documentText, left],
         queryFn: ({ signal }) => api<Resource<{ text: string | null }>>(`/versions/${left}/text`, { signal }),
         enabled: !!left,
     });
     const after = useQuery({
-        queryKey: ['document-text', right],
+        queryKey: [queryKeys.documentText, right],
         queryFn: ({ signal }) => api<Resource<{ text: string | null }>>(`/versions/${right}/text`, { signal }),
         enabled: !!right,
     });

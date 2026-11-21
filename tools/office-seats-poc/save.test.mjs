@@ -21,11 +21,11 @@ test('подписанное сохранение разделяет докум�
   process.env.OFFICE_DATA_DIR = dir;
   process.env.JWT_SECRET = 'test-secret';
   const {createOfficeBridge} = await import('./office-bridge.mjs');
-  const makeSession = (doc, token, capability) => ({id:token, doc, token, sourceCapability:capability, user:'alice', seated:true, active:true, deadline:Date.now()+60000, streams:new Set()});
+  const makeSession = (doc, token, capability) => ({id:token, doc, token, sourceCapability:capability, user:'alice', isSeated:true, isActive:true, deadline:Date.now()+60000, streams:new Set()});
   const first = makeSession('doc-a', 'session-a', 'source-a');
   const other = makeSession('doc-b', 'session-b', 'source-b');
   const sessions = new Map([[first.token, first], [other.token, other]]);
-  const bridge = createOfficeBridge({sessionFor: req => sessions.get(req.headers.authorization?.replace('Bearer ', '')), rightsFor: () => ({read:true, edit:true, comment:true, blocked:false}), lease:30000, sessions});
+  const bridge = createOfficeBridge({sessionFor: req => sessions.get(req.headers.authorization?.replace('Bearer ', '')), rightsFor: () => ({isReadAllowed:true, isEditAllowed:true, isCommentAllowed:true, isBlocked:false}), lease:30000, sessions});
   const gateway = http.createServer((req, res) => bridge.handle(req, res).catch(() => { res.writeHead(500); res.end(); }));
   await new Promise(resolve => gateway.listen(0, '127.0.0.1', resolve));
   t.after(() => gateway.close());
@@ -59,6 +59,6 @@ test('подписанное сохранение разделяет докум�
   assert.equal((await callback(signed(payload))).status, 409);
   const reopened = await (await get('/office-config', first.token)).json();
   assert.notEqual(reopened.document.key, config.document.key);
-  sessions.delete(first.token); first.active = false;
+  sessions.delete(first.token); first.isActive = false;
   assert.equal((await get('/office-source/source-a.docx')).status, 403);
 });

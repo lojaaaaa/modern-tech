@@ -5,16 +5,22 @@ declare(strict_types=1);
 namespace App\Modules\Integrations\Jobs;
 
 use App\Models\User;
-use App\Modules\Audit\Services\Audit;
+use App\Modules\Audit\Services\AuditWriter;
+use App\Modules\Documents\DTO\IncomingFile;
+use App\Modules\Documents\Enums\DocumentPermission;
+use App\Modules\Documents\Models\Document;
 use App\Modules\Documents\Models\DocumentVersion;
 use App\Modules\Documents\Services\UploadDocument;
+use App\Modules\Identity\Enums\UserRole;
+use App\Modules\Integrations\Enums\CloudConnectionStatus;
+use App\Modules\Integrations\Enums\CloudTransferStatus;
+use App\Modules\Integrations\Enums\TransferDirection;
 use App\Modules\Integrations\Models\CloudConnection;
 use App\Modules\Integrations\Models\CloudTransfer;
 use App\Modules\Integrations\Services\CloudFailure;
 use App\Modules\Integrations\Services\ProviderFactory;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use App\Modules\Documents\Services\IncomingFile;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 
@@ -34,29 +40,32 @@ final class ProcessTransfer implements ShouldQueue
 
     public function handle(ProviderFactory $providers, UploadDocument $uploads): void
     {
-        if (! CloudTransfer::whereKey($this->transferId)->where('status', 'queued')->update(['status' => 'running'])) {
+        if (! CloudTransfer::query()
+            ->whereKey($this->transferId)
+            ->where('status', CloudTransferStatus::QUEUED)
+            ->update(['status' => CloudTransferStatus::RUNNING])) {
             return;
         }
-        $transfer = CloudTransfer::findOrFail($this->transferId);
+        $transfer = CloudTransfer::query()->findOrFail($this->transferId);
         $temporary = null;
-        $remoteWriteStarted = false;
+        $isRemoteWriteStarted = false;
         try {
-            $user = User::find($transfer->initiator_id);
-            $connection = CloudConnection::find($transfer->connection_id);
-            if (! $user || ! $user->active || $user->role === 'observer' || ! $connection || $connection->owner_id !== $user->id || $connection->status !== 'connected') {
+            $user = User::query()->find($transfer->initiator_id);
+            $connection = CloudConnection::query()->find($transfer->connection_id);
+            if (! $user || ! $user->isActive() || $user->role === UserRole::OBSERVER || ! $connection || $connection->owner_id !== $user->id || $connection->status !== CloudConnectionStatus::CONNECTED) {
                 throw new CloudFailure('ACCESS_REVOKED');
             }
-            if ($transfer->direction === 'import' && ! $user->hasVerifiedEmail()) {
+            if ($transfer->direction === TransferDirection::IMPORT && $user->cannot('create', Document::class)) {
                 throw new CloudFailure('ACCESS_REVOKED');
             }
             $provider = $providers->for($connection);
-            if ($transfer->direction === 'export') {
-                $version = DocumentVersion::find($transfer->version_id);
-                if (! $version || ! $version->document || $version->status !== 'ready') {
+            if ($transfer->direction === TransferDirection::EXPORT) {
+                $version = DocumentVersion::query()->find($transfer->version_id);
+                if (! $version || ! $version->document || ! $version->isReady()) {
                     throw new CloudFailure('VERSION_UNAVAILABLE');
                 }
-                Gate::forUser($user)->authorize('export', $version->document);
-                $remoteWriteStarted = true;
+                Gate::forUser($user)->authorize(DocumentPermission::EXPORT->value, $version->document);
+                $isRemoteWriteStarted = true;
                 $provider->upload($transfer->remote_path, Storage::disk('local')->path($version->storage_key));
             } else {
                 $temporary = tempnam(sys_get_temp_dir(), 'cloud-import-');
@@ -70,21 +79,30 @@ final class ProcessTransfer implements ShouldQueue
                 }
                 // Downloading can take a long time: do not import a file after
                 // the owner or their connection was disabled in the meantime.
-                $user = User::find($transfer->initiator_id);
-                $connection = CloudConnection::find($transfer->connection_id);
-                if (! $user || ! $user->active || $user->role === 'observer' || ! $user->hasVerifiedEmail()
-                    || ! $connection || $connection->owner_id !== $user->id || $connection->status !== 'connected') {
+                $user = User::query()->find($transfer->initiator_id);
+                $connection = CloudConnection::query()->find($transfer->connection_id);
+                if (
+                    !$user
+                    || $user->cannot('create', Document::class)
+                    || !$connection
+                    || $connection->owner_id !== $user->id
+                    || $connection->status !== CloudConnectionStatus::CONNECTED
+                ) {
                     throw new CloudFailure('ACCESS_REVOKED');
                 }
                 // Imported files enter exactly the same quarantine as browser uploads.
-                $document = $uploads->execute($user, new IncomingFile($temporary, $transfer->filename), null, 'transfer:'.$transfer->id);
+                $document = $uploads->import(
+                    $user,
+                    new IncomingFile($temporary, $transfer->filename),
+                    'transfer:' . $transfer->id,
+                );
                 $transfer->document_id = $document->id;
             }
-            $transfer->status = 'completed';
+            $transfer->status = CloudTransferStatus::COMPLETED;
             $transfer->save();
-            Audit::record($user->id, 'transfer.completed', $transfer->id);
+            AuditWriter::record($user->id, 'transfer.completed', $transfer->id);
         } catch (\Throwable $error) {
-            $transfer->update(['status' => 'failed', 'error_code' => $error instanceof CloudFailure ? $error->getMessage() : ($remoteWriteStarted ? 'OUTCOME_UNKNOWN' : 'TRANSFER_FAILED')]);
+            $transfer->update(['status' => CloudTransferStatus::FAILED, 'error_code' => $error instanceof CloudFailure ? $error->getMessage() : ($isRemoteWriteStarted ? 'OUTCOME_UNKNOWN' : 'TRANSFER_FAILED')]);
         } finally {
             if (is_string($temporary) && is_file($temporary)) {
                 unlink($temporary);
@@ -94,6 +112,9 @@ final class ProcessTransfer implements ShouldQueue
 
     public function failed(?\Throwable $exception): void
     {
-        CloudTransfer::whereKey($this->transferId)->where('status', 'running')->update(['status' => 'failed', 'error_code' => 'OUTCOME_UNKNOWN']);
+        CloudTransfer::query()
+            ->whereKey($this->transferId)
+            ->where('status', CloudTransferStatus::RUNNING)
+            ->update(['status' => CloudTransferStatus::FAILED, 'error_code' => 'OUTCOME_UNKNOWN']);
     }
 }

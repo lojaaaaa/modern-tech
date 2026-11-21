@@ -1,8 +1,10 @@
+import { queryKeys } from '@/shared/api/query-keys';
 import './admin-controls.css';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/shared/api/client';
 import type { User, Role } from '@/shared/api/types';
+import type { operations } from '@/shared/api/schema';
 import { Select } from '@/shared/ui/select';
 import { Button } from '@/shared/ui/button';
 import { ErrorMessage } from '@/shared/ui/error-message';
@@ -11,8 +13,11 @@ export const UsersPage = () => {
     const client = useQueryClient();
     const listing = useCursorFilters({ sort: 'name', direction: 'asc' });
     const query = useQuery({
-        queryKey: ['users', listing.search],
-        queryFn: ({ signal }) => api<CursorResult<User>>(`/users?${listing.search}`, { signal }),
+        queryKey: [queryKeys.users, listing.search],
+        queryFn: ({ signal }) =>
+            api<operations['user.index']['responses'][200]['content']['application/json']>(`/users?${listing.search}`, {
+                signal,
+            }),
     });
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
@@ -24,23 +29,23 @@ export const UsersPage = () => {
             setName('');
             setEmail('');
             setPassword('');
-            await client.invalidateQueries({ queryKey: ['users'] });
+            await client.invalidateQueries({ queryKey: [queryKeys.users] });
         },
     });
     const toggle = useMutation({
         mutationFn: (u: User) =>
-            api(`/users/${u.id}`, { method: 'PATCH', body: JSON.stringify({ active: !u.active }) }),
+            api(`/users/${u.id}`, { method: 'PATCH', body: JSON.stringify({ is_active: !u.active }) }),
         onSuccess: async () => {
-            await client.invalidateQueries({ queryKey: ['session'] });
-            await client.invalidateQueries({ queryKey: ['users'] });
+            await client.invalidateQueries({ queryKey: [queryKeys.session] });
+            await client.invalidateQueries({ queryKey: [queryKeys.users] });
         },
     });
     const changeRole = useMutation({
         mutationFn: ({ user, role }: { user: User; role: Role }) =>
             api(`/users/${user.id}`, { method: 'PATCH', body: JSON.stringify({ role }) }),
         onSuccess: async () => {
-            await client.invalidateQueries({ queryKey: ['session'] });
-            await client.invalidateQueries({ queryKey: ['users'] });
+            await client.invalidateQueries({ queryKey: [queryKeys.session] });
+            await client.invalidateQueries({ queryKey: [queryKeys.users] });
         },
     });
     return (
@@ -76,7 +81,7 @@ export const UsersPage = () => {
                                     <Select
                                         label={`Роль пользователя ${u.name}`}
                                         value={u.role}
-                                        disabled={changeRole.isPending || toggle.isPending}
+                                        isDisabled={changeRole.isPending || toggle.isPending}
                                         onValueChange={(value) => changeRole.mutate({ user: u, role: value as Role })}
                                         options={[
                                             { value: 'employee', label: 'Сотрудник' },
@@ -107,7 +112,7 @@ export const UsersPage = () => {
                     </tbody>
                 </table>
             </section>
-            <CursorNavigation meta={query.data?.meta} busy={query.isFetching} onChange={listing.navigate} />
+            <CursorNavigation meta={query.data} isBusy={query.isFetching} onChange={listing.navigate} />
             <section className="content-panel form-panel">
                 <h2>Добавить участника</h2>
                 <form
@@ -170,7 +175,7 @@ interface AuditEvent {
 export const AuditPage = () => {
     const listing = useCursorFilters({ sort: 'created_at', direction: 'desc' });
     const query = useQuery({
-        queryKey: ['audit', listing.search],
+        queryKey: [queryKeys.audit, listing.search],
         queryFn: ({ signal }) => api<CursorResult<AuditEvent>>(`/admin/audit?${listing.search}`, { signal }),
     });
     return (
@@ -231,7 +236,7 @@ export const AuditPage = () => {
                     <div className="empty-state">Пока нет событий</div>
                 )}
             </section>
-            <CursorNavigation meta={query.data?.meta} busy={query.isFetching} onChange={listing.navigate} />
+            <CursorNavigation meta={query.data} isBusy={query.isFetching} onChange={listing.navigate} />
         </>
     );
 };
@@ -241,9 +246,8 @@ interface CursorMeta {
     prev_cursor: string | null;
     per_page: number;
 }
-interface CursorResult<T> {
+interface CursorResult<T> extends CursorMeta {
     data: T[];
-    meta: CursorMeta;
 }
 const useCursorFilters = (defaults: Record<string, string>) => {
     const [filters, setFilters] = useState(defaults);
@@ -283,38 +287,38 @@ const SortHeader = ({
     field: string;
     label: string;
 }) => {
-    const active = listing.filters.sort === field;
-    const asc = listing.filters.direction === 'asc';
+    const isActive = listing.filters.sort === field;
+    const isAscending = listing.filters.direction === 'asc';
     return (
-        <th aria-sort={active ? (asc ? 'ascending' : 'descending') : undefined}>
+        <th aria-sort={isActive ? (isAscending ? 'ascending' : 'descending') : undefined}>
             <button type="button" className="table-sort" onClick={() => listing.sort(field)}>
-                {label} {active && <span aria-hidden="true">{asc ? '↑' : '↓'}</span>}
+                {label} {isActive && <span aria-hidden="true">{isAscending ? '↑' : '↓'}</span>}
             </button>
         </th>
     );
 };
 const CursorNavigation = ({
     meta,
-    busy,
+    isBusy,
     onChange,
 }: {
     meta: CursorMeta | undefined;
-    busy: boolean;
+    isBusy: boolean;
     onChange: (cursor: string) => void;
 }) => (
     <nav className="admin-cursor-navigation" aria-label="Навигация по списку">
-        <span className="muted">{busy ? 'Загружаем…' : `До ${meta?.per_page ?? 20} записей за раз`}</span>
+        <span className="muted">{isBusy ? 'Загружаем…' : `До ${meta?.per_page ?? 20} записей за раз`}</span>
         <div>
             <Button
                 variant="secondary"
-                disabled={busy || !meta?.prev_cursor}
+                disabled={isBusy || !meta?.prev_cursor}
                 onClick={() => meta?.prev_cursor && onChange(meta.prev_cursor)}
             >
                 Назад
             </Button>
             <Button
                 variant="secondary"
-                disabled={busy || !meta?.next_cursor}
+                disabled={isBusy || !meta?.next_cursor}
                 onClick={() => meta?.next_cursor && onChange(meta.next_cursor)}
             >
                 Дальше
@@ -323,7 +327,7 @@ const CursorNavigation = ({
     </nav>
 );
 const AdminFilters = ({ listing, kind }: { listing: ReturnType<typeof useCursorFilters>; kind: 'users' | 'audit' }) => {
-    const users = kind === 'users';
+    const isUsersList = kind === 'users';
     const field = (key: string, label: string, type = 'text') => (
         <label>
             {label}
@@ -347,9 +351,9 @@ const AdminFilters = ({ listing, kind }: { listing: ReturnType<typeof useCursorF
         </label>
     );
     return (
-        <section className="admin-list-filters" aria-label={users ? 'Фильтры пользователей' : 'Фильтры журнала'}>
-            {field('q', users ? 'Имя или почта' : 'Пользователь или ресурс')}
-            {users ? (
+        <section className="admin-list-filters" aria-label={isUsersList ? 'Фильтры пользователей' : 'Фильтры журнала'}>
+            {field('q', isUsersList ? 'Имя или почта' : 'Пользователь или ресурс')}
+            {isUsersList ? (
                 <>
                     {select('role', 'Роль', [
                         { value: '', label: 'Все роли' },

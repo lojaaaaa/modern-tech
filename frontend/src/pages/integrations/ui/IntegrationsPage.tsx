@@ -1,45 +1,33 @@
+import { queryKeys } from '@/shared/api/query-keys';
 import { useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Folder, FileText, ArrowUp, Download, Unplug } from 'lucide-react';
 import { api, ApiError } from '@/shared/api/client';
-import type { Resource } from '@/shared/api/types';
+import type { CloudConnection, CloudTransfer, RemoteFile, Resource } from '@/shared/api/types';
 import { Button } from '@/shared/ui/button';
 import { ErrorMessage } from '@/shared/ui/error-message';
 import { formatBytes } from '@/shared/lib/utils';
-interface Connection {
-    id: string;
-    name: string;
-    provider: 'yandex' | 'mail';
-    status: string;
-}
-interface RemoteFile {
-    name: string;
-    path: string;
-    type: string;
-    size: number;
-}
-interface Transfer {
-    id: string;
-    filename: string;
-    connection_id: string;
-    direction: string;
-    status: string;
-    error_code: string | null;
-}
-const statuses: Record<string, string> = {
+const statuses: Record<CloudTransfer['status'], string> = {
     queued: 'В очереди',
     running: 'Передача',
     completed: 'Готово',
     failed: 'Ошибка',
     cancelled: 'Отменено',
 };
+const authorizationMessages = new Map([
+    ['connected', 'Яндекс Диск подключён.'],
+    ['cancelled', 'Подключение отменено.'],
+    ['expired', 'Время подключения истекло или аккаунт изменился. Попробуйте снова.'],
+    ['failed', 'Не удалось подключить Яндекс Диск. Проверьте разрешения и попробуйте снова.'],
+]);
 export const IntegrationsPage = () => {
     const operationKeys = useRef(new Map<string, string>());
     const client = useQueryClient();
     const [params, setParams] = useSearchParams();
+    const authorizationResult = params.get('yandex');
     const [selected, setSelected] = useState(() =>
-        params.get('yandex') === 'connected' ? (params.get('connection') ?? '') : ''
+        authorizationResult === 'connected' ? (params.get('connection') ?? '') : ''
     );
     const [path, setPath] = useState('/');
     const [provider, setProvider] = useState<'yandex' | 'mail'>('yandex');
@@ -47,11 +35,11 @@ export const IntegrationsPage = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const connections = useQuery({
-        queryKey: ['connections'],
-        queryFn: ({ signal }) => api<Resource<Connection[]>>('/connections', { signal }),
+        queryKey: [queryKeys.connections],
+        queryFn: ({ signal }) => api<Resource<CloudConnection[]>>('/connections', { signal }),
     });
     const authorization = useQuery({
-        queryKey: ['yandex-authorization'],
+        queryKey: [queryKeys.yandexAuthorization],
         queryFn: ({ signal }) => api<Resource<{ available: boolean }>>('/connections/yandex/authorization', { signal }),
         enabled: provider === 'yandex',
     });
@@ -64,7 +52,7 @@ export const IntegrationsPage = () => {
         onSuccess: (result) => window.location.assign(result.data.url),
     });
     const files = useQuery({
-        queryKey: ['remote-files', selected, path],
+        queryKey: [queryKeys.remoteFiles, selected, path],
         queryFn: async ({ signal }) => {
             try {
                 return await api<Resource<RemoteFile[]>>(
@@ -73,7 +61,7 @@ export const IntegrationsPage = () => {
                 );
             } catch (error) {
                 if (error instanceof ApiError && error.status === 422) {
-                    void client.invalidateQueries({ queryKey: ['connections'] });
+                    void client.invalidateQueries({ queryKey: [queryKeys.connections] });
                 }
                 throw error;
             }
@@ -82,8 +70,8 @@ export const IntegrationsPage = () => {
         retry: false,
     });
     const transfers = useQuery({
-        queryKey: ['transfers'],
-        queryFn: ({ signal }) => api<Resource<Transfer[]>>('/transfers', { signal }),
+        queryKey: [queryKeys.transfers],
+        queryFn: ({ signal }) => api<Resource<CloudTransfer[]>>('/transfers', { signal }),
         refetchInterval: (q) =>
             q.state.data?.data.some((t) => ['queued', 'running'].includes(t.status)) ? 3000 : false,
     });
@@ -101,16 +89,16 @@ export const IntegrationsPage = () => {
         onSuccess: async () => {
             setPassword('');
             setName('');
-            await client.invalidateQueries({ queryKey: ['connections'] });
+            await client.invalidateQueries({ queryKey: [queryKeys.connections] });
         },
     });
     const disconnect = useMutation({
         mutationFn: (id: string) => api(`/connections/${id}`, { method: 'DELETE' }),
         onSuccess: async () => {
             setSelected('');
-            client.removeQueries({ queryKey: ['remote-files'] });
-            await client.invalidateQueries({ queryKey: ['connections'] });
-            await client.invalidateQueries({ queryKey: ['transfers'] });
+            client.removeQueries({ queryKey: [queryKeys.remoteFiles] });
+            await client.invalidateQueries({ queryKey: [queryKeys.connections] });
+            await client.invalidateQueries({ queryKey: [queryKeys.transfers] });
         },
     });
     const importFile = useMutation({
@@ -132,12 +120,12 @@ export const IntegrationsPage = () => {
         },
         onSuccess: () => {
             operationKeys.current.clear();
-            return client.invalidateQueries({ queryKey: ['transfers'] });
+            return client.invalidateQueries({ queryKey: [queryKeys.transfers] });
         },
     });
     const cancel = useMutation({
         mutationFn: (id: string) => api(`/transfers/${id}`, { method: 'DELETE' }),
-        onSuccess: () => client.invalidateQueries({ queryKey: ['transfers'] }),
+        onSuccess: () => client.invalidateQueries({ queryKey: [queryKeys.transfers] }),
     });
     const providerConnections = connections.data?.data.filter((c) => c.provider === provider) ?? [];
     const providerTransfers =
@@ -182,24 +170,15 @@ export const IntegrationsPage = () => {
                     transfers.error
                 }
             />
-            {params.get('yandex') && (
+            {authorizationResult && (
                 <div
                     className="integration-notice"
                     role={
-                        params.get('yandex') === 'connected' || params.get('yandex') === 'cancelled'
-                            ? 'status'
-                            : 'alert'
+                        authorizationResult === 'connected' || authorizationResult === 'cancelled' ? 'status' : 'alert'
                     }
                 >
                     <span>
-                        {(
-                            {
-                                connected: 'Яндекс Диск подключён.',
-                                cancelled: 'Подключение отменено.',
-                                expired: 'Время подключения истекло или аккаунт изменился. Попробуйте снова.',
-                                failed: 'Не удалось подключить Яндекс Диск. Проверьте разрешения и попробуйте снова.',
-                            } as Record<string, string>
-                        )[params.get('yandex') ?? ''] ?? 'Повторите подключение Яндекс Диска.'}
+                        {authorizationMessages.get(authorizationResult) ?? 'Повторите подключение Яндекс Диска.'}
                     </span>
                     <Button
                         variant="ghost"

@@ -4,13 +4,13 @@ export const Pagination = ({
     page,
     pages,
     onChange,
-    busy = false,
+    isBusy = false,
     label = 'Страницы журнала',
 }: {
     page: number;
     pages: number;
     onChange: (page: number) => void;
-    busy?: boolean;
+    isBusy?: boolean;
     label?: string;
 }) => {
     const numbers = Array.from(new Set([1, page - 1, page, page + 1, pages]))
@@ -26,7 +26,7 @@ export const Pagination = ({
                     variant="ghost"
                     size="icon"
                     aria-label="Предыдущая страница"
-                    disabled={busy || page <= 1}
+                    disabled={isBusy || page <= 1}
                     onClick={() => onChange(page - 1)}
                 >
                     <ChevronLeft size={17} />
@@ -38,7 +38,7 @@ export const Pagination = ({
                             variant={n === page ? 'default' : 'ghost'}
                             size="icon"
                             aria-current={n === page ? 'page' : undefined}
-                            disabled={busy}
+                            disabled={isBusy}
                             onClick={() => onChange(n)}
                         >
                             {n}
@@ -49,7 +49,7 @@ export const Pagination = ({
                     variant="ghost"
                     size="icon"
                     aria-label="Следующая страница"
-                    disabled={busy || page >= pages}
+                    disabled={isBusy || page >= pages}
                     onClick={() => onChange(page + 1)}
                 >
                     <ChevronRight size={17} />

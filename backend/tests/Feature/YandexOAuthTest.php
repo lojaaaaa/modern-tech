@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Modules\Integrations\Enums\CloudConnectionStatus;
 use App\Modules\Integrations\Models\CloudConnection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -48,10 +49,11 @@ final class YandexOAuthTest extends TestCase
         $this->assertSame(config('services.yandex.redirect_uri'), $start['redirect_uri']);
         $this->assertStringNotContainsString('test-secret', http_build_query($start));
         $this->fakeGrant();
-        $response = $this->get('/api/v1/connections/yandex/callback?'.http_build_query(['state' => $start['state'], 'code' => 'test-code']))->assertRedirect();
+        $response = $this->get('/api/v1/connections/yandex/callback?'.http_build_query(['state' => $start['state'], 'code' => 'test-code']))
+            ->assertRedirect()->assertHeader('X-RateLimit-Remaining', '59');
         $this->assertStringContainsString('/integrations?yandex=connected', $response->headers->get('Location'));
-        $connection = CloudConnection::sole();
-        $this->assertSame('connected', $connection->status);
+        $connection = CloudConnection::query()->sole();
+        $this->assertSame(CloudConnectionStatus::CONNECTED, $connection->status);
         $this->assertStringContainsString('Тестовый диск', $connection->name);
         $this->assertSame('access-test', $connection->credentials['token']);
         $this->assertSame('refresh-test', $connection->credentials['refresh_token']);
@@ -80,7 +82,7 @@ final class YandexOAuthTest extends TestCase
         Http::assertNothingSent();
         $this->fakeGrant();
         $this->actingAs($owner)->get('/api/v1/connections/yandex/callback?'.http_build_query(['state' => $start['state'], 'code' => 'code']))->assertRedirect();
-        $this->assertSame($owner->id, CloudConnection::sole()->owner_id);
+        $this->assertSame($owner->id, CloudConnection::query()->sole()->owner_id);
     }
 
     public function test_denied_consent_and_expired_state_do_not_create_connections(): void
@@ -98,7 +100,7 @@ final class YandexOAuthTest extends TestCase
     public function test_missing_configuration_observer_and_foreign_connection_cannot_start_authorization(): void
     {
         $owner = User::factory()->create(['role' => 'employee']);
-        $foreign = CloudConnection::create(['owner_id' => $owner->id, 'provider' => 'yandex', 'name' => 'Private', 'credentials' => ['token' => 'private']]);
+        $foreign = CloudConnection::query()->create(['owner_id' => $owner->id, 'provider' => 'yandex', 'name' => 'Private', 'credentials' => ['token' => 'private']]);
         $this->actingAs(User::factory()->create(['role' => 'employee']))->postJson('/api/v1/connections/yandex/authorization', ['connection_id' => $foreign->id])->assertNotFound();
         $this->actingAs(User::factory()->create(['role' => 'observer']))->postJson('/api/v1/connections/yandex/authorization')->assertForbidden();
         $this->actingAs($owner);
@@ -106,6 +108,13 @@ final class YandexOAuthTest extends TestCase
         $this->getJson('/api/v1/connections/yandex/authorization')->assertOk()->assertJsonPath('data.available', false);
         $this->postJson('/api/v1/connections/yandex/authorization')->assertStatus(503);
         Http::assertNothingSent();
+    }
+
+    public function test_explicit_null_connection_id_starts_a_new_authorization(): void
+    {
+        $this->actingAs(User::factory()->create())
+            ->postJson('/api/v1/connections/yandex/authorization', ['connection_id' => null])
+            ->assertOk()->assertJsonStructure(['data' => ['url']]);
     }
 
     public function test_disk_refusal_does_not_create_a_falsely_connected_account(): void
@@ -125,17 +134,18 @@ final class YandexOAuthTest extends TestCase
         $owner = User::factory()->create(['role' => 'employee']);
         $this->actingAs($owner);
 
-        return CloudConnection::create(['owner_id' => $owner->id, 'provider' => 'yandex', 'name' => 'Disk', 'credentials' => ['token' => 'old-access', 'refresh_token' => 'old-refresh', 'expires_at' => now()->subMinute()->toIso8601String(), 'account_id' => '123']]);
+        return CloudConnection::query()->create(['owner_id' => $owner->id, 'provider' => 'yandex', 'name' => 'Disk', 'credentials' => ['token' => 'old-access', 'refresh_token' => 'old-refresh', 'expires_at' => now()->subMinute()->toIso8601String(), 'account_id' => '123']]);
     }
 
     public function test_expired_token_is_refreshed_before_listing_files(): void
     {
         $connection = $this->expiredConnection();
+        $file = ['name' => 'report.txt', 'path' => 'disk:/report.txt', 'type' => 'file', 'size' => 10];
         Http::fake([
             'oauth.yandex.ru/token' => Http::response(['access_token' => 'new-access', 'refresh_token' => 'new-refresh', 'expires_in' => 3600]),
-            'cloud-api.yandex.net/*' => Http::response(['_embedded' => ['items' => []]]),
+            'cloud-api.yandex.net/*' => Http::response(['_embedded' => ['items' => [$file]]]),
         ]);
-        $this->getJson('/api/v1/connections/'.$connection->id.'/files')->assertOk()->assertJsonPath('data', []);
+        $this->getJson('/api/v1/connections/'.$connection->id.'/files')->assertOk()->assertJsonPath('data', [$file]);
         $this->assertSame('new-access', $connection->fresh()->credentials['token']);
         $this->assertSame('new-refresh', $connection->fresh()->credentials['refresh_token']);
         $this->assertSame('123', $connection->fresh()->credentials['account_id']);
@@ -162,7 +172,7 @@ final class YandexOAuthTest extends TestCase
         $connection = $this->expiredConnection();
         Http::fake(['oauth.yandex.ru/token' => Http::response(['error' => 'invalid_grant'], 400)]);
         $this->getJson('/api/v1/connections/'.$connection->id.'/files')->assertUnprocessable()->assertJsonPath('error.message', 'Доступ к Яндекс Диску истёк или отозван. Подключите диск заново через Яндекс.');
-        $this->assertSame('authorization_required', $connection->fresh()->status);
+        $this->assertSame(CloudConnectionStatus::AUTHORIZATION_REQUIRED, $connection->fresh()->status);
         Http::assertSentCount(1);
     }
 
@@ -175,7 +185,7 @@ final class YandexOAuthTest extends TestCase
             return Http::response(['access_token' => 'new-access', 'refresh_token' => 'new-refresh', 'expires_in' => 3600]);
         });
         $this->getJson('/api/v1/connections/'.$connection->id.'/files')->assertStatus(502);
-        $this->assertSame('disconnected', $connection->fresh()->status);
+        $this->assertSame(CloudConnectionStatus::DISCONNECTED, $connection->fresh()->status);
         $this->assertSame([], $connection->fresh()->credentials);
     }
 
@@ -186,7 +196,7 @@ final class YandexOAuthTest extends TestCase
         $this->fakeGrant();
         $this->get('/api/v1/connections/yandex/callback?'.http_build_query(['state' => $start['state'], 'code' => 'code']))->assertRedirect();
         $this->assertDatabaseCount('cloud_connections', 1);
-        $this->assertSame($connection->id, CloudConnection::sole()->id);
+        $this->assertSame($connection->id, CloudConnection::query()->sole()->id);
         $this->assertSame('access-test', $connection->fresh()->credentials['token']);
         $start = $this->start();
         $this->get('/api/v1/connections/yandex/callback?'.http_build_query(['state' => $start['state'], 'code' => 'code']))->assertRedirect();
@@ -207,8 +217,46 @@ final class YandexOAuthTest extends TestCase
         $connection = $this->expiredConnection();
         Http::fake(['oauth.yandex.ru/token' => Http::response([], 503)]);
         $this->getJson('/api/v1/connections/'.$connection->id.'/files')->assertStatus(502);
-        $this->assertSame('connected', $connection->fresh()->status);
+        $this->assertSame(CloudConnectionStatus::CONNECTED, $connection->fresh()->status);
         $this->assertSame('old-refresh', $connection->fresh()->credentials['refresh_token']);
+    }
+
+    public function test_file_listing_reports_unconfigured_oauth_if_a_refresh_is_needed(): void
+    {
+        $connection = $this->expiredConnection();
+        config(['services.yandex.client_secret' => null]);
+        Http::fake();
+
+        $this->getJson('/api/v1/connections/'.$connection->id.'/files')
+            ->assertServiceUnavailable()->assertJsonPath('error.code', 'HTTP_503');
+        $this->assertSame(CloudConnectionStatus::CONNECTED, $connection->fresh()->status);
+        Http::assertNothingSent();
+    }
+
+    public function test_incomplete_token_response_preserves_the_previous_credentials(): void
+    {
+        $connection = $this->expiredConnection();
+        $credentials = $connection->credentials;
+        Http::fake([
+            'oauth.yandex.ru/token' => Http::response(['access_token' => 'new-access', 'expires_in' => 3600]),
+        ]);
+
+        $this->getJson('/api/v1/connections/'.$connection->id.'/files')->assertStatus(502);
+
+        $connection->refresh();
+        $this->assertSame(CloudConnectionStatus::CONNECTED, $connection->status);
+        $this->assertSame($credentials, $connection->credentials);
+        Http::assertSentCount(1);
+    }
+
+    public function test_malformed_file_listing_returns_a_bad_gateway_error(): void
+    {
+        $connection = $this->expiredConnection();
+        $connection->credentials = array_merge($connection->credentials, ['expires_at' => now()->addHour()->toIso8601String()]);
+        $connection->save();
+        Http::fake(['cloud-api.yandex.net/*' => Http::response(['_embedded' => ['items' => [['name' => 'missing-path']]]])]);
+
+        $this->getJson('/api/v1/connections/'.$connection->id.'/files')->assertStatus(502);
     }
 
     public function test_disconnect_while_consent_is_open_is_not_undone_by_the_callback(): void
@@ -218,7 +266,7 @@ final class YandexOAuthTest extends TestCase
         $this->deleteJson('/api/v1/connections/'.$connection->id)->assertOk();
         $this->fakeGrant();
         $this->get('/api/v1/connections/yandex/callback?'.http_build_query(['state' => $start['state'], 'code' => 'code']))->assertRedirect('/integrations?yandex=failed');
-        $this->assertSame('disconnected', $connection->fresh()->status);
+        $this->assertSame(CloudConnectionStatus::DISCONNECTED, $connection->fresh()->status);
         $this->assertSame([], $connection->fresh()->credentials);
     }
 }

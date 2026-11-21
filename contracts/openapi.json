@@ -18,17 +18,6 @@
                 ],
                 "parameters": [
                     {
-                        "name": "cursor",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ],
-                            "maxLength": 2000
-                        }
-                    },
-                    {
                         "name": "per_page",
                         "in": "query",
                         "schema": {
@@ -122,11 +111,18 @@
                                 null
                             ]
                         }
+                    },
+                    {
+                        "name": "cursor",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Paginated set of `stdClass`",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -135,58 +131,71 @@
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "type": "string"
+                                                "type": "object"
                                             }
                                         },
-                                        "meta": {
-                                            "type": "object",
-                                            "properties": {
-                                                "next_cursor": {
-                                                    "type": [
-                                                        "string",
-                                                        "null"
-                                                    ]
-                                                },
-                                                "prev_cursor": {
-                                                    "type": [
-                                                        "string",
-                                                        "null"
-                                                    ]
-                                                },
-                                                "per_page": {
-                                                    "type": "integer"
-                                                }
-                                            },
-                                            "required": [
-                                                "next_cursor",
-                                                "prev_cursor",
-                                                "per_page"
-                                            ]
+                                        "path": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ],
+                                            "description": "Base path for paginator generated URLs."
+                                        },
+                                        "per_page": {
+                                            "type": "integer",
+                                            "description": "Number of items shown per page.",
+                                            "minimum": 0
+                                        },
+                                        "next_cursor": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ],
+                                            "description": "The \"cursor\" that points to the next set of items."
+                                        },
+                                        "next_page_url": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ],
+                                            "format": "uri"
+                                        },
+                                        "prev_cursor": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ],
+                                            "description": "The \"cursor\" that points to the previous set of items."
+                                        },
+                                        "prev_page_url": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ],
+                                            "format": "uri"
                                         }
                                     },
                                     "required": [
                                         "data",
-                                        "meta"
+                                        "path",
+                                        "per_page",
+                                        "next_cursor",
+                                        "next_page_url",
+                                        "prev_cursor",
+                                        "prev_page_url"
                                     ]
                                 }
                             }
                         }
                     },
-                    "403": {
-                        "description": "An error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ApiError"
-                                }
-                            }
-                        }
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
                     },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
                     }
                 }
             }
@@ -341,31 +350,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "ids": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "string",
-                                            "format": "uuid"
-                                        },
-                                        "minItems": 1,
-                                        "maxItems": 100,
-                                        "uniqueItems": true
-                                    },
-                                    "action": {
-                                        "type": "string",
-                                        "enum": [
-                                            "trash",
-                                            "restore",
-                                            "favorite"
-                                        ]
-                                    }
-                                },
-                                "required": [
-                                    "ids",
-                                    "action"
-                                ]
+                                "$ref": "#/components/schemas/BatchDocumentsRequest"
                             }
                         }
                     }
@@ -382,7 +367,8 @@
                                             "type": "object",
                                             "properties": {
                                                 "count": {
-                                                    "type": "integer"
+                                                    "type": "integer",
+                                                    "minimum": 0
                                                 }
                                             },
                                             "required": [
@@ -397,11 +383,31 @@
                             }
                         }
                     },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
                     },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
+                    "403": {
+                        "description": "The requested operation is not permitted for every document.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "A requested document could not be found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -815,34 +821,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "provider": {
-                                        "type": "string",
-                                        "enum": [
-                                            "mail"
-                                        ]
-                                    },
-                                    "name": {
-                                        "type": "string",
-                                        "maxLength": 100
-                                    },
-                                    "email": {
-                                        "type": "string",
-                                        "format": "email",
-                                        "maxLength": 255
-                                    },
-                                    "password": {
-                                        "type": "string",
-                                        "maxLength": 4096
-                                    }
-                                },
-                                "required": [
-                                    "provider",
-                                    "name",
-                                    "email",
-                                    "password"
-                                ]
+                                "$ref": "#/components/schemas/ConnectMailCloudRequest"
                             }
                         }
                     }
@@ -866,21 +845,14 @@
                             }
                         }
                     },
-                    "403": {
-                        "description": "An error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ApiError"
-                                }
-                            }
-                        }
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
                     },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
                     }
                 }
             }
@@ -923,47 +895,30 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "anyOf": [
-                                                {
-                                                    "type": "array",
-                                                    "items": {
-                                                        "type": "object",
-                                                        "properties": {
-                                                            "name": {
-                                                                "type": "string"
-                                                            },
-                                                            "path": {
-                                                                "type": [
-                                                                    "null",
-                                                                    "array",
-                                                                    "string",
-                                                                    "integer",
-                                                                    "object"
-                                                                ]
-                                                            },
-                                                            "type": {
-                                                                "type": "string",
-                                                                "enum": [
-                                                                    "dir",
-                                                                    "file"
-                                                                ]
-                                                            },
-                                                            "size": {
-                                                                "type": "integer"
-                                                            }
-                                                        },
-                                                        "required": [
-                                                            "name",
-                                                            "path",
-                                                            "type",
-                                                            "size"
-                                                        ]
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "path": {
+                                                        "type": "string"
+                                                    },
+                                                    "type": {
+                                                        "$ref": "#/components/schemas/CloudEntryType"
+                                                    },
+                                                    "size": {
+                                                        "type": "integer"
                                                     }
                                                 },
-                                                {
-                                                    "type": "array"
-                                                }
-                                            ]
+                                                "required": [
+                                                    "name",
+                                                    "path",
+                                                    "type",
+                                                    "size"
+                                                ]
+                                            }
                                         }
                                     },
                                     "required": [
@@ -1001,6 +956,9 @@
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
                     }
                 }
             }
@@ -1047,6 +1005,9 @@
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
                     }
                 }
             }
@@ -1221,21 +1182,13 @@
                         "name": "status",
                         "in": "query",
                         "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ],
-                            "enum": [
-                                "quarantined",
-                                "scanning",
-                                "extracting",
-                                "recognizing",
-                                "indexing",
-                                "ready",
-                                "failed",
-                                "rejected",
-                                "cancelled",
-                                null
+                            "anyOf": [
+                                {
+                                    "$ref": "#/components/schemas/DocumentVersionStatus"
+                                },
+                                {
+                                    "type": "null"
+                                }
                             ]
                         }
                     },
@@ -1476,6 +1429,17 @@
                 "tags": [
                     "Document"
                 ],
+                "parameters": [
+                    {
+                        "name": "Idempotency-Key",
+                        "in": "header",
+                        "required": true,
+                        "description": "An idempotency key of 8–100 bytes.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -1505,11 +1469,11 @@
                             }
                         }
                     },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
                     },
                     "403": {
                         "$ref": "#/components/responses/AuthorizationException"
@@ -1637,21 +1601,13 @@
                         "name": "status",
                         "in": "query",
                         "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ],
-                            "enum": [
-                                "quarantined",
-                                "scanning",
-                                "extracting",
-                                "recognizing",
-                                "indexing",
-                                "ready",
-                                "failed",
-                                "rejected",
-                                "cancelled",
-                                null
+                            "anyOf": [
+                                {
+                                    "$ref": "#/components/schemas/DocumentVersionStatus"
+                                },
+                                {
+                                    "type": "null"
+                                }
                             ]
                         }
                     },
@@ -1958,20 +1914,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "title": {
-                                        "type": "string",
-                                        "maxLength": 255
-                                    },
-                                    "revision": {
-                                        "type": "integer"
-                                    }
-                                },
-                                "required": [
-                                    "title",
-                                    "revision"
-                                ]
+                                "$ref": "#/components/schemas/RenameDocumentRequest"
                             }
                         }
                     }
@@ -1995,17 +1938,27 @@
                             }
                         }
                     },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    },
                     "404": {
                         "$ref": "#/components/responses/ModelNotFoundException"
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "409": {
+                        "description": "The submitted revision no longer matches the document.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                }
+                            }
+                        }
                     }
                 }
             },
@@ -2167,6 +2120,15 @@
                             "type": "string",
                             "format": "uuid"
                         }
+                    },
+                    {
+                        "name": "Idempotency-Key",
+                        "in": "header",
+                        "required": true,
+                        "description": "An idempotency key of 8–100 bytes.",
+                        "schema": {
+                            "type": "string"
+                        }
                     }
                 ],
                 "requestBody": {
@@ -2198,17 +2160,17 @@
                             }
                         }
                     },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
                     "404": {
                         "$ref": "#/components/responses/ModelNotFoundException"
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
                     }
                 }
             }
@@ -2514,45 +2476,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "grants": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "object",
-                                            "properties": {
-                                                "user_id": {
-                                                    "type": "integer"
-                                                },
-                                                "read": {
-                                                    "type": "boolean"
-                                                },
-                                                "comment": {
-                                                    "type": "boolean"
-                                                },
-                                                "edit": {
-                                                    "type": "boolean"
-                                                },
-                                                "export": {
-                                                    "type": "boolean"
-                                                }
-                                            },
-                                            "required": [
-                                                "user_id",
-                                                "read",
-                                                "comment",
-                                                "edit",
-                                                "export"
-                                            ]
-                                        },
-                                        "minItems": 1,
-                                        "maxItems": 100,
-                                        "uniqueItems": true
-                                    }
-                                },
-                                "required": [
-                                    "grants"
-                                ]
+                                "$ref": "#/components/schemas/ReplaceDocumentGrantsRequest"
                             }
                         }
                     }
@@ -2579,17 +2503,17 @@
                             }
                         }
                     },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
                     "404": {
                         "$ref": "#/components/responses/ModelNotFoundException"
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
                     }
                 }
             }
@@ -2613,7 +2537,7 @@
                                             "properties": {
                                                 "message": {
                                                     "type": "string",
-                                                    "const": "\u042d\u043b\u0435\u043a\u0442\u0440\u043e\u043d\u043d\u0430\u044f \u043f\u043e\u0447\u0442\u0430 \u0443\u0436\u0435 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0430."
+                                                    "const": "Электронная почта уже подтверждена."
                                                 }
                                             },
                                             "required": [
@@ -2640,7 +2564,7 @@
                                             "properties": {
                                                 "message": {
                                                     "type": "string",
-                                                    "const": "\u041f\u0438\u0441\u044c\u043c\u043e \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u044f \u043f\u043e\u0441\u0442\u0430\u0432\u043b\u0435\u043d\u043e \u0432 \u043e\u0447\u0435\u0440\u0435\u0434\u044c \u043e\u0442\u043f\u0440\u0430\u0432\u043a\u0438."
+                                                    "const": "Письмо подтверждения поставлено в очередь отправки."
                                                 }
                                             },
                                             "required": [
@@ -2819,37 +2743,21 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "name": {
-                                        "type": "string",
-                                        "maxLength": 120
-                                    },
-                                    "parent_id": {
-                                        "type": [
-                                            "string",
-                                            "null"
-                                        ],
-                                        "format": "uuid"
-                                    }
-                                },
-                                "required": [
-                                    "name"
-                                ]
+                                "$ref": "#/components/schemas/CreateFolderRequest"
                             }
                         }
                     }
                 },
                 "responses": {
                     "201": {
-                        "description": "",
+                        "description": "`FolderResource`",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/components/schemas/Folder"
+                                            "$ref": "#/components/schemas/FolderResource"
                                         }
                                     },
                                     "required": [
@@ -2859,8 +2767,17 @@
                             }
                         }
                     },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
                     "403": {
-                        "description": "An error",
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "description": "The parent folder could not be found.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2868,12 +2785,6 @@
                                 }
                             }
                         }
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
                     }
                 }
             }
@@ -3184,25 +3095,18 @@
                     "200": {
                         "description": "",
                         "content": {
-                            "application/json": {
+                            "text/plain; version=0.0.4": {
                                 "schema": {
                                     "type": "string"
                                 }
                             }
                         }
                     },
-                    "403": {
-                        "description": "An error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ApiError"
-                                }
-                            }
-                        }
-                    },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
                     }
                 }
             }
@@ -3572,7 +3476,7 @@
                                             "properties": {
                                                 "message": {
                                                     "type": "string",
-                                                    "const": "\u0415\u0441\u043b\u0438 \u0443\u0447\u0451\u0442\u043d\u0430\u044f \u0437\u0430\u043f\u0438\u0441\u044c \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u0443\u0435\u0442, \u043f\u0438\u0441\u044c\u043c\u043e \u0441 \u0438\u043d\u0441\u0442\u0440\u0443\u043a\u0446\u0438\u0435\u0439 \u043e\u0442\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u043e."
+                                                    "const": "Если учётная запись существует, письмо с инструкцией отправлено."
                                                 }
                                             },
                                             "required": [
@@ -3651,7 +3555,7 @@
                                             "properties": {
                                                 "message": {
                                                     "type": "string",
-                                                    "const": "\u041f\u0430\u0440\u043e\u043b\u044c \u043e\u0431\u043d\u043e\u0432\u043b\u0451\u043d. \u0412\u043e\u0439\u0434\u0438\u0442\u0435 \u0441 \u043d\u043e\u0432\u044b\u043c \u043f\u0430\u0440\u043e\u043b\u0435\u043c."
+                                                    "const": "Пароль обновлён. Войдите с новым паролем."
                                                 }
                                             },
                                             "required": [
@@ -3724,11 +3628,18 @@
                             "type": "string",
                             "format": "uuid"
                         }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "`PreviewStatusResource`",
                         "content": {
                             "application/octet-stream": {
                                 "schema": {
@@ -3741,29 +3652,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "type": "object",
-                                            "properties": {
-                                                "kind": {
-                                                    "type": "string",
-                                                    "enum": [
-                                                        "image",
-                                                        "pdf",
-                                                        "text"
-                                                    ]
-                                                },
-                                                "status": {
-                                                    "type": "string",
-                                                    "enum": [
-                                                        "ready",
-                                                        "failed",
-                                                        "pending"
-                                                    ]
-                                                }
-                                            },
-                                            "required": [
-                                                "kind",
-                                                "status"
-                                            ]
+                                            "$ref": "#/components/schemas/PreviewStatusResource"
                                         }
                                     },
                                     "required": [
@@ -3783,8 +3672,20 @@
                             }
                         }
                     },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
                     "409": {
-                        "description": "An error",
+                        "description": "The version is still being processed or could not be processed.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -3792,15 +3693,6 @@
                                 }
                             }
                         }
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
                     }
                 }
             }
@@ -3918,38 +3810,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "connection_id": {
-                                        "type": "string",
-                                        "format": "uuid"
-                                    },
-                                    "direction": {
-                                        "type": "string",
-                                        "enum": [
-                                            "import",
-                                            "export"
-                                        ]
-                                    },
-                                    "path": {
-                                        "type": "string",
-                                        "maxLength": 2048
-                                    },
-                                    "filename": {
-                                        "type": "string",
-                                        "maxLength": 255
-                                    },
-                                    "version_id": {
-                                        "type": "string",
-                                        "format": "uuid"
-                                    }
-                                },
-                                "required": [
-                                    "connection_id",
-                                    "direction",
-                                    "path",
-                                    "filename"
-                                ]
+                                "$ref": "#/components/schemas/QueueCloudTransferRequest"
                             }
                         }
                     }
@@ -3973,27 +3834,14 @@
                             }
                         }
                     },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
                     },
-                    "409": {
-                        "description": "An error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ApiError"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
                     }
                 }
             }
@@ -4035,21 +3883,14 @@
                             }
                         }
                     },
-                    "409": {
-                        "description": "An error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ApiError"
-                                }
-                            }
-                        }
-                    },
                     "404": {
                         "$ref": "#/components/responses/ModelNotFoundException"
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
                     }
                 }
             }
@@ -4096,15 +3937,13 @@
                         "name": "role",
                         "in": "query",
                         "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ],
-                            "enum": [
-                                "admin",
-                                "employee",
-                                "observer",
-                                null
+                            "anyOf": [
+                                {
+                                    "$ref": "#/components/schemas/UserRole"
+                                },
+                                {
+                                    "type": "null"
+                                }
                             ]
                         }
                     },
@@ -4153,7 +3992,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Paginated set of `User`",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -4165,48 +4004,68 @@
                                                 "$ref": "#/components/schemas/User"
                                             }
                                         },
-                                        "meta": {
-                                            "type": "object",
-                                            "properties": {
-                                                "next_cursor": {
-                                                    "type": [
-                                                        "string",
-                                                        "null"
-                                                    ]
-                                                },
-                                                "prev_cursor": {
-                                                    "type": [
-                                                        "string",
-                                                        "null"
-                                                    ]
-                                                },
-                                                "per_page": {
-                                                    "type": "integer"
-                                                }
-                                            },
-                                            "required": [
-                                                "next_cursor",
-                                                "prev_cursor",
-                                                "per_page"
-                                            ]
+                                        "path": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ],
+                                            "description": "Base path for paginator generated URLs."
+                                        },
+                                        "per_page": {
+                                            "type": "integer",
+                                            "description": "Number of items shown per page.",
+                                            "minimum": 0
+                                        },
+                                        "next_cursor": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ],
+                                            "description": "The \"cursor\" that points to the next set of items."
+                                        },
+                                        "next_page_url": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ],
+                                            "format": "uri"
+                                        },
+                                        "prev_cursor": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ],
+                                            "description": "The \"cursor\" that points to the previous set of items."
+                                        },
+                                        "prev_page_url": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ],
+                                            "format": "uri"
                                         }
                                     },
                                     "required": [
                                         "data",
-                                        "meta"
+                                        "path",
+                                        "per_page",
+                                        "next_cursor",
+                                        "next_page_url",
+                                        "prev_cursor",
+                                        "prev_page_url"
                                     ]
                                 }
                             }
                         }
                     },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
                     },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
                     }
                 }
             },
@@ -4220,37 +4079,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "name": {
-                                        "type": "string",
-                                        "maxLength": 120
-                                    },
-                                    "email": {
-                                        "type": "string",
-                                        "format": "email",
-                                        "maxLength": 255
-                                    },
-                                    "password": {
-                                        "type": "string",
-                                        "minLength": 12,
-                                        "maxLength": 128
-                                    },
-                                    "role": {
-                                        "type": "string",
-                                        "enum": [
-                                            "admin",
-                                            "employee",
-                                            "observer"
-                                        ]
-                                    }
-                                },
-                                "required": [
-                                    "name",
-                                    "email",
-                                    "password",
-                                    "role"
-                                ]
+                                "$ref": "#/components/schemas/CreateManagedUserRequest"
                             }
                         }
                     }
@@ -4274,14 +4103,14 @@
                             }
                         }
                     },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
                     },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
                     }
                 }
             }
@@ -4307,24 +4136,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "name": {
-                                        "type": "string",
-                                        "maxLength": 120
-                                    },
-                                    "role": {
-                                        "type": "string",
-                                        "enum": [
-                                            "admin",
-                                            "employee",
-                                            "observer"
-                                        ]
-                                    },
-                                    "active": {
-                                        "type": "boolean"
-                                    }
-                                }
+                                "$ref": "#/components/schemas/UpdateManagedUserRequest"
                             }
                         }
                     }
@@ -4348,17 +4160,17 @@
                             }
                         }
                     },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    },
                     "404": {
                         "$ref": "#/components/responses/ModelNotFoundException"
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
                     }
                 }
             }
@@ -4447,16 +4259,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "connection_id": {
-                                        "type": [
-                                            "string",
-                                            "null"
-                                        ],
-                                        "format": "uuid"
-                                    }
-                                }
+                                "$ref": "#/components/schemas/StartYandexOAuthRequest"
                             }
                         }
                     }
@@ -4488,16 +4291,6 @@
                             }
                         }
                     },
-                    "403": {
-                        "description": "An error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ApiError"
-                                }
-                            }
-                        }
-                    },
                     "503": {
                         "description": "An error",
                         "content": {
@@ -4508,11 +4301,14 @@
                             }
                         }
                     },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
                     },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
                     }
                 }
             }
@@ -4559,6 +4355,38 @@
                 ],
                 "title": "ApiError"
             },
+            "BatchDocumentOperation": {
+                "type": "string",
+                "enum": [
+                    "trash",
+                    "restore",
+                    "favorite"
+                ],
+                "title": "BatchDocumentOperation"
+            },
+            "BatchDocumentsRequest": {
+                "type": "object",
+                "properties": {
+                    "ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "minItems": 1,
+                        "maxItems": 100,
+                        "uniqueItems": true
+                    },
+                    "action": {
+                        "$ref": "#/components/schemas/BatchDocumentOperation"
+                    }
+                },
+                "required": [
+                    "ids",
+                    "action"
+                ],
+                "title": "BatchDocumentsRequest"
+            },
             "CloudConnection": {
                 "type": "object",
                 "properties": {
@@ -4575,7 +4403,7 @@
                         "type": "string"
                     },
                     "status": {
-                        "type": "string"
+                        "$ref": "#/components/schemas/CloudConnectionStatus"
                     },
                     "created_at": {
                         "type": [
@@ -4603,6 +4431,23 @@
                 ],
                 "title": "CloudConnection"
             },
+            "CloudConnectionStatus": {
+                "type": "string",
+                "enum": [
+                    "connected",
+                    "authorization_required",
+                    "disconnected"
+                ],
+                "title": "CloudConnectionStatus"
+            },
+            "CloudEntryType": {
+                "type": "string",
+                "enum": [
+                    "file",
+                    "dir"
+                ],
+                "title": "CloudEntryType"
+            },
             "CloudTransfer": {
                 "type": "object",
                 "properties": {
@@ -4622,7 +4467,7 @@
                         ]
                     },
                     "direction": {
-                        "type": "string"
+                        "$ref": "#/components/schemas/TransferDirection"
                     },
                     "remote_path": {
                         "type": "string"
@@ -4631,7 +4476,7 @@
                         "type": "string"
                     },
                     "status": {
-                        "type": "string"
+                        "$ref": "#/components/schemas/CloudTransferStatus"
                     },
                     "error_code": {
                         "type": [
@@ -4675,6 +4520,97 @@
                     "updated_at"
                 ],
                 "title": "CloudTransfer"
+            },
+            "CloudTransferStatus": {
+                "type": "string",
+                "enum": [
+                    "queued",
+                    "running",
+                    "completed",
+                    "failed",
+                    "cancelled"
+                ],
+                "title": "CloudTransferStatus"
+            },
+            "ConnectMailCloudRequest": {
+                "type": "object",
+                "properties": {
+                    "provider": {
+                        "type": "string",
+                        "enum": [
+                            "mail"
+                        ]
+                    },
+                    "name": {
+                        "type": "string",
+                        "maxLength": 100
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 255
+                    },
+                    "password": {
+                        "type": "string",
+                        "maxLength": 4096
+                    }
+                },
+                "required": [
+                    "provider",
+                    "name",
+                    "email",
+                    "password"
+                ],
+                "title": "ConnectMailCloudRequest"
+            },
+            "CreateFolderRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 120
+                    },
+                    "parent_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
+                    }
+                },
+                "required": [
+                    "name"
+                ],
+                "title": "CreateFolderRequest"
+            },
+            "CreateManagedUserRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 120
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 255
+                    },
+                    "password": {
+                        "type": "string",
+                        "minLength": 12,
+                        "maxLength": 128
+                    },
+                    "role": {
+                        "$ref": "#/components/schemas/UserRole"
+                    }
+                },
+                "required": [
+                    "name",
+                    "email",
+                    "password",
+                    "role"
+                ],
+                "title": "CreateManagedUserRequest"
             },
             "DocumentGrant": {
                 "type": "object",
@@ -4969,6 +4905,21 @@
                 ],
                 "title": "DocumentVersion"
             },
+            "DocumentVersionStatus": {
+                "type": "string",
+                "enum": [
+                    "quarantined",
+                    "scanning",
+                    "extracting",
+                    "recognizing",
+                    "indexing",
+                    "ready",
+                    "failed",
+                    "rejected",
+                    "cancelled"
+                ],
+                "title": "DocumentVersionStatus"
+            },
             "Folder": {
                 "type": "object",
                 "properties": {
@@ -5012,6 +4963,49 @@
                 ],
                 "title": "Folder"
             },
+            "FolderResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "owner_id": {
+                        "type": "integer"
+                    },
+                    "parent_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "owner_id",
+                    "parent_id",
+                    "name",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "FolderResource"
+            },
             "ForgotPasswordRequest": {
                 "type": "object",
                 "properties": {
@@ -5045,6 +5039,67 @@
                 ],
                 "title": "LoginRequest"
             },
+            "PreviewStatusResource": {
+                "type": "object",
+                "properties": {
+                    "kind": {
+                        "type": "string",
+                        "enum": [
+                            "image",
+                            "pdf",
+                            "text"
+                        ]
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "ready",
+                            "failed",
+                            "pending"
+                        ]
+                    }
+                },
+                "required": [
+                    "kind",
+                    "status"
+                ],
+                "title": "PreviewStatusResource"
+            },
+            "QueueCloudTransferRequest": {
+                "type": "object",
+                "properties": {
+                    "connection_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "direction": {
+                        "type": "string",
+                        "enum": [
+                            "import",
+                            "export"
+                        ]
+                    },
+                    "path": {
+                        "type": "string",
+                        "maxLength": 2048
+                    },
+                    "filename": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "version_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    }
+                },
+                "required": [
+                    "connection_id",
+                    "direction",
+                    "path",
+                    "filename"
+                ],
+                "title": "QueueCloudTransferRequest"
+            },
             "RegisterRequest": {
                 "type": "object",
                 "properties": {
@@ -5076,6 +5131,65 @@
                 ],
                 "title": "RegisterRequest"
             },
+            "RenameDocumentRequest": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "revision": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "title",
+                    "revision"
+                ],
+                "title": "RenameDocumentRequest"
+            },
+            "ReplaceDocumentGrantsRequest": {
+                "type": "object",
+                "properties": {
+                    "grants": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "user_id": {
+                                    "type": "integer"
+                                },
+                                "read": {
+                                    "type": "boolean"
+                                },
+                                "comment": {
+                                    "type": "boolean"
+                                },
+                                "edit": {
+                                    "type": "boolean"
+                                },
+                                "export": {
+                                    "type": "boolean"
+                                }
+                            },
+                            "required": [
+                                "user_id",
+                                "read",
+                                "comment",
+                                "edit",
+                                "export"
+                            ]
+                        },
+                        "minItems": 1,
+                        "maxItems": 100,
+                        "uniqueItems": true
+                    }
+                },
+                "required": [
+                    "grants"
+                ],
+                "title": "ReplaceDocumentGrantsRequest"
+            },
             "ResetPasswordRequest": {
                 "type": "object",
                 "properties": {
@@ -5105,6 +5219,43 @@
                     "password_confirmation"
                 ],
                 "title": "ResetPasswordRequest"
+            },
+            "StartYandexOAuthRequest": {
+                "type": "object",
+                "properties": {
+                    "connection_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
+                    }
+                },
+                "title": "StartYandexOAuthRequest"
+            },
+            "TransferDirection": {
+                "type": "string",
+                "enum": [
+                    "import",
+                    "export"
+                ],
+                "title": "TransferDirection"
+            },
+            "UpdateManagedUserRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 120
+                    },
+                    "role": {
+                        "$ref": "#/components/schemas/UserRole"
+                    },
+                    "is_active": {
+                        "type": "boolean"
+                    }
+                },
+                "title": "UpdateManagedUserRequest"
             },
             "UploadRequest": {
                 "type": "object",
@@ -5162,7 +5313,7 @@
                         "format": "date-time"
                     },
                     "role": {
-                        "type": "string"
+                        "$ref": "#/components/schemas/UserRole"
                     },
                     "active": {
                         "type": "boolean"
@@ -5179,6 +5330,15 @@
                     "active"
                 ],
                 "title": "User"
+            },
+            "UserRole": {
+                "type": "string",
+                "enum": [
+                    "admin",
+                    "employee",
+                    "observer"
+                ],
+                "title": "UserRole"
             }
         },
         "responses": {

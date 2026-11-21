@@ -724,34 +724,82 @@ export interface components {
                 request_id: string;
             };
         };
+        /**
+         * BatchDocumentOperation
+         * @enum {string}
+         */
+        BatchDocumentOperation: "trash" | "restore" | "favorite";
+        /** BatchDocumentsRequest */
+        BatchDocumentsRequest: {
+            ids: string[];
+            action: components["schemas"]["BatchDocumentOperation"];
+        };
         /** CloudConnection */
         CloudConnection: {
             id: string;
             owner_id: number;
             provider: string;
             name: string;
-            status: string;
+            status: components["schemas"]["CloudConnectionStatus"];
             /** Format: date-time */
             created_at: string | null;
             /** Format: date-time */
             updated_at: string | null;
         };
+        /**
+         * CloudConnectionStatus
+         * @enum {string}
+         */
+        CloudConnectionStatus: "connected" | "authorization_required" | "disconnected";
+        /**
+         * CloudEntryType
+         * @enum {string}
+         */
+        CloudEntryType: "file" | "dir";
         /** CloudTransfer */
         CloudTransfer: {
             id: string;
             initiator_id: number;
             connection_id: string;
             version_id: string | null;
-            direction: string;
+            direction: components["schemas"]["TransferDirection"];
             remote_path: string;
             filename: string;
-            status: string;
+            status: components["schemas"]["CloudTransferStatus"];
             error_code: string | null;
             document_id: string | null;
             /** Format: date-time */
             created_at: string | null;
             /** Format: date-time */
             updated_at: string | null;
+        };
+        /**
+         * CloudTransferStatus
+         * @enum {string}
+         */
+        CloudTransferStatus: "queued" | "running" | "completed" | "failed" | "cancelled";
+        /** ConnectMailCloudRequest */
+        ConnectMailCloudRequest: {
+            /** @enum {string} */
+            provider: "mail";
+            name: string;
+            /** Format: email */
+            email: string;
+            password: string;
+        };
+        /** CreateFolderRequest */
+        CreateFolderRequest: {
+            name: string;
+            /** Format: uuid */
+            parent_id?: string | null;
+        };
+        /** CreateManagedUserRequest */
+        CreateManagedUserRequest: {
+            name: string;
+            /** Format: email */
+            email: string;
+            password: string;
+            role: components["schemas"]["UserRole"];
         };
         /** DocumentGrant */
         DocumentGrant: {
@@ -824,8 +872,24 @@ export interface components {
             processing_attempts: number;
             processing_started_at: string | null;
         };
+        /**
+         * DocumentVersionStatus
+         * @enum {string}
+         */
+        DocumentVersionStatus: "quarantined" | "scanning" | "extracting" | "recognizing" | "indexing" | "ready" | "failed" | "rejected" | "cancelled";
         /** Folder */
         Folder: {
+            id: string;
+            owner_id: number;
+            parent_id: string | null;
+            name: string;
+            /** Format: date-time */
+            created_at: string | null;
+            /** Format: date-time */
+            updated_at: string | null;
+        };
+        /** FolderResource */
+        FolderResource: {
             id: string;
             owner_id: number;
             parent_id: string | null;
@@ -846,6 +910,24 @@ export interface components {
             email: string;
             password: string;
         };
+        /** PreviewStatusResource */
+        PreviewStatusResource: {
+            /** @enum {string} */
+            kind: "image" | "pdf" | "text";
+            /** @enum {string} */
+            status: "ready" | "failed" | "pending";
+        };
+        /** QueueCloudTransferRequest */
+        QueueCloudTransferRequest: {
+            /** Format: uuid */
+            connection_id: string;
+            /** @enum {string} */
+            direction: "import" | "export";
+            path: string;
+            filename: string;
+            /** Format: uuid */
+            version_id?: string;
+        };
         /** RegisterRequest */
         RegisterRequest: {
             name: string;
@@ -854,6 +936,21 @@ export interface components {
             password: string;
             password_confirmation: string;
         };
+        /** RenameDocumentRequest */
+        RenameDocumentRequest: {
+            title: string;
+            revision: number;
+        };
+        /** ReplaceDocumentGrantsRequest */
+        ReplaceDocumentGrantsRequest: {
+            grants: {
+                user_id: number;
+                read: boolean;
+                comment: boolean;
+                edit: boolean;
+                export: boolean;
+            }[];
+        };
         /** ResetPasswordRequest */
         ResetPasswordRequest: {
             /** Format: email */
@@ -861,6 +958,22 @@ export interface components {
             token: string;
             password: string;
             password_confirmation: string;
+        };
+        /** StartYandexOAuthRequest */
+        StartYandexOAuthRequest: {
+            /** Format: uuid */
+            connection_id?: string | null;
+        };
+        /**
+         * TransferDirection
+         * @enum {string}
+         */
+        TransferDirection: "import" | "export";
+        /** UpdateManagedUserRequest */
+        UpdateManagedUserRequest: {
+            name?: string;
+            role?: components["schemas"]["UserRole"];
+            is_active?: boolean;
         };
         /** UploadRequest */
         UploadRequest: {
@@ -882,9 +995,14 @@ export interface components {
             created_at: string | null;
             /** Format: date-time */
             updated_at: string | null;
-            role: string;
+            role: components["schemas"]["UserRole"];
             active: boolean;
         };
+        /**
+         * UserRole
+         * @enum {string}
+         */
+        UserRole: "admin" | "employee" | "observer";
     };
     responses: {
         /** @description Not found */
@@ -934,7 +1052,6 @@ export interface operations {
     "audit.index": {
         parameters: {
             query?: {
-                cursor?: string | null;
                 per_page?: number;
                 q?: string | null;
                 action?: string | null;
@@ -943,6 +1060,7 @@ export interface operations {
                 date_to?: string | null;
                 sort?: "created_at" | "id" | "action" | null;
                 direction?: "asc" | "desc" | null;
+                cursor?: string;
             };
             header?: never;
             path?: never;
@@ -950,31 +1068,31 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Paginated set of `stdClass` */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": {
-                        data: string[];
-                        meta: {
-                            next_cursor: string | null;
-                            prev_cursor: string | null;
-                            per_page: number;
-                        };
+                        data: Record<string, never>[];
+                        /** @description Base path for paginator generated URLs. */
+                        path: string | null;
+                        /** @description Number of items shown per page. */
+                        per_page: number;
+                        /** @description The "cursor" that points to the next set of items. */
+                        next_cursor: string | null;
+                        /** Format: uri */
+                        next_page_url: string | null;
+                        /** @description The "cursor" that points to the previous set of items. */
+                        prev_cursor: string | null;
+                        /** Format: uri */
+                        prev_page_url: string | null;
                     };
                 };
             };
             401: components["responses"]["AuthenticationException"];
-            /** @description An error */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
+            403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
         };
     };
@@ -1085,11 +1203,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
-                    ids: string[];
-                    /** @enum {string} */
-                    action: "trash" | "restore" | "favorite";
-                };
+                "application/json": components["schemas"]["BatchDocumentsRequest"];
             };
         };
         responses: {
@@ -1106,6 +1220,24 @@ export interface operations {
                 };
             };
             401: components["responses"]["AuthenticationException"];
+            /** @description The requested operation is not permitted for every document. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description A requested document could not be found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
             422: components["responses"]["ValidationException"];
         };
     };
@@ -1308,14 +1440,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
-                    /** @enum {string} */
-                    provider: "mail";
-                    name: string;
-                    /** Format: email */
-                    email: string;
-                    password: string;
-                };
+                "application/json": components["schemas"]["ConnectMailCloudRequest"];
             };
         };
         responses: {
@@ -1330,15 +1455,7 @@ export interface operations {
                 };
             };
             401: components["responses"]["AuthenticationException"];
-            /** @description An error */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
+            403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
         };
     };
@@ -1364,15 +1481,15 @@ export interface operations {
                     "application/json": {
                         data: {
                             name: string;
-                            path: null | unknown[] | string | number | Record<string, never>;
-                            /** @enum {string} */
-                            type: "dir" | "file";
+                            path: string;
+                            type: components["schemas"]["CloudEntryType"];
                             size: number;
-                        }[] | unknown[];
+                        }[];
                     };
                 };
             };
             401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
             /** @description An error */
@@ -1418,6 +1535,7 @@ export interface operations {
                 };
             };
             401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
         };
     };
@@ -1462,7 +1580,7 @@ export interface operations {
                 folder_id?: string | null;
                 tag_id?: string | null;
                 format?: "pdf" | "docx" | "xlsx" | "pptx" | "txt" | "md" | "csv" | "png" | "jpg" | "jpeg" | null;
-                status?: "quarantined" | "scanning" | "extracting" | "recognizing" | "indexing" | "ready" | "failed" | "rejected" | "cancelled" | null;
+                status?: components["schemas"]["DocumentVersionStatus"] | null;
                 created_from?: string | null;
                 created_to?: string | null;
                 updated_from?: string | null;
@@ -1520,7 +1638,10 @@ export interface operations {
     "document.store": {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                /** @description An idempotency key of 8–100 bytes. */
+                "Idempotency-Key": string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1558,7 +1679,7 @@ export interface operations {
                 folder_id?: string | null;
                 tag_id?: string | null;
                 format?: "pdf" | "docx" | "xlsx" | "pptx" | "txt" | "md" | "csv" | "png" | "jpg" | "jpeg" | null;
-                status?: "quarantined" | "scanning" | "extracting" | "recognizing" | "indexing" | "ready" | "failed" | "rejected" | "cancelled" | null;
+                status?: components["schemas"]["DocumentVersionStatus"] | null;
                 created_from?: string | null;
                 created_to?: string | null;
                 updated_from?: string | null;
@@ -1680,10 +1801,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
-                    title: string;
-                    revision: number;
-                };
+                "application/json": components["schemas"]["RenameDocumentRequest"];
             };
         };
         responses: {
@@ -1701,6 +1819,15 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            /** @description The submitted revision no longer matches the document. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
             422: components["responses"]["ValidationException"];
         };
     };
@@ -1760,7 +1887,10 @@ export interface operations {
     "document.addVersion": {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                /** @description An idempotency key of 8–100 bytes. */
+                "Idempotency-Key": string;
+            };
             path: {
                 /** @description The document ID */
                 document: string;
@@ -1948,15 +2078,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
-                    grants: {
-                        user_id: number;
-                        read: boolean;
-                        comment: boolean;
-                        edit: boolean;
-                        export: boolean;
-                    }[];
-                };
+                "application/json": components["schemas"]["ReplaceDocumentGrantsRequest"];
             };
         };
         responses: {
@@ -2109,27 +2231,25 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
-                    name: string;
-                    /** Format: uuid */
-                    parent_id?: string | null;
-                };
+                "application/json": components["schemas"]["CreateFolderRequest"];
             };
         };
         responses: {
+            /** @description `FolderResource` */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": {
-                        data: components["schemas"]["Folder"];
+                        data: components["schemas"]["FolderResource"];
                     };
                 };
             };
             401: components["responses"]["AuthenticationException"];
-            /** @description An error */
-            403: {
+            403: components["responses"]["AuthorizationException"];
+            /** @description The parent folder could not be found. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2305,19 +2425,11 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": string;
+                    "text/plain; version=0.0.4": string;
                 };
             };
             401: components["responses"]["AuthenticationException"];
-            /** @description An error */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
+            403: components["responses"]["AuthorizationException"];
         };
     };
     "office.source": {
@@ -2589,7 +2701,9 @@ export interface operations {
     };
     "preview.show": {
         parameters: {
-            query?: never;
+            query?: {
+                status?: boolean;
+            };
             header?: never;
             path: {
                 /** @description The version ID */
@@ -2599,6 +2713,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description `PreviewStatusResource` */
             200: {
                 headers: {
                     "Transfer-Encoding"?: "chunked";
@@ -2607,19 +2722,14 @@ export interface operations {
                 content: {
                     "application/octet-stream": string;
                     "application/json": {
-                        data: {
-                            /** @enum {string} */
-                            kind: "image" | "pdf" | "text";
-                            /** @enum {string} */
-                            status: "ready" | "failed" | "pending";
-                        };
+                        data: components["schemas"]["PreviewStatusResource"];
                     };
                 };
             };
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
-            /** @description An error */
+            /** @description The version is still being processed or could not be processed. */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -2628,6 +2738,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApiError"];
                 };
             };
+            422: components["responses"]["ValidationException"];
         };
     };
     "registration.store": {
@@ -2707,16 +2818,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
-                    /** Format: uuid */
-                    connection_id: string;
-                    /** @enum {string} */
-                    direction: "import" | "export";
-                    path: string;
-                    filename: string;
-                    /** Format: uuid */
-                    version_id?: string;
-                };
+                "application/json": components["schemas"]["QueueCloudTransferRequest"];
             };
         };
         responses: {
@@ -2732,16 +2834,6 @@ export interface operations {
             };
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
-            404: components["responses"]["ModelNotFoundException"];
-            /** @description An error */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
             422: components["responses"]["ValidationException"];
         };
     };
@@ -2768,16 +2860,8 @@ export interface operations {
                 };
             };
             401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
-            /** @description An error */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
         };
     };
     "user.index": {
@@ -2786,7 +2870,7 @@ export interface operations {
                 cursor?: string | null;
                 per_page?: number;
                 q?: string | null;
-                role?: "admin" | "employee" | "observer" | null;
+                role?: components["schemas"]["UserRole"] | null;
                 active?: boolean | null;
                 sort?: "name" | "email" | "created_at" | "id" | null;
                 direction?: "asc" | "desc" | null;
@@ -2797,6 +2881,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Paginated set of `User` */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -2804,11 +2889,18 @@ export interface operations {
                 content: {
                     "application/json": {
                         data: components["schemas"]["User"][];
-                        meta: {
-                            next_cursor: string | null;
-                            prev_cursor: string | null;
-                            per_page: number;
-                        };
+                        /** @description Base path for paginator generated URLs. */
+                        path: string | null;
+                        /** @description Number of items shown per page. */
+                        per_page: number;
+                        /** @description The "cursor" that points to the next set of items. */
+                        next_cursor: string | null;
+                        /** Format: uri */
+                        next_page_url: string | null;
+                        /** @description The "cursor" that points to the previous set of items. */
+                        prev_cursor: string | null;
+                        /** Format: uri */
+                        prev_page_url: string | null;
                     };
                 };
             };
@@ -2826,14 +2918,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
-                    name: string;
-                    /** Format: email */
-                    email: string;
-                    password: string;
-                    /** @enum {string} */
-                    role: "admin" | "employee" | "observer";
-                };
+                "application/json": components["schemas"]["CreateManagedUserRequest"];
             };
         };
         responses: {
@@ -2864,12 +2949,7 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": {
-                    name?: string;
-                    /** @enum {string} */
-                    role?: "admin" | "employee" | "observer";
-                    active?: boolean;
-                };
+                "application/json": components["schemas"]["UpdateManagedUserRequest"];
             };
         };
         responses: {
@@ -2943,10 +3023,7 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": {
-                    /** Format: uuid */
-                    connection_id?: string | null;
-                };
+                "application/json": components["schemas"]["StartYandexOAuthRequest"];
             };
         };
         responses: {
@@ -2963,15 +3040,7 @@ export interface operations {
                 };
             };
             401: components["responses"]["AuthenticationException"];
-            /** @description An error */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
+            403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
             /** @description An error */
             503: {

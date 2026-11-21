@@ -1,5 +1,5 @@
 FROM php:8.4-fpm-bookworm
-RUN apt-get update && apt-get install -y --no-install-recommends libpq-dev libzip-dev libicu-dev unzip git curl \
+RUN apt-get update && apt-get install -y --no-install-recommends libpq-dev libzip-dev libicu-dev unzip git curl clamdscan \
  && docker-php-ext-install pdo_pgsql intl zip pcntl bcmath \
  && rm -rf /var/lib/apt/lists/*
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer

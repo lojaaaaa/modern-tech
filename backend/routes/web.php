@@ -2,50 +2,49 @@
 
 declare(strict_types=1);
 use App\Http\Middleware\EnsureActive;
-use App\Modules\Audit\Http\AuditController;
-use App\Modules\Collaboration\Http\CommentController;
-use App\Modules\Collaboration\Http\OfficeController;
-use App\Modules\Documents\Http\BatchController;
-use App\Modules\Documents\Http\DocumentController;
-use App\Modules\Documents\Http\LibraryController;
-use App\Modules\Documents\Http\PreviewController;
-use App\Modules\Identity\Http\AuthController;
-use App\Modules\Identity\Http\EmailVerificationController;
-use App\Modules\Identity\Http\PasswordController;
-use App\Modules\Identity\Http\RegistrationController;
-use App\Modules\Identity\Http\UserController;
-use App\Modules\Integrations\Http\ConnectionController;
-use App\Modules\Integrations\Http\TransferController;
-use App\Modules\Integrations\Http\YandexOAuthController;
-use App\Modules\Observability\Http\MetricsController;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Redis;
+use App\Modules\Audit\Http\Controllers\AuditController;
+use App\Modules\Collaboration\Http\Controllers\CommentController;
+use App\Modules\Collaboration\Http\Controllers\OfficeController;
+use App\Modules\Documents\Http\Controllers\BatchController;
+use App\Modules\Documents\Http\Controllers\DocumentController;
+use App\Modules\Documents\Http\Controllers\LibraryController;
+use App\Modules\Documents\Http\Controllers\PreviewController;
+use App\Modules\Identity\Http\Controllers\AuthController;
+use App\Modules\Identity\Http\Controllers\EmailVerificationController;
+use App\Modules\Identity\Http\Controllers\PasswordController;
+use App\Modules\Identity\Http\Controllers\RegistrationController;
+use App\Modules\Identity\Http\Controllers\UserController;
+use App\Modules\Integrations\Http\Controllers\ConnectionController;
+use App\Modules\Integrations\Http\Controllers\TransferController;
+use App\Modules\Integrations\Http\Controllers\YandexOAuthController;
+use App\Modules\Observability\Http\Controllers\MetricsController;
+use App\Modules\Observability\Http\Controllers\ReadinessController;
+use App\Providers\AppServiceProvider;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/health/ready', function () {
-    DB::select('select 1');
-    Redis::connection()->ping();
-    Cache::put('health:ready', true, 10);
-    abort_unless(Cache::get('health:ready') === true, 503);
-
-    return response()->json(['status' => 'ready']);
-});
+Route::get('/health/ready', ReadinessController::class);
 Route::prefix('api/v1')->group(function (): void {
-    Route::get('/connections/yandex/callback', [YandexOAuthController::class, 'callback'])->middleware('throttle:60,1');
+    Route::get('/connections/yandex/callback', [YandexOAuthController::class, 'callback'])
+        ->middleware('throttle:60,1,' . YandexOAuthController::CALLBACK_THROTTLE_PREFIX);
     Route::get('/office/source/{capability}', [OfficeController::class, 'source'])->where('capability', '[A-Za-z0-9._-]+');
     Route::post('/office/callback', [OfficeController::class, 'callback']);
-    Route::post('/auth/register', [RegistrationController::class, 'store'])->middleware('throttle:registration');
-    Route::post('/auth/forgot-password', [PasswordController::class, 'forgot'])->middleware('throttle:3,15');
-    Route::post('/auth/reset-password', [PasswordController::class, 'reset'])->middleware('throttle:10,1');
-    Route::post('/auth/login', [AuthController::class, 'login']);
+    Route::post('/auth/register', [RegistrationController::class, 'store'])
+        ->middleware('throttle:' . AppServiceProvider::REGISTRATION_LIMITER);
+    Route::post('/auth/forgot-password', [PasswordController::class, 'forgot'])
+        ->middleware('throttle:3,15,' . PasswordController::FORGOT_THROTTLE_PREFIX);
+    Route::post('/auth/reset-password', [PasswordController::class, 'reset'])
+        ->middleware('throttle:10,1,' . PasswordController::RESET_THROTTLE_PREFIX);
+    Route::post('/auth/login', [AuthController::class, 'login'])
+        ->middleware('throttle:' . AppServiceProvider::LOGIN_LIMITER);
     Route::middleware(['auth', EnsureActive::class, 'auth.session'])->group(function (): void {
-        Route::post('/auth/verification-notification', [EmailVerificationController::class, 'store'])->middleware('throttle:email-verification');
+        Route::post('/auth/verification-notification', [EmailVerificationController::class, 'store'])
+            ->middleware('throttle:' . AppServiceProvider::VERIFICATION_LIMITER);
         Route::get('/auth/verify-email/{id}/{hash}', [EmailVerificationController::class, 'show'])->whereNumber('id')->middleware('signed')->name('verification.verify');
         Route::get('/admin/metrics', MetricsController::class);
         Route::get('/connections', [ConnectionController::class, 'index']);
         Route::get('/connections/yandex/authorization', [YandexOAuthController::class, 'availability']);
-        Route::post('/connections/yandex/authorization', [YandexOAuthController::class, 'start'])->middleware('throttle:10,1');
+        Route::post('/connections/yandex/authorization', [YandexOAuthController::class, 'start'])
+            ->middleware('throttle:10,1,' . YandexOAuthController::START_THROTTLE_PREFIX);
         Route::post('/connections', [ConnectionController::class, 'store']);
         Route::get('/connections/{connection}/files', [ConnectionController::class, 'files']);
         Route::delete('/connections/{connection}', [ConnectionController::class, 'disconnect']);
@@ -58,7 +57,7 @@ Route::prefix('api/v1')->group(function (): void {
         Route::post('/users', [UserController::class, 'store']);
         Route::patch('/users/{user}', [UserController::class, 'update']);
         Route::get('/folders', [LibraryController::class, 'folders']);
-        Route::post('/folders', [LibraryController::class, 'createFolder']);
+        Route::post('/folders', [LibraryController::class, 'create']);
         Route::delete('/folders/{folder}', [LibraryController::class, 'removeFolder']);
         Route::get('/tags', [LibraryController::class, 'tags']);
         Route::put('/documents/{document}/folder', [LibraryController::class, 'move']);

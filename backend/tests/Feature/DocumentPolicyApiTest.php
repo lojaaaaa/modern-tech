@@ -8,8 +8,8 @@ use App\Models\User;
 use App\Modules\Documents\Models\Document;
 use App\Modules\Documents\Models\DocumentVersion;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -21,11 +21,11 @@ class DocumentPolicyApiTest extends TestCase
     {
         $owner = User::factory()->create();
         $reader = User::factory()->create();
-        $document = Document::create(['owner_id' => $owner->id, 'title' => 'Working discussion']);
+        $document = Document::query()->create(['owner_id' => $owner->id, 'title' => 'Working discussion']);
         $document->grants()->create(['user_id' => $reader->id, 'read' => true]);
         $attributes = ['document_id' => $document->id, 'creator_id' => $owner->id, 'storage_key' => 'file.txt', 'original_name' => 'file.txt', 'mime' => 'text/plain', 'size' => 4, 'sha256' => hash('sha256', 'text'), 'status' => 'ready'];
-        $first = DocumentVersion::create($attributes + ['number' => 1]);
-        $second = DocumentVersion::create($attributes + ['number' => 2]);
+        $first = DocumentVersion::query()->create($attributes + ['number' => 1]);
+        $second = DocumentVersion::query()->create($attributes + ['number' => 2]);
         $document->update(['published_version_id' => $first->id, 'desired_version_id' => $second->id]);
 
         $parent = $this->actingAs($owner)->postJson('/api/v1/documents/'.$document->id.'/comments', ['body' => 'Private working discussion', 'version_id' => $first->id])->assertCreated()->json('data.id');
@@ -38,10 +38,10 @@ class DocumentPolicyApiTest extends TestCase
     {
         $owner = User::factory()->create();
         $stranger = User::factory()->create();
-        $document = Document::create(['owner_id' => $owner->id, 'title' => 'Private']);
+        $document = Document::query()->create(['owner_id' => $owner->id, 'title' => 'Private']);
         $attrs = ['document_id' => $document->id, 'creator_id' => $owner->id, 'storage_key' => 'file.txt', 'original_name' => 'file.txt', 'mime' => 'text/plain', 'size' => 4, 'sha256' => hash('sha256', 'text'), 'status' => 'ready'];
-        $published = DocumentVersion::create($attrs + ['number' => 1]);
-        $candidate = DocumentVersion::create($attrs + ['number' => 2]);
+        $published = DocumentVersion::query()->create($attrs + ['number' => 1]);
+        $candidate = DocumentVersion::query()->create($attrs + ['number' => 2]);
         $document->update(['published_version_id' => $published->id, 'desired_version_id' => $candidate->id]);
         foreach ([$published, $candidate] as $version) {
             DB::table('document_entities')->insert(['version_id' => $version->id, 'type' => 'email', 'value' => 'person@example.com', 'offset' => 0, 'length' => 18, 'source' => 'rules-v1']);
@@ -52,14 +52,14 @@ class DocumentPolicyApiTest extends TestCase
     }
 
     #[DataProvider('roles')]
-    public function test_current_document_permissions_apply_to_the_card_and_version_resources(string $role, bool $owner, array $grants, array $permissions, int $readStatus, bool $active = true): void
+    public function test_current_document_permissions_apply_to_the_card_and_version_resources(string $role, bool $isOwner, array $grants, array $permissions, int $readStatus, bool $isActive = true): void
     {
         Storage::fake('local');
         Storage::disk('local')->put('original.png', 'image bytes');
-        $actor = User::factory()->create(['role' => $role, 'active' => $active]);
-        $documentOwner = $owner ? $actor : User::factory()->create();
-        $document = Document::create(['owner_id' => $documentOwner->id, 'title' => 'Role matrix']);
-        $version = DocumentVersion::create(['document_id' => $document->id, 'creator_id' => $documentOwner->id, 'number' => 1, 'storage_key' => 'original.png', 'original_name' => 'original.png', 'mime' => 'image/png', 'size' => 11, 'sha256' => hash('sha256', 'image bytes'), 'status' => 'ready', 'extracted_text' => 'Ready text']);
+        $actor = User::factory()->create(['role' => $role, 'active' => $isActive]);
+        $documentOwner = $isOwner ? $actor : User::factory()->create();
+        $document = Document::query()->create(['owner_id' => $documentOwner->id, 'title' => 'Role matrix']);
+        $version = DocumentVersion::query()->create(['document_id' => $document->id, 'creator_id' => $documentOwner->id, 'number' => 1, 'storage_key' => 'original.png', 'original_name' => 'original.png', 'mime' => 'image/png', 'size' => 11, 'sha256' => hash('sha256', 'image bytes'), 'status' => 'ready', 'extracted_text' => 'Ready text']);
         $document->update(['published_version_id' => $version->id, 'desired_version_id' => $version->id]);
         if ($grants !== []) {
             $document->grants()->create(['user_id' => $actor->id] + $grants);
@@ -119,9 +119,9 @@ class DocumentPolicyApiTest extends TestCase
     {
         $actor = User::factory()->create();
         $other = User::factory()->create();
-        $document = Document::create(['owner_id' => $actor->id, 'title' => 'Accessible']);
-        $private = Document::create(['owner_id' => $other->id, 'title' => 'Private']);
-        $foreignVersion = DocumentVersion::create(['document_id' => $private->id, 'creator_id' => $other->id, 'number' => 1, 'storage_key' => 'private.png', 'original_name' => 'private.png', 'mime' => 'image/png', 'size' => 7, 'sha256' => hash('sha256', 'private'), 'status' => 'ready', 'extracted_text' => 'Private content']);
+        $document = Document::query()->create(['owner_id' => $actor->id, 'title' => 'Accessible']);
+        $private = Document::query()->create(['owner_id' => $other->id, 'title' => 'Private']);
+        $foreignVersion = DocumentVersion::query()->create(['document_id' => $private->id, 'creator_id' => $other->id, 'number' => 1, 'storage_key' => 'private.png', 'original_name' => 'private.png', 'mime' => 'image/png', 'size' => 7, 'sha256' => hash('sha256', 'private'), 'status' => 'ready', 'extracted_text' => 'Private content']);
 
         $this->actingAs($actor)->getJson('/api/v1/documents/'.$document->id)->assertOk();
         $this->postJson('/api/v1/documents/'.$document->id.'/comments', ['body' => 'Wrong version', 'version_id' => $foreignVersion->id])->assertUnprocessable();
@@ -129,29 +129,5 @@ class DocumentPolicyApiTest extends TestCase
         foreach (['preview', 'download', 'text', 'entities'] as $resource) {
             $this->getJson('/api/v1/versions/'.$foreignVersion->id.'/'.$resource)->assertNotFound();
         }
-    }
-
-    public function test_private_documents_are_excluded_before_search_count_and_pagination(): void
-    {
-        $actor = User::factory()->create();
-        $owner = User::factory()->create();
-        $shared = Document::create(['owner_id' => $owner->id, 'title' => 'Common visible']);
-        $shared->grants()->create(['user_id' => $actor->id, 'read' => true]);
-        $published = DocumentVersion::create(['document_id' => $shared->id, 'creator_id' => $owner->id, 'number' => 1, 'storage_key' => 'public.pdf', 'original_name' => 'public.pdf', 'mime' => 'application/pdf', 'size' => 7, 'sha256' => hash('sha256', 'public'), 'status' => 'ready']);
-        $candidate = DocumentVersion::create(['document_id' => $shared->id, 'creator_id' => $owner->id, 'number' => 2, 'storage_key' => 'candidate.docx', 'original_name' => 'candidate.docx', 'mime' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'size' => 100, 'sha256' => hash('sha256', 'candidate'), 'status' => 'failed']);
-        $shared->update(['published_version_id' => $published->id, 'desired_version_id' => $candidate->id]);
-        Document::create(['owner_id' => $actor->id, 'title' => 'Common unpublished']);
-        for ($i = 0; $i < 3; $i++) {
-            Document::create(['owner_id' => $owner->id, 'title' => 'Common private '.$i]);
-        }
-
-        $this->actingAs($actor)->getJson('/api/v1/search?q=Common&per_page=1')
-            ->assertOk()->assertJsonPath('meta.total', 1)->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.id', $shared->id)->assertJsonPath('data.0.snippet', null)
-            ->assertJsonPath('data.0.version.id', $published->id)->assertJsonPath('data.0.processing_status', 'ready');
-        $this->getJson('/api/v1/search?q=Common&format=docx')->assertOk()->assertJsonPath('meta.total', 0);
-        $this->getJson('/api/v1/search?q=Common&status=failed')->assertOk()->assertJsonPath('meta.total', 0);
-        $this->getJson('/api/v1/search?q=Common&per_page=1&page=2')
-            ->assertOk()->assertJsonPath('meta.total', 1)->assertJsonPath('data', []);
     }
 }

@@ -12,10 +12,10 @@ final class EnsureActive
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (! $request->user()?->active) {
+        if (! $request->user()?->isActive()) {
             auth()->logout();
             $request->session()->invalidate();
-            abort(401, 'Учётная запись недоступна.');
+            abort(401, __('identity.account_unavailable'));
         }
 
         return $next($request);

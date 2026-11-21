@@ -200,7 +200,7 @@ it('aborts an unfinished document request when leaving the page', async () => {
 });
 
 it('brings a new comment into view in an overflowing discussion', async () => {
-    let saved = false;
+    let isSaved = false;
     const comment = {
         id: 'comment-1',
         author_id: 1,
@@ -237,10 +237,10 @@ it('brings a new comment into view in an overflowing discussion', async () => {
             }
             if (url.endsWith('/comments')) {
                 if (init?.method === 'POST') {
-                    saved = true;
+                    isSaved = true;
                     return Response.json({ data: comment }, { status: 201 });
                 }
-                return Response.json({ data: saved ? [...existingComments, comment] : existingComments });
+                return Response.json({ data: isSaved ? [...existingComments, comment] : existingComments });
             }
             throw new Error('Unexpected request: ' + url);
         })
@@ -259,7 +259,7 @@ it('brings a new comment into view in an overflowing discussion', async () => {
 });
 
 it('brings a comment on selected text into view in an overflowing discussion', async () => {
-    let saved = false;
+    let isSaved = false;
     const comment = {
         id: 'comment-1',
         author_id: 1,
@@ -301,10 +301,10 @@ it('brings a comment on selected text into view in an overflowing discussion', a
             }
             if (url.endsWith('/comments')) {
                 if (init?.method === 'POST') {
-                    saved = true;
+                    isSaved = true;
                     return Response.json({ data: comment }, { status: 201 });
                 }
-                return Response.json({ data: saved ? [...existingComments, comment] : existingComments });
+                return Response.json({ data: isSaved ? [...existingComments, comment] : existingComments });
             }
             throw new Error('Unexpected request: ' + url);
         })

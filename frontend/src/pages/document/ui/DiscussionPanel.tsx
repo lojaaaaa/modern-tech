@@ -1,3 +1,4 @@
+import { queryKeys } from '@/shared/api/query-keys';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { MessageSquare, Send, X } from 'lucide-react';
@@ -11,7 +12,7 @@ import { formatDate } from '@/shared/lib/utils';
 export const DiscussionPanel = ({
     documentId,
     versionId,
-    canComment,
+    isCommentAllowed,
     comments,
     error,
     anchor,
@@ -23,7 +24,7 @@ export const DiscussionPanel = ({
 }: {
     documentId: string;
     versionId: string | undefined;
-    canComment: boolean;
+    isCommentAllowed: boolean;
     comments: CommentRecord[];
     error: unknown;
     anchor: TextAnchor | null;
@@ -34,8 +35,8 @@ export const DiscussionPanel = ({
     onJump: (comment: CommentRecord) => void;
 }) => {
     const client = useQueryClient();
-    const [openOnly, setOpenOnly] = useState(false);
-    const visibleComments = comments.filter((comment) => !openOnly || !comment.resolved_at);
+    const [isOpenOnly, setOpenOnly] = useState(false);
+    const visibleComments = comments.filter((comment) => !isOpenOnly || !comment.resolved_at);
     const listRef = useRef<HTMLDivElement>(null);
     const newCommentRef = useRef<HTMLElement>(null);
     useLayoutEffect(() => {
@@ -59,7 +60,7 @@ export const DiscussionPanel = ({
                 method: 'PUT',
                 body: JSON.stringify({ resolved: !comment.resolved_at }),
             }),
-        onSuccess: () => client.invalidateQueries({ queryKey: ['comments', documentId] }),
+        onSuccess: () => client.invalidateQueries({ queryKey: [queryKeys.comments, documentId] }),
     });
     return (
         <aside className="content-panel comments-panel">
@@ -69,7 +70,7 @@ export const DiscussionPanel = ({
             </h2>
             <ErrorMessage error={error} />
             <label className="discussion-filter">
-                <input type="checkbox" checked={openOnly} onChange={(e) => setOpenOnly(e.target.checked)} />
+                <input type="checkbox" checked={isOpenOnly} onChange={(e) => setOpenOnly(e.target.checked)} />
                 Только открытые
             </label>
             <ErrorMessage error={resolution.error} />
@@ -93,7 +94,7 @@ export const DiscussionPanel = ({
                             )}
                             <p>{c.body}</p>
                             {c.resolved_at && <small className="muted">Обсуждение закрыто</small>}
-                            {canComment && !c.deleted_at && (
+                            {isCommentAllowed && !c.deleted_at && (
                                 <Button
                                     variant="ghost"
                                     size="small"
@@ -107,11 +108,11 @@ export const DiscussionPanel = ({
                     ))
                 ) : (
                     <div className="comment-empty">
-                        {openOnly ? 'Открытых обсуждений нет' : 'Комментариев пока нет'}
+                        {isOpenOnly ? 'Открытых обсуждений нет' : 'Комментариев пока нет'}
                     </div>
                 )}
             </div>
-            {canComment && versionId && (
+            {isCommentAllowed && versionId && (
                 <CommentComposer
                     documentId={documentId}
                     versionId={versionId}
@@ -162,7 +163,7 @@ const CommentComposer = ({
             setComment('');
             onClearAnchor();
             onCommentCreated(result.data.id);
-            await client.invalidateQueries({ queryKey: ['comments', documentId] });
+            await client.invalidateQueries({ queryKey: [queryKeys.comments, documentId] });
         },
     });
     return (

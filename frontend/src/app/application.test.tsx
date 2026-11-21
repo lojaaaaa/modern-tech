@@ -1,3 +1,4 @@
+import { queryKeys } from '@/shared/api/query-keys';
 import { afterEach, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -5,9 +6,20 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { App } from './application';
 import { client } from './query-client';
+import { useTheme } from './theme';
 afterEach(() => {
     client.clear();
     vi.unstubAllGlobals();
+});
+it('restores the saved dark theme from the previous storage format', async () => {
+    localStorage.setItem('modern-tech-theme', JSON.stringify({ state: { dark: true }, version: 0 }));
+    try {
+        await useTheme.persist.rehydrate();
+        expect(useTheme.getState().isDark).toBe(true);
+    } finally {
+        useTheme.setState({ isDark: false });
+        localStorage.removeItem('modern-tech-theme');
+    }
 });
 it('moves from anonymous session to library and back without leaving a pending observer', async () => {
     vi.stubGlobal(
@@ -106,12 +118,12 @@ it('clears selection when navigating between trash and documents in both directi
 
 it('clears private cached data when a background session request expires', async () => {
     const account = { id: 1, name: 'First account', email: 'first@example.test', role: 'employee', active: true };
-    let expired = false;
+    let isSessionExpired = false;
     vi.stubGlobal(
         'fetch',
         vi.fn(async (url: string) => {
             if (url === '/api/v1/me') {
-                return expired ? new Response('{}', { status: 401 }) : Response.json({ data: account });
+                return isSessionExpired ? new Response('{}', { status: 401 }) : Response.json({ data: account });
             }
             if (url.startsWith('/api/v1/documents?')) {
                 return Response.json({ data: [], meta: { current_page: 1, last_page: 1, per_page: 20, total: 0 } });
@@ -127,16 +139,16 @@ it('clears private cached data when a background session request expires', async
         </QueryClientProvider>
     );
     expect(await screen.findByRole('heading', { name: /Все документы/ })).toBeVisible();
-    client.setQueryData(['document', 'private'], { text: 'First account secret' });
-    expired = true;
-    await client.invalidateQueries({ queryKey: ['session'] });
+    client.setQueryData([queryKeys.document, 'private'], { text: 'First account secret' });
+    isSessionExpired = true;
+    await client.invalidateQueries({ queryKey: [queryKeys.session] });
     expect(await screen.findByRole('heading', { name: 'С возвращением' })).toBeVisible();
-    expect(client.getQueryData(['document', 'private'])).toBeUndefined();
+    expect(client.getQueryData([queryKeys.document, 'private'])).toBeUndefined();
 });
 
 it('does not restore an old identity when an in-flight session response completes after logout', async () => {
     const account = { id: 1, name: 'Old account', email: 'old@example.test', role: 'employee', active: true };
-    let delaySession = false;
+    let isSessionDelayed = false;
     let completeSession: (response: Response) => void = () => {
         throw new Error('Session request has not started');
     };
@@ -144,7 +156,7 @@ it('does not restore an old identity when an in-flight session response complete
         'fetch',
         vi.fn(async (url: string) => {
             if (url === '/api/v1/me') {
-                if (delaySession) {
+                if (isSessionDelayed) {
                     return new Promise<Response>((resolve) => {
                         completeSession = resolve;
                     });
@@ -168,12 +180,12 @@ it('does not restore an old identity when an in-flight session response complete
         </QueryClientProvider>
     );
     expect(await screen.findByRole('heading', { name: /Все документы/ })).toBeVisible();
-    delaySession = true;
-    const background = client.invalidateQueries({ queryKey: ['session'] });
+    isSessionDelayed = true;
+    const background = client.invalidateQueries({ queryKey: [queryKeys.session] });
     await userEvent.setup().click(screen.getByRole('button', { name: 'Выйти' }));
     expect(await screen.findByRole('heading', { name: 'С возвращением' })).toBeVisible();
     completeSession(Response.json({ data: account }));
     await background;
-    expect(client.getQueryData(['session'])).toBeNull();
+    expect(client.getQueryData([queryKeys.session])).toBeNull();
     expect(screen.queryByRole('heading', { name: /Все документы/ })).not.toBeInTheDocument();
 });

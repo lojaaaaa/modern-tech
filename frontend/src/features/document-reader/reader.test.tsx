@@ -3,7 +3,9 @@ import { expect, it, vi } from 'vitest';
 import { TextReader } from './index';
 it('captures exact offsets and quote across unicode text for a contextual comment', () => {
     const onComment = vi.fn();
-    render(<TextReader text={'Начало 😀\nВажный фрагмент\nКонец'} canComment target={null} onComment={onComment} />);
+    render(
+        <TextReader text={'Начало 😀\nВажный фрагмент\nКонец'} isCommentAllowed target={null} onComment={onComment} />
+    );
     const content = screen.getByText(/Начало/);
     const node = content.firstChild!;
     const range = document.createRange();
@@ -22,7 +24,7 @@ it('scrolls to the exact highlighted quote rather than another identical phrase'
     render(
         <TextReader
             text="фраза и фраза"
-            canComment={false}
+            isCommentAllowed={false}
             target={{ start: 8, end: 13, quote: 'фраза', key: 'comment' }}
             onComment={vi.fn()}
         />

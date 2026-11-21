@@ -1,3 +1,4 @@
+import { queryKeys } from '@/shared/api/query-keys';
 import { CalendarDays } from 'lucide-react';
 import { DatePicker } from '@/shared/ui/date-picker';
 import { useEffect, useState } from 'react';
@@ -24,7 +25,7 @@ import { Status } from '@/shared/ui/status';
 import { ErrorMessage } from '@/shared/ui/error-message';
 import { formatBytes, formatDate } from '@/shared/lib/utils';
 import { UploadPanel } from '@/features/upload';
-export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boolean }) => {
+export const LibraryPage = ({ user, isTrash = false }: { user: User; isTrash?: boolean }) => {
     useEffect(() => {
         const close = (event: PointerEvent) => {
             document
@@ -51,7 +52,7 @@ export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boole
         };
     }, []);
     const [params, setParams] = useSearchParams();
-    const viewsKey = `library-views:${user.id}:${trash}`;
+    const viewsKey = `library-views:${user.id}:${isTrash}`;
     const [views, setViews] = useState<{ name: string; query: string }[]>(() => {
         try {
             return JSON.parse(localStorage.getItem(viewsKey) ?? '[]') as {
@@ -63,16 +64,16 @@ export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boole
         }
     });
     const [viewName, setViewName] = useState('');
-    const [saving, setSaving] = useState(false);
+    const [isSaving, setSaving] = useState(false);
     const [selected, setSelected] = useState<string[]>([]);
-    const [upload, setUpload] = useState(false);
+    const [isUploadOpen, setUpload] = useState(false);
     const client = useQueryClient();
     const batch = useMutation({
         mutationFn: (action: string) =>
             api('/documents/batch', { method: 'POST', body: JSON.stringify({ ids: selected, action }) }),
         onSuccess: async () => {
             setSelected([]);
-            await client.invalidateQueries({ queryKey: ['documents'] });
+            await client.invalidateQueries({ queryKey: [queryKeys.documents] });
         },
     });
     const q = params.get('q') ?? '';
@@ -96,10 +97,10 @@ export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boole
     };
     const filters = params.toString();
     const query = useQuery({
-        queryKey: ['documents', { filters, trash }],
+        queryKey: [queryKeys.documents, { filters, isTrash }],
         queryFn: ({ signal }) =>
             api<Page<DocumentRecord>>(
-                `/documents?${new URLSearchParams({ ...Object.fromEntries(params), page: String(page), per_page: '12', trash: trash ? '1' : '0' })}`,
+                `/documents?${new URLSearchParams({ ...Object.fromEntries(params), page: String(page), per_page: '12', trash: isTrash ? '1' : '0' })}`,
                 { signal }
             ),
         refetchInterval: (state) =>
@@ -111,7 +112,7 @@ export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boole
     });
     const restore = useMutation({
         mutationFn: (id: string) => api(`/documents/${id}/restore`, { method: 'POST' }),
-        onSuccess: () => client.invalidateQueries({ queryKey: ['documents'] }),
+        onSuccess: () => client.invalidateQueries({ queryKey: [queryKeys.documents] }),
     });
     const docs = query.data?.data ?? [];
     const total = query.data?.meta.total ?? 0;
@@ -126,28 +127,28 @@ export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boole
         setParams(next);
     };
     const sortHeader = (label: string, key: string) => {
-        const active = (params.get('sort') ?? 'updated_at') === key;
-        const ascending = (params.get('direction') ?? 'desc') === 'asc';
+        const isActive = (params.get('sort') ?? 'updated_at') === key;
+        const isAscending = (params.get('direction') ?? 'desc') === 'asc';
         return (
             <button type="button" className="table-sort" onClick={() => sortColumn(key)}>
-                {label} {active && <span aria-hidden="true">{ascending ? '↑' : '↓'}</span>}
+                {label} {isActive && <span aria-hidden="true">{isAscending ? '↑' : '↓'}</span>}
             </button>
         );
     };
-    const hasSearchFilters = [...params.keys()].some((key) => !['page', 'sort', 'direction'].includes(key));
+    const isSearchFiltered = [...params.keys()].some((key) => !['page', 'sort', 'direction'].includes(key));
     return (
         <>
             <div className="page-heading">
                 <div>
                     <div className="breadcrumbs">
-                        Библиотека <span>/</span> {trash ? 'Корзина' : 'Документы'}
+                        Библиотека <span>/</span> {isTrash ? 'Корзина' : 'Документы'}
                     </div>
                     <h1>
-                        {trash ? 'Корзина' : 'Все документы'}
+                        {isTrash ? 'Корзина' : 'Все документы'}
                         <span className="count-pill">{total}</span>
                     </h1>
                 </div>
-                {!trash && user.role !== 'observer' && (
+                {!isTrash && user.role !== 'observer' && (
                     <Button
                         disabled={user.email_verified_at === null}
                         title={user.email_verified_at === null ? 'Сначала подтвердите электронную почту' : undefined}
@@ -192,13 +193,13 @@ export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boole
                         size="small"
                         onClick={() => {
                             setViewName('');
-                            setSaving((open) => !open);
+                            setSaving((isOpen) => !isOpen);
                         }}
                     >
                         <BookmarkPlus size={15} />
                         Сохранить фильтры
                     </Button>
-                    {saving && (
+                    {isSaving && (
                         <form
                             onSubmit={(e) => {
                                 e.preventDefault();
@@ -240,13 +241,13 @@ export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boole
                     )}
                 </div>
                 <div className="library-toolbar">
-                    <SearchInput initialValue={q} busy={query.isFetching} onSearch={(value) => change('q', value)} />
+                    <SearchInput initialValue={q} isBusy={query.isFetching} onSearch={(value) => change('q', value)} />
                 </div>
                 <div className="library-filters">
                     <Button
                         variant="ghost"
                         size="small"
-                        disabled={!hasSearchFilters}
+                        disabled={!isSearchFiltered}
                         onClick={() => {
                             setSelected([]);
                             setParams({});
@@ -261,11 +262,11 @@ export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boole
                                 <Button
                                     variant="ghost"
                                     disabled={!selected.length || batch.isPending}
-                                    onClick={() => batch.mutate(trash ? 'restore' : 'favorite')}
+                                    onClick={() => batch.mutate(isTrash ? 'restore' : 'favorite')}
                                 >
-                                    {trash ? 'Восстановить' : 'В избранное'}
+                                    {isTrash ? 'Восстановить' : 'В избранное'}
                                 </Button>
-                                {!trash && (
+                                {!isTrash && (
                                     <Button
                                         variant="ghost"
                                         disabled={!selected.length || batch.isPending}
@@ -431,7 +432,7 @@ export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boole
                                                 )}
                                             </span>
                                             <div>
-                                                {trash ? (
+                                                {isTrash ? (
                                                     <strong>{doc.title}</strong>
                                                 ) : (
                                                     <Link title={doc.title} to={`/documents/${doc.id}`}>
@@ -458,7 +459,7 @@ export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boole
                                     </td>
                                     <td className="muted">{formatDate(doc.updated_at)}</td>
                                     <td>
-                                        {trash ? (
+                                        {isTrash ? (
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
@@ -492,8 +493,8 @@ export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boole
                             <span className="empty-icon">
                                 <FolderOpen size={34} />
                             </span>
-                            <h3>{trash ? 'В корзине пусто' : 'Нет документов'}</h3>
-                            {!q && !trash && user.role !== 'observer' && (
+                            <h3>{isTrash ? 'В корзине пусто' : 'Нет документов'}</h3>
+                            {!q && !isTrash && user.role !== 'observer' && (
                                 <Button variant="secondary" onClick={() => setUpload(true)}>
                                     <Plus size={16} />
                                     Добавить первый документ
@@ -530,7 +531,7 @@ export const LibraryPage = ({ user, trash = false }: { user: User; trash?: boole
                 </div>
             </section>
 
-            {upload && <UploadPanel onClose={() => setUpload(false)} />}
+            {isUploadOpen && <UploadPanel onClose={() => setUpload(false)} />}
         </>
     );
 };

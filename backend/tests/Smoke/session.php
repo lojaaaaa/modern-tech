@@ -15,11 +15,11 @@ if (! app()->environment('local', 'testing')) {
     throw new RuntimeException('Smoke check is limited to local/testing environments.');
 }
 $password = bin2hex(random_bytes(24));
-$user = User::create(['name' => 'Session smoke', 'email' => 'session-'.bin2hex(random_bytes(8)).'@example.invalid', 'password' => $password, 'role' => 'employee', 'active' => true]);
-$jar = new CookieJar;
+$user = User::query()->create(['name' => 'Session smoke', 'email' => 'session-'.bin2hex(random_bytes(8)).'@example.invalid', 'password' => $password, 'role' => 'employee', 'active' => true]);
+$jar = new CookieJar();
 $http = Http::baseUrl('http://gateway')->acceptJson()->timeout(15)->withOptions(['cookies' => $jar, 'allow_redirects' => false]);
-$assert = function (bool $condition, string $message): void {
-    if (! $condition) {
+$assert = function (bool $isConditionMet, string $message): void {
+    if (! $isConditionMet) {
         throw new RuntimeException($message);
     }
 };

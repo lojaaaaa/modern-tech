@@ -5,77 +5,120 @@ declare(strict_types=1);
 namespace App\Modules\Processing\Jobs;
 
 use App\Modules\Documents\Models\DocumentVersion;
+use App\Modules\Processing\Cache\PreviewCache;
+use App\Modules\Processing\Enums\ProcessingError;
+use App\Modules\Processing\Exceptions\ProcessingException;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Queue\Attributes\DeleteWhenMissingModels;
+use Illuminate\Queue\Attributes\WithoutRelations;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
-use RuntimeException;
+use Throwable;
 
+#[DeleteWhenMissingModels]
 final class GeneratePreview implements ShouldQueue
 {
-    use Queueable;
+    use Queueable {
+        __unserialize as private restoreQueueable;
+    }
+
+    private const MAX_PDF_BYTES = 100 * 1024 * 1024;
 
     public int $tries = 2;
 
     public int $timeout = 220;
 
-    public function __construct(public string $versionId)
+    #[WithoutRelations]
+    private ?DocumentVersion $version = null;
+
+    public function __construct(DocumentVersion $version)
     {
+        $this->version = $version;
         $this->onQueue('processing');
     }
 
-    public function handle(): void
+    /** @param array<string, mixed> $values */
+    public function __unserialize(array $values): void
     {
-        $lock = Cache::lock('preview:'.$this->versionId, 240);
-        if (! $lock->get()) {
+        $this->restoreQueueable($values);
+
+        // Jobs produced before model serialization contain only the version ID.
+        if ($this->version === null && is_string($values['versionId'] ?? null)) {
+            $this->version = DocumentVersion::query()->find($values['versionId']);
+        }
+    }
+
+    public function handle(PreviewCache $cache): void
+    {
+        $version = $this->version;
+        if ($version === null) {
             return;
         }
-        $temporary = tempnam(sys_get_temp_dir(), 'preview-');
+
+        $cache->generate($version->id, fn () => $this->generate($version, $cache));
+    }
+
+    private function generate(DocumentVersion $version, PreviewCache $cache): void
+    {
         $stream = null;
+        $pdf = null;
+
         try {
-            $version = DocumentVersion::find($this->versionId);
-            if (! $version || ! $version->document || $version->status !== 'ready' || $version->preview_key) {
+            if (! $version->canGeneratePreview()) {
                 return;
             }
-            $extension = strtolower(pathinfo($version->original_name, PATHINFO_EXTENSION));
-            if (! in_array($extension, ['docx', 'xlsx', 'pptx'], true)) {
-                return;
+
+            $disk = Storage::disk('local');
+            $stream = $disk->readStream($version->storage_key);
+            if (! is_resource($stream)) {
+                throw new ProcessingException(ProcessingError::ORIGINAL_UNAVAILABLE);
             }
-            $stream = Storage::disk('local')->readStream($version->storage_key);
-            if (! is_resource($stream) || $temporary === false) {
-                throw new RuntimeException('PREVIEW_UNAVAILABLE');
+
+            $pdf = tmpfile();
+            if ($pdf === false) {
+                throw new ProcessingException(ProcessingError::PREVIEW_UNAVAILABLE);
             }
-            $response = Http::connectTimeout(10)->timeout(190)->withOptions(['allow_redirects' => false, 'sink' => $temporary, 'progress' => function ($total, $downloaded): void {
-                if ($total > 104857600 || $downloaded > 104857600) {
-                    throw new RuntimeException('PREVIEW_TOO_LARGE');
-                }
-            }])->attach('files', $stream, 'document.'.$extension)->post(config('processing.gotenberg_url').'/forms/libreoffice/convert');
-            if (! $response->successful() || file_get_contents($temporary, false, null, 0, 5) !== '%PDF-') {
-                throw new RuntimeException('PREVIEW_FAILED');
+
+            $response = Http::connectTimeout(10)
+                ->timeout(190)
+                ->withoutRedirecting()
+                ->sink($pdf)
+                ->withOptions(['progress' => static function (int $total, int $downloaded): void {
+                    if (max($total, $downloaded) > self::MAX_PDF_BYTES) {
+                        throw new ProcessingException(ProcessingError::PREVIEW_TOO_LARGE);
+                    }
+                }])
+                ->attach('files', $stream, 'document.' . $version->getFileExtension())
+                ->post(config('processing.gotenberg_url') . '/forms/libreoffice/convert', ['nativePageRanges' => '1-200']);
+
+            if (! $response->successful() || ! rewind($pdf) || fread($pdf, 5) !== '%PDF-') {
+                throw new ProcessingException(ProcessingError::PREVIEW_CONVERSION_FAILED);
             }
-            $key = 'previews/'.$version->id.'.pdf';
-            $pdf = fopen($temporary, 'rb');
-            try {
-                Storage::disk('local')->put($key, $pdf);
-            } finally {
-                if (is_resource($pdf)) {
-                    fclose($pdf);
-                }
+
+            $key = 'previews/' . $version->id . '.pdf';
+            if (! rewind($pdf) || ! $disk->put($key, $pdf)) {
+                throw new ProcessingException(ProcessingError::PREVIEW_WRITE_FAILED);
             }
+
             $version->update(['preview_key' => $key]);
-            Cache::forget('preview-error:'.$version->id);
-        } catch (\Throwable) {
-            Cache::put('preview-error:'.$this->versionId, true, 300);
-            throw new RuntimeException('PREVIEW_FAILED');
+            $cache->clear($version->id);
+        } catch (Throwable $error) {
+            $cache->record($version->id);
+
+            throw match (true) {
+                $error instanceof ProcessingException => $error,
+                $error instanceof ConnectionException => new ProcessingException(ProcessingError::PREVIEW_CONVERSION_FAILED, $error),
+                default => new ProcessingException(ProcessingError::PREVIEW_FAILED, $error),
+            };
         } finally {
             if (is_resource($stream)) {
                 fclose($stream);
             }
-            if (is_string($temporary) && is_file($temporary)) {
-                unlink($temporary);
+            if (is_resource($pdf)) {
+                fclose($pdf);
             }
-            $lock->release();
         }
     }
 }

@@ -3,12 +3,12 @@ export const Modal = ({
     children,
     titleId,
     onClose,
-    busy = false,
+    isBusy = false,
 }: {
     children: ReactNode;
     titleId: string;
     onClose: () => void;
-    busy?: boolean;
+    isBusy?: boolean;
 }) => {
     const ref = useRef<HTMLDialogElement>(null);
     useEffect(() => {
@@ -23,12 +23,12 @@ export const Modal = ({
             aria-labelledby={titleId}
             onCancel={(e) => {
                 e.preventDefault();
-                if (!busy) {
+                if (!isBusy) {
                     onClose();
                 }
             }}
             onClick={(e) => {
-                if (e.target === e.currentTarget && !busy) {
+                if (e.target === e.currentTarget && !isBusy) {
                     const rect = e.currentTarget.getBoundingClientRect();
                     if (
                         e.clientX < rect.left ||
