@@ -1,35 +1,42 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useEffectEvent, useState } from 'react';
 import { Search, X } from 'lucide-react';
 import { Button } from './button';
 export const SearchInput = ({
     initialValue,
     onSearch,
     isBusy = false,
+    label = 'Поиск документов',
+    placeholder = 'Поиск по документам',
+    maxLength = 500,
 }: {
     initialValue: string;
     onSearch: (value: string) => void;
     isBusy?: boolean;
+    label?: string;
+    placeholder?: string;
+    maxLength?: number;
 }) => {
     const [draft, setDraft] = useState({ base: initialValue, value: initialValue });
     if (draft.base !== initialValue) {
         setDraft({ base: initialValue, value: initialValue });
     }
     const value = draft.value;
+    const submit = useEffectEvent(onSearch);
     const setValue = (next: string) => setDraft({ base: initialValue, value: next });
     useEffect(() => {
         if (value === initialValue) {
             return;
         }
-        const timer = window.setTimeout(() => onSearch(value), 350);
+        const timer = window.setTimeout(() => submit(value), 350);
         return () => window.clearTimeout(timer);
-    }, [value, initialValue, onSearch]);
+    }, [value, initialValue]);
     return (
         <div className="search-field" aria-busy={isBusy}>
             <Search size={18} />
             <input
-                maxLength={500}
-                aria-label="Поиск документов"
-                placeholder="Поиск по документам"
+                maxLength={maxLength}
+                aria-label={label}
+                placeholder={placeholder}
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
                 onKeyDown={(e) => {

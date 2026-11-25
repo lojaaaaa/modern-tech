@@ -505,48 +505,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "body": {
-                                        "type": "string",
-                                        "maxLength": 5000
-                                    },
-                                    "version_id": {
-                                        "type": "string",
-                                        "format": "uuid"
-                                    },
-                                    "parent_id": {
-                                        "type": [
-                                            "string",
-                                            "null"
-                                        ],
-                                        "format": "uuid"
-                                    },
-                                    "anchor_start": {
-                                        "type": [
-                                            "integer",
-                                            "null"
-                                        ],
-                                        "minimum": 0
-                                    },
-                                    "anchor_end": {
-                                        "type": [
-                                            "integer",
-                                            "null"
-                                        ]
-                                    },
-                                    "anchor_quote": {
-                                        "type": [
-                                            "string",
-                                            "null"
-                                        ],
-                                        "maxLength": 2000
-                                    }
-                                },
-                                "required": [
-                                    "body",
-                                    "version_id"
-                                ]
+                                "$ref": "#/components/schemas/StoreCommentRequest"
                             }
                         }
                     }
@@ -573,9 +532,6 @@
                             }
                         }
                     },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    },
                     "409": {
                         "description": "An error",
                         "content": {
@@ -586,79 +542,17 @@
                             }
                         }
                     },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
                     },
                     "404": {
                         "$ref": "#/components/responses/ModelNotFoundException"
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
-                    }
-                }
-            }
-        },
-        "/v1/comments/{id}/resolution": {
-            "put": {
-                "operationId": "comment.resolve",
-                "tags": [
-                    "Comment"
-                ],
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "resolved": {
-                                        "type": "boolean"
-                                    }
-                                },
-                                "required": [
-                                    "resolved"
-                                ]
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": [
-                                                "object",
-                                                "null"
-                                            ]
-                                        }
-                                    },
-                                    "required": [
-                                        "data"
-                                    ]
-                                }
-                            }
-                        }
                     },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
                     }
                 }
             }
@@ -765,12 +659,6 @@
                                 }
                             }
                         }
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
@@ -1064,7 +952,7 @@
         },
         "/v1/documents": {
             "get": {
-                "operationId": "modules.documents.document.index_33",
+                "operationId": "modules.documents.document.index_30",
                 "tags": [
                     "Document"
                 ],
@@ -1483,7 +1371,7 @@
         },
         "/v1/search": {
             "get": {
-                "operationId": "modules.documents.document.index_34",
+                "operationId": "modules.documents.document.index_27",
                 "tags": [
                     "Document"
                 ],
@@ -2045,9 +1933,6 @@
                             }
                         }
                     },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
                     }
@@ -2339,11 +2224,11 @@
                             }
                         }
                     },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    },
                     "403": {
                         "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
@@ -3204,11 +3089,19 @@
                                                                 },
                                                                 "forcesave": {
                                                                     "type": "boolean"
+                                                                },
+                                                                "uiTheme": {
+                                                                    "type": "string",
+                                                                    "enum": [
+                                                                        "default-dark",
+                                                                        "default-light"
+                                                                    ]
                                                                 }
                                                             },
                                                             "required": [
                                                                 "autosave",
-                                                                "forcesave"
+                                                                "forcesave",
+                                                                "uiTheme"
                                                             ]
                                                         }
                                                     },
@@ -4130,6 +4023,201 @@
                     }
                 }
             }
+        },
+        "/v1/documents/{document}/draft/publication": {
+            "get": {
+                "operationId": "document.draftStatus",
+                "tags": [
+                    "Document"
+                ],
+                "parameters": [
+                    {
+                        "name": "document",
+                        "in": "path",
+                        "required": true,
+                        "description": "The document ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "data": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "available": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "reason": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "available",
+                                                        "reason"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "data"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "data": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "available": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "reason": {
+                                                            "type": "null"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "available",
+                                                        "reason"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "data"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "document.publishDraft",
+                "tags": [
+                    "Document"
+                ],
+                "parameters": [
+                    {
+                        "name": "document",
+                        "in": "path",
+                        "required": true,
+                        "description": "The document ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "Idempotency-Key",
+                        "in": "header",
+                        "required": true,
+                        "description": "An idempotency key of 8–94 bytes.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "`DocumentResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/DocumentResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/documents/{id}/purge": {
+            "delete": {
+                "operationId": "document.purge",
+                "tags": [
+                    "Document"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "null"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -4486,7 +4574,42 @@
                 "type": "object",
                 "properties": {
                     "snippet": {
-                        "type": "string"
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "matched_title": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
+                    },
+                    "search_match": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "version_id": {
+                                "type": "string"
+                            },
+                            "start": {
+                                "type": "integer"
+                            },
+                            "quote": {
+                                "type": "string"
+                            },
+                            "snippet_offset": {
+                                "type": "integer"
+                            }
+                        },
+                        "required": [
+                            "version_id",
+                            "start",
+                            "quote",
+                            "snippet_offset"
+                        ]
                     },
                     "id": {
                         "type": "string"
@@ -4614,6 +4737,8 @@
                 },
                 "required": [
                     "snippet",
+                    "matched_title",
+                    "search_match",
                     "id",
                     "title",
                     "owner",
@@ -5149,6 +5274,51 @@
                     "observer"
                 ],
                 "title": "UserRole"
+            },
+            "StoreCommentRequest": {
+                "type": "object",
+                "properties": {
+                    "body": {
+                        "type": "string",
+                        "maxLength": 5000
+                    },
+                    "version_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "parent_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
+                    },
+                    "anchor_start": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 0
+                    },
+                    "anchor_end": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "anchor_quote": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 2000
+                    }
+                },
+                "required": [
+                    "body",
+                    "version_id"
+                ],
+                "title": "StoreCommentRequest"
             }
         },
         "responses": {

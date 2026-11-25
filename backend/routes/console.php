@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use App\Modules\Documents\Jobs\RemoveDocumentFiles;
 use App\Modules\Identity\Enums\UserRole;
 use App\Modules\Integrations\Enums\CloudTransferStatus;
 use App\Modules\Integrations\Jobs\ProcessTransfer;
@@ -22,6 +23,8 @@ Artisan::command('outbox:dispatch', function (): void {
                 ProcessVersion::dispatch($payload['version_id']);
             } elseif ($event->type === 'process.transfer') {
                 ProcessTransfer::dispatch($payload['transfer_id']);
+            } elseif ($event->type === 'storage.remove_document_files') {
+                RemoveDocumentFiles::dispatch($payload['keys']);
             } else {
                 continue;
             }

@@ -24,6 +24,9 @@ final class ListAuditEventsQuery
                 '=',
                 'audit_events.resource_id',
             ))
+            ->leftJoin('users as subject', fn (JoinClause $join) => $join
+                ->on(DB::raw('CAST(subject.id AS VARCHAR)'), '=', 'audit_events.resource_id')
+                ->where('audit_events.action', 'like', 'user.%'))
             ->select([
                 'audit_events.id',
                 'audit_events.action',
@@ -31,8 +34,20 @@ final class ListAuditEventsQuery
                 'audit_events.resource_id',
                 'audit_events.created_at',
                 'users.name as actor_name',
-                'documents.title as resource_name',
-            ]);
+            ])
+            ->selectRaw("COALESCE(audit_events.metadata->>'resource_name', documents.title, subject.name) AS resource_name")
+            ->selectRaw(<<<'SQL'
+                CASE
+                    WHEN audit_events.action = 'user.updated' AND
+                         audit_events.metadata->>'old_active' <> audit_events.metadata->>'new_active'
+                        THEN CASE WHEN CAST(audit_events.metadata->>'new_active' AS VARCHAR) IN ('1', 'true')
+                                  THEN 'user.unblocked' ELSE 'user.blocked' END
+                    WHEN audit_events.action = 'user.updated' AND
+                         audit_events.metadata->>'old_role' <> audit_events.metadata->>'new_role'
+                        THEN 'user.role_changed'
+                    ELSE audit_events.action
+                END AS display_action
+                SQL);
 
         return DB::query()->fromSub($events, 'events')
             ->when($filters->search !== null, fn (Builder $query) => $query->where(

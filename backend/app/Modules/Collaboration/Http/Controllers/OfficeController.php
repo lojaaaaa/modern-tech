@@ -68,9 +68,12 @@ final class OfficeController
             ],
             'editorConfig' => ['mode' => 'edit', 'lang' => 'ru', 'user' => ['id' => (string) $user->id, 'name' => $user->name], 'callbackUrl' => $base.'/api/v1/office/callback', 'coEditing' => ['mode' => 'fast', 'change' => true], 'customization' => ['autosave' => true, 'forcesave' => false]],
         ];
+        $config['editorConfig']['customization']['uiTheme'] = $request->boolean('dark') ? 'default-dark' : 'default-light';
         $config['token'] = $tokens->sign($config);
 
-        return response()->json(['documentServerUrl' => rtrim((string) config('office.public_url'), '/'), 'config' => $config]);
+        $browserUrl = config('office.browser_url') ?: config('office.public_url');
+
+        return response()->json(['documentServerUrl' => rtrim((string) $browserUrl, '/'), 'config' => $config]);
     }
 
     public function source(string $capability, OfficeTokens $tokens): BinaryFileResponse

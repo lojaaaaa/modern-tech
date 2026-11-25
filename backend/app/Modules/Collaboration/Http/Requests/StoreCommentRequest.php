@@ -6,6 +6,7 @@ namespace App\Modules\Collaboration\Http\Requests;
 
 use App\Modules\Documents\Enums\DocumentPermission;
 use App\Modules\Documents\Models\DocumentVersion;
+use App\Modules\Documents\Policies\DocumentPolicy;
 use Illuminate\Auth\Access\Response;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
@@ -33,6 +34,7 @@ final class StoreCommentRequest extends FormRequest
     {
         $version = $this->route('document')->versions()->find($this->validated('version_id'));
         abort_if($version === null, 422);
+        app(DocumentPolicy::class)->readVersion($this->user(), $version)->authorize();
 
         return $version;
     }

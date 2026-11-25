@@ -95,8 +95,8 @@ class Document extends Model
     {
         $query->with([
             'owner',
-            'publishedVersion',
-            'desiredVersion',
+            'publishedVersion:id,number,original_name,mime,size,status,error_code',
+            'desiredVersion:id,number,original_name,mime,size,status,error_code',
             'grants' => fn ($grants) => $grants->where('user_id', $user->id),
         ]);
     }

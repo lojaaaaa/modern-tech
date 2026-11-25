@@ -1,13 +1,22 @@
 import { queryKeys } from '@/shared/api/query-keys';
 import './admin-controls.css';
 import { useState } from 'react';
+import { MoreHorizontal, Plus, SlidersHorizontal } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/shared/api/client';
 import type { User, Role } from '@/shared/api/types';
 import type { operations } from '@/shared/api/schema';
 import { Select } from '@/shared/ui/select';
+import { DataTable, TableSkeleton } from '@/shared/ui/data-table';
 import { Button } from '@/shared/ui/button';
 import { ErrorMessage } from '@/shared/ui/error-message';
+import { AlertDialog } from '@/shared/ui/alert-dialog';
+import { Modal } from '@/shared/ui/modal';
+import { Popover } from '@/shared/ui/popover';
+import { SearchInput } from '@/shared/ui/search-input';
+import { DateRangePicker } from '@/shared/ui/date-range-picker';
+
+const roleLabels: Record<Role, string> = { admin: 'Администратор', employee: 'Сотрудник', observer: 'Наблюдатель' };
 
 export const UsersPage = () => {
     const client = useQueryClient();
@@ -23,12 +32,15 @@ export const UsersPage = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [role, setRole] = useState<Role>('employee');
+    const [isCreateOpen, setCreateOpen] = useState(false);
+    const [blockUser, setBlockUser] = useState<User | null>(null);
     const create = useMutation({
         mutationFn: () => api('/users', { method: 'POST', body: JSON.stringify({ name, email, password, role }) }),
         onSuccess: async () => {
             setName('');
             setEmail('');
             setPassword('');
+            setCreateOpen(false);
             await client.invalidateQueries({ queryKey: [queryKeys.users] });
         },
     });
@@ -36,6 +48,7 @@ export const UsersPage = () => {
         mutationFn: (u: User) =>
             api(`/users/${u.id}`, { method: 'PATCH', body: JSON.stringify({ is_active: !u.active }) }),
         onSuccess: async () => {
+            setBlockUser(null);
             await client.invalidateQueries({ queryKey: [queryKeys.session] });
             await client.invalidateQueries({ queryKey: [queryKeys.users] });
         },
@@ -51,15 +64,20 @@ export const UsersPage = () => {
     return (
         <>
             <div className="page-heading">
-                <div>
-                    <div className="breadcrumbs">Администрирование / Команда</div>
-                    <h1>Пользователи</h1>
-                </div>
+                <h1>Команда</h1>
+                <Button
+                    onClick={() => {
+                        create.reset();
+                        setCreateOpen(true);
+                    }}
+                >
+                    <Plus size={16} /> Добавить участника
+                </Button>
             </div>
             <AdminFilters listing={listing} kind="users" />
-            <ErrorMessage error={query.error || create.error || toggle.error || changeRole.error} />
-            <section className="content-panel admin-table">
-                <table className="documents-table">
+            <ErrorMessage error={query.error || changeRole.error || (!blockUser && toggle.error)} />
+            <section className="content-panel admin-table table-scroll">
+                <DataTable isBusy={query.isFetching}>
                     <thead>
                         <tr>
                             <SortHeader listing={listing} field="name" label="Пользователь" />
@@ -72,24 +90,15 @@ export const UsersPage = () => {
                         {query.data?.data.map((u) => (
                             <tr key={u.id}>
                                 <td>
-                                    <strong>{u.name}</strong>
-                                    <small className="block muted">
-                                        {u.email} · ID {u.id}
-                                    </small>
+                                    <div className="owner-cell">
+                                        <span className="avatar">{u.name.slice(0, 1)}</span>
+                                        <div>
+                                            <strong>{u.name}</strong>
+                                            <small className="block muted">{u.email}</small>
+                                        </div>
+                                    </div>
                                 </td>
-                                <td>
-                                    <Select
-                                        label={`Роль пользователя ${u.name}`}
-                                        value={u.role}
-                                        isDisabled={changeRole.isPending || toggle.isPending}
-                                        onValueChange={(value) => changeRole.mutate({ user: u, role: value as Role })}
-                                        options={[
-                                            { value: 'employee', label: 'Сотрудник' },
-                                            { value: 'observer', label: 'Наблюдатель' },
-                                            { value: 'admin', label: 'Администратор' },
-                                        ]}
-                                    />
-                                </td>
+                                <td>{roleLabels[u.role]}</td>
                                 <td>
                                     <span className={`user-status ${u.active ? 'active' : 'blocked'}`}>
                                         <span aria-hidden="true" />
@@ -97,81 +106,182 @@ export const UsersPage = () => {
                                     </span>
                                 </td>
                                 <td>
-                                    <Button
-                                        variant="ghost"
-                                        size="small"
-                                        className={u.active ? 'user-block-action' : 'user-unblock-action'}
-                                        disabled={toggle.isPending}
-                                        onClick={() => toggle.mutate(u)}
+                                    <Popover
+                                        label={`Действия: ${u.name}`}
+                                        align="end"
+                                        trigger={<MoreHorizontal size={16} />}
                                     >
-                                        {u.active ? 'Заблокировать' : 'Разблокировать'}
-                                    </Button>
+                                        {(close) => (
+                                            <div className="menu-actions">
+                                                <Select
+                                                    label={`Роль пользователя ${u.name}`}
+                                                    value={u.role}
+                                                    isDisabled={changeRole.isPending || toggle.isPending}
+                                                    onValueChange={(value) => {
+                                                        close();
+                                                        if (value !== u.role) {
+                                                            changeRole.mutate({ user: u, role: value as Role });
+                                                        }
+                                                    }}
+                                                    options={Object.entries(roleLabels).map(([value, label]) => ({
+                                                        value,
+                                                        label,
+                                                    }))}
+                                                />
+                                                <Button
+                                                    variant={u.active ? 'destructive' : 'ghost'}
+                                                    disabled={toggle.isPending}
+                                                    onClick={() => {
+                                                        close();
+                                                        toggle.reset();
+                                                        if (u.active) {
+                                                            setBlockUser(u);
+                                                        } else {
+                                                            toggle.mutate(u);
+                                                        }
+                                                    }}
+                                                >
+                                                    {u.active ? 'Заблокировать' : 'Разблокировать'}
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </Popover>
                                 </td>
                             </tr>
                         ))}
                     </tbody>
-                </table>
+                </DataTable>
+                {query.isPending && <TableSkeleton label="Загружаем участников" />}
+                {!query.isPending && !query.isError && !query.data?.data.length && (
+                    <p className="empty-state">Участники не найдены.</p>
+                )}
             </section>
             <CursorNavigation meta={query.data} isBusy={query.isFetching} onChange={listing.navigate} />
-            <section className="content-panel form-panel">
-                <h2>Добавить участника</h2>
-                <form
-                    className="user-form"
-                    onSubmit={(e) => {
-                        e.preventDefault();
-                        create.mutate();
+            {blockUser && (
+                <AlertDialog
+                    title="Заблокировать пользователя?"
+                    description={`«${blockUser.name}» потеряет доступ к приложению до разблокировки.`}
+                    confirmLabel="Заблокировать"
+                    isBusy={toggle.isPending}
+                    error={toggle.error}
+                    onClose={() => {
+                        setBlockUser(null);
+                        toggle.reset();
                     }}
+                    onConfirm={() => toggle.mutate(blockUser)}
+                />
+            )}
+            {isCreateOpen && (
+                <Modal
+                    titleId="create-user-title"
+                    onClose={() => {
+                        setCreateOpen(false);
+                        setPassword('');
+                    }}
+                    isBusy={create.isPending}
                 >
-                    <label>
-                        Имя
-                        <input required value={name} onChange={(e) => setName(e.target.value)} maxLength={120} />
-                    </label>
-                    <label>
-                        Электронная почта
-                        <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-                    </label>
-                    <label>
-                        Пароль
-                        <input
-                            required
-                            type="password"
-                            minLength={12}
-                            maxLength={128}
-                            autoComplete="new-password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                        />
-                    </label>
-                    <label>
-                        Роль
-                        <Select
-                            label="Роль"
-                            value={role}
-                            onValueChange={(value) => setRole(value as Role)}
-                            options={[
-                                { value: 'employee', label: 'Сотрудник' },
-                                { value: 'observer', label: 'Наблюдатель' },
-                                { value: 'admin', label: 'Администратор' },
-                            ]}
-                        />
-                    </label>
-                    <Button disabled={create.isPending}>
-                        {create.isPending ? 'Создаём…' : 'Создать пользователя'}
-                    </Button>
-                </form>
-            </section>
+                    <h2 id="create-user-title">Добавить участника</h2>
+                    <ErrorMessage error={create.error} />
+                    <form
+                        className="dialog-form"
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            create.mutate();
+                        }}
+                    >
+                        <label>
+                            Имя
+                            <input required value={name} onChange={(e) => setName(e.target.value)} maxLength={120} />
+                        </label>
+                        <label>
+                            Электронная почта
+                            <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                        </label>
+                        <label>
+                            Пароль
+                            <input
+                                required
+                                type="password"
+                                minLength={12}
+                                maxLength={128}
+                                autoComplete="new-password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                            />
+                        </label>
+                        <label>
+                            Роль
+                            <Select
+                                label="Роль"
+                                value={role}
+                                onValueChange={(value) => setRole(value as Role)}
+                                options={[
+                                    { value: 'employee', label: 'Сотрудник' },
+                                    { value: 'observer', label: 'Наблюдатель' },
+                                    { value: 'admin', label: 'Администратор' },
+                                ]}
+                            />
+                        </label>
+                        <footer>
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                disabled={create.isPending}
+                                onClick={() => {
+                                    setCreateOpen(false);
+                                    setPassword('');
+                                }}
+                            >
+                                Отмена
+                            </Button>
+                            <Button disabled={create.isPending}>
+                                {create.isPending ? 'Создаём…' : 'Создать пользователя'}
+                            </Button>
+                        </footer>
+                    </form>
+                </Modal>
+            )}
         </>
     );
 };
 interface AuditEvent {
     id: string;
     action: string;
+    display_action?: string;
     actor_id: number | null;
     actor_name: string | null;
     resource_name: string | null;
     resource_id: string | null;
     created_at: string;
 }
+const auditLabels: Record<string, string> = {
+    'version.uploaded': 'Загружена версия',
+    'comment.created': 'Добавлен комментарий',
+    'comment.updated': 'Изменён комментарий',
+    'comment.deleted': 'Удалён комментарий',
+    'comment.resolved': 'Обсуждение закрыто',
+    'comment.reopened': 'Обсуждение открыто повторно',
+    'document.updated': 'Изменён документ',
+    'document.deleted': 'Документ перемещён в корзину',
+    'document.restored': 'Документ восстановлен',
+    'document.purged': 'Документ удалён навсегда',
+    'document.batch.trash': 'Документ перемещён в корзину',
+    'document.batch.restore': 'Документ восстановлен',
+    'document.batch.favorite': 'Документ добавлен в избранное',
+    'document.grants.updated': 'Изменены разрешения',
+    'user.created': 'Добавлен пользователь',
+    'user.updated': 'Изменены данные пользователя',
+    'user.blocked': 'Пользователь заблокирован',
+    'user.unblocked': 'Пользователь разблокирован',
+    'user.role_changed': 'Изменена роль пользователя',
+    'user.registered': 'Пользователь зарегистрирован',
+    'user.password_reset': 'Пароль пользователя сброшен',
+    'transfer.created': 'Создана передача',
+    'transfer.completed': 'Передача завершена',
+    'document.recovered': 'Документ восстановлен',
+    'document.moved': 'Документ перемещён',
+    'document.tags.updated': 'Изменены теги',
+};
 export const AuditPage = () => {
     const listing = useCursorFilters({ sort: 'created_at', direction: 'desc' });
     const query = useQuery({
@@ -181,16 +291,12 @@ export const AuditPage = () => {
     return (
         <>
             <div className="page-heading">
-                <div>
-                    <div className="breadcrumbs">Администрирование / История</div>
-                    <h1>Журнал действий</h1>
-                    <p className="muted">Изменения документов, прав и участников.</p>
-                </div>
+                <h1>Журнал действий</h1>
             </div>
             <AdminFilters listing={listing} kind="audit" />
             <ErrorMessage error={query.error} />
-            <section className="content-panel admin-table">
-                <table className="documents-table">
+            <section className="content-panel admin-table table-scroll">
+                <DataTable isBusy={query.isFetching}>
                     <thead>
                         <tr>
                             <SortHeader listing={listing} field="action" label="Событие" />
@@ -203,38 +309,25 @@ export const AuditPage = () => {
                         {query.data?.data.map((e) => (
                             <tr key={e.id}>
                                 <td>
-                                    {(
-                                        {
-                                            'version.uploaded': 'Загружена версия',
-                                            'comment.created': 'Добавлен комментарий',
-                                            'comment.updated': 'Изменён комментарий',
-                                            'comment.deleted': 'Удалён комментарий',
-                                            'document.updated': 'Изменён документ',
-                                            'document.deleted': 'Документ в корзине',
-                                            'document.restored': 'Документ восстановлен',
-                                            'document.grants.updated': 'Изменены права',
-                                            'user.created': 'Добавлен пользователь',
-                                            'user.updated': 'Изменён пользователь',
-                                            'transfer.created': 'Создана передача',
-                                            'transfer.completed': 'Передача завершена',
-                                            'document.recovered': 'Документ восстановлен',
-                                            'document.moved': 'Документ перемещён',
-                                            'document.tags.updated': 'Изменены теги',
-                                        } as Record<string, string>
-                                    )[e.action] ?? 'Другое событие'}
+                                    <span title={e.action}>
+                                        {auditLabels[e.display_action ?? e.action] ?? e.action}
+                                    </span>
                                 </td>
                                 <td>{e.actor_name ?? 'Система'}</td>
                                 <td>
-                                    <code>{e.resource_name ?? e.resource_id?.slice(0, 12) ?? '—'}</code>
+                                    <span title={e.resource_id ?? undefined}>
+                                        {e.resource_name ?? e.resource_id?.slice(0, 12) ?? '—'}
+                                    </span>
                                 </td>
                                 <td>{new Date(e.created_at).toLocaleString('ru-RU')}</td>
                             </tr>
                         ))}
                     </tbody>
-                </table>
+                </DataTable>
                 {!query.data?.data.length && !query.isPending && !query.isError && (
-                    <div className="empty-state">Пока нет событий</div>
+                    <div className="empty-state">События не найдены.</div>
                 )}
+                {query.isPending && <TableSkeleton label="Загружаем журнал" />}
             </section>
             <CursorNavigation meta={query.data} isBusy={query.isFetching} onChange={listing.navigate} />
         </>
@@ -306,8 +399,10 @@ const CursorNavigation = ({
     isBusy: boolean;
     onChange: (cursor: string) => void;
 }) => (
-    <nav className="admin-cursor-navigation" aria-label="Навигация по списку">
-        <span className="muted">{isBusy ? 'Загружаем…' : `До ${meta?.per_page ?? 20} записей за раз`}</span>
+    <nav className="pagination" aria-label="Навигация по списку">
+        <span className="muted" aria-live="polite">
+            {isBusy ? 'Загружаем…' : ''}
+        </span>
         <div>
             <Button
                 variant="secondary"
@@ -351,33 +446,64 @@ const AdminFilters = ({ listing, kind }: { listing: ReturnType<typeof useCursorF
         </label>
     );
     return (
-        <section className="admin-list-filters" aria-label={isUsersList ? 'Фильтры пользователей' : 'Фильтры журнала'}>
-            {field('q', isUsersList ? 'Имя или почта' : 'Пользователь или ресурс')}
-            {isUsersList ? (
-                <>
-                    {select('role', 'Роль', [
-                        { value: '', label: 'Все роли' },
-                        { value: 'admin', label: 'Администратор' },
-                        { value: 'employee', label: 'Сотрудник' },
-                        { value: 'observer', label: 'Наблюдатель' },
-                    ])}
-                    {select('active', 'Статус', [
-                        { value: '', label: 'Все статусы' },
-                        { value: '1', label: 'Активен' },
-                        { value: '0', label: 'Заблокирован' },
-                    ])}
-                </>
-            ) : (
-                <>
-                    {field('action', 'Код события')}
-                    {field('actor_id', 'ID пользователя', 'number')}
-                    {field('date_from', 'С даты', 'date')}
-                    {field('date_to', 'По дату', 'date')}
-                </>
-            )}
-            <Button variant="ghost" onClick={listing.reset}>
-                Сбросить
-            </Button>
+        <section className="list-toolbar" aria-label={isUsersList ? 'Фильтры пользователей' : 'Фильтры журнала'}>
+            <SearchInput
+                initialValue={listing.filters.q ?? ''}
+                maxLength={200}
+                label={isUsersList ? 'Имя или почта' : 'Пользователь или ресурс'}
+                placeholder={isUsersList ? 'Имя или почта' : 'Пользователь или ресурс'}
+                onSearch={(value) => listing.change('q', value)}
+            />
+            <Popover
+                label="Фильтры"
+                trigger={
+                    <>
+                        <SlidersHorizontal size={16} /> Фильтры
+                    </>
+                }
+            >
+                <div className="filter-fields">
+                    {isUsersList ? (
+                        <>
+                            {select('role', 'Роль', [
+                                { value: '', label: 'Все роли' },
+                                { value: 'admin', label: 'Администратор' },
+                                { value: 'employee', label: 'Сотрудник' },
+                                { value: 'observer', label: 'Наблюдатель' },
+                            ])}
+                            {select('active', 'Статус', [
+                                { value: '', label: 'Все статусы' },
+                                { value: '1', label: 'Активен' },
+                                { value: '0', label: 'Заблокирован' },
+                            ])}
+                        </>
+                    ) : (
+                        <>
+                            {select('action', 'Событие', [
+                                { value: '', label: 'Все события' },
+                                ...Object.entries(auditLabels)
+                                    .filter(
+                                        ([value]) =>
+                                            !['user.blocked', 'user.unblocked', 'user.role_changed'].includes(value)
+                                    )
+                                    .map(([value, label]) => ({ value, label })),
+                            ])}
+                            {field('action', 'Код события')}
+                            {field('actor_id', 'ID пользователя', 'number')}
+                            <DateRangePicker
+                                label="Период"
+                                from={listing.filters.date_from ?? ''}
+                                to={listing.filters.date_to ?? ''}
+                                onFromChange={(value) => listing.change('date_from', value)}
+                                onToChange={(value) => listing.change('date_to', value)}
+                            />
+                        </>
+                    )}
+                    <Button variant="ghost" onClick={listing.reset}>
+                        Сбросить
+                    </Button>
+                </div>
+            </Popover>
         </section>
     );
 };

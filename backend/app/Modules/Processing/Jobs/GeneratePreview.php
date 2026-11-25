@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Processing\Jobs;
 
+use App\Modules\Documents\Models\Document;
 use App\Modules\Documents\Models\DocumentVersion;
 use App\Modules\Processing\Cache\PreviewCache;
 use App\Modules\Processing\Enums\ProcessingError;
@@ -13,6 +14,7 @@ use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Queue\Attributes\DeleteWhenMissingModels;
 use Illuminate\Queue\Attributes\WithoutRelations;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Throwable;
@@ -98,11 +100,17 @@ final class GeneratePreview implements ShouldQueue
             }
 
             $key = 'previews/' . $version->id . '.pdf';
-            if (! rewind($pdf) || ! $disk->put($key, $pdf)) {
-                throw new ProcessingException(ProcessingError::PREVIEW_WRITE_FAILED);
-            }
+            DB::transaction(function () use ($version, $key, $pdf, $disk): void {
+                $document = Document::query()->whereKey($version->document_id)->lockForUpdate()->first();
+                if ($document === null) {
+                    return;
+                }
 
-            $version->update(['preview_key' => $key]);
+                if (! rewind($pdf) || ! $disk->put($key, $pdf)) {
+                    throw new ProcessingException(ProcessingError::PREVIEW_WRITE_FAILED);
+                }
+                $version->update(['preview_key' => $key]);
+            });
             $cache->clear($version->id);
         } catch (Throwable $error) {
             $cache->record($version->id);

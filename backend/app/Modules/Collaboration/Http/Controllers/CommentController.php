@@ -28,8 +28,27 @@ final class CommentController
         ) {
             return response()->json(['data' => []]);
         }
-        $comments = DB::table('document_comments')->join('users', 'users.id', '=', 'document_comments.author_id')->where('document_id', $document->id)->orderBy('document_comments.created_at')->get(['document_comments.*', 'users.name as author_name']);
-        $comments->each(function ($c): void {
+        $user = $request->user();
+        $canComment = $user->can(DocumentPermission::COMMENT->value, $document);
+        $comments = DB::table('document_comments')
+            ->join('users', 'users.id', '=', 'document_comments.author_id')
+            ->where('document_id', $document->id)
+            ->when(
+                $user->cannot(DocumentPermission::EDIT->value, $document),
+                fn ($comments) => $comments->where('version_id', $document->published_version_id),
+            )
+            ->orderBy('document_comments.created_at')
+            ->get([
+                'document_comments.id', 'document_comments.version_id', 'document_comments.author_id',
+                'document_comments.parent_id', 'document_comments.body', 'document_comments.revision',
+                'document_comments.anchor_start', 'document_comments.anchor_end', 'document_comments.anchor_quote',
+                'document_comments.created_at', 'document_comments.deleted_at', 'users.name as author_name',
+            ]);
+        $parentIds = $comments->whereNull('deleted_at')->pluck('parent_id')->filter()->flip();
+        $comments = $comments->filter(fn ($comment) => $comment->deleted_at === null || $parentIds->has($comment->id));
+        $comments->each(function ($c) use ($user, $canComment): void {
+            $c->can_delete = $canComment && $c->deleted_at === null
+                && ((int) $c->author_id === $user->id || $user->isAdministrator());
             if ($c->deleted_at) {
                 $c->body = 'Комментарий удалён';
                 $c->anchor_quote = null;
@@ -38,7 +57,7 @@ final class CommentController
             }
         });
 
-        return response()->json(['data' => $comments]);
+        return response()->json(['data' => $comments->values()]);
     }
 
     public function store(StoreCommentRequest $request, Document $document): JsonResponse
@@ -100,35 +119,28 @@ final class CommentController
         return response()->json(['data' => DB::table('document_comments')->find($id)]);
     }
 
-    public function resolve(Request $request, string $id): JsonResponse
-    {
-        $data = $request->validate(['resolved' => 'required|boolean']);
-        DB::transaction(function () use ($request, $id, $data): void {
-            $comment = DB::table('document_comments')->where('id', $id)->whereNull('deleted_at')->lockForUpdate()->first();
-            abort_unless($comment !== null, 404);
-            $document = Document::query()->findOrFail($comment->document_id);
-            Gate::authorize(DocumentPermission::COMMENT->value, $document);
-            abort_unless(
-                (int) $comment->author_id === $request->user()->id
-                    || $request->user()->can(DocumentPermission::MANAGE->value, $document),
-                403,
-            );
-            DB::table('document_comments')->where('id', $id)->update(['resolved_at' => $data['resolved'] ? now() : null, 'updated_at' => now()]);
-            AuditWriter::record($request->user()->id, $data['resolved'] ? 'comment.resolved' : 'comment.reopened', $id);
-        });
-
-        return response()->json(['data' => DB::table('document_comments')->find($id)]);
-    }
-
     public function destroy(Request $request, string $id): JsonResponse
     {
-        $comment = DB::table('document_comments')->where('id', $id)->whereNull('deleted_at')->first();
-        abort_unless($comment !== null, 404);
-        Gate::authorize(DocumentPermission::COMMENT->value, Document::query()->findOrFail($comment->document_id));
-        abort_unless($comment->author_id === $request->user()->id || $request->user()->isAdministrator(), 403);
         DB::transaction(function () use ($request, $id): void {
-            DB::table('document_comments')->where('id', $id)->update(['deleted_at' => now()]);
-            AuditWriter::record($request->user()->id, 'comment.deleted', $id);
+            $comment = DB::table('document_comments')->where('id', $id)->lockForUpdate()->first();
+            abort_unless($comment !== null, 404);
+            $document = Document::query()->findOrFail($comment->document_id);
+            $user = $request->user();
+            Gate::authorize(DocumentPermission::COMMENT->value, $document);
+            abort_unless((int) $comment->author_id === $user->id || $user->isAdministrator(), 403);
+
+            if ($comment->deleted_at !== null) {
+                return;
+            }
+
+            DB::table('document_comments')->where('id', $id)->update([
+                'deleted_at' => now(),
+                'updated_at' => now(),
+            ]);
+            AuditWriter::record($user->id, 'comment.deleted', $id, [
+                'document_id' => $document->id,
+                'resource_name' => $document->title,
+            ]);
         });
 
         return response()->json(['data' => null]);

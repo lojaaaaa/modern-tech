@@ -34,6 +34,7 @@ export const CloudExport = ({ version }: { version: Version }) => {
                 }),
             }),
     });
+    const available = (connections.data?.data ?? []).filter((item) => item.status === 'connected');
     return (
         <div className="export-control">
             <Button variant="secondary" onClick={() => setOpen(!isOpen)} aria-expanded={isOpen}>
@@ -41,24 +42,33 @@ export const CloudExport = ({ version }: { version: Version }) => {
             </Button>
             {isOpen && (
                 <Modal titleId="export-title" onClose={() => setOpen(false)} isBusy={transfer.isPending}>
-                    <header>
-                        <h3 id="export-title">Экспорт версии {version.number}</h3>
-                        <Button
-                            variant="ghost"
-                            size="small"
-                            onClick={() => setOpen(false)}
-                            disabled={transfer.isPending}
-                        >
-                            Закрыть
-                        </Button>
-                    </header>
+                    <h2 id="export-title">Экспорт версии {version.number}</h2>
                     <ErrorMessage error={connections.error || transfer.error} />
                     {transfer.isSuccess ? (
                         <p role="status">
                             Экспорт поставлен в очередь. <Link to="/integrations">Открыть передачи</Link>
                         </p>
+                    ) : connections.isPending ? (
+                        <p role="status">Загружаем подключения…</p>
+                    ) : connections.isError ? (
+                        <Button variant="secondary" onClick={() => void connections.refetch()}>
+                            Повторить
+                        </Button>
+                    ) : !available.length ? (
+                        <>
+                            <p className="muted">Для экспорта нужен подключённый облачный диск.</p>
+                            <footer>
+                                <Button variant="secondary" onClick={() => setOpen(false)}>
+                                    Отмена
+                                </Button>
+                                <Button isRenderedAsChild>
+                                    <Link to="/integrations?connect=1">Подключить диск</Link>
+                                </Button>
+                            </footer>
+                        </>
                     ) : (
                         <form
+                            className="dialog-form"
                             onSubmit={(e) => {
                                 e.preventDefault();
                                 transfer.mutate();
@@ -70,9 +80,7 @@ export const CloudExport = ({ version }: { version: Version }) => {
                                     label="Подключённый диск"
                                     value={connection}
                                     onValueChange={setConnection}
-                                    options={(connections.data?.data ?? [])
-                                        .filter((c) => c.status === 'connected')
-                                        .map((c) => ({ value: c.id, label: c.name }))}
+                                    options={available.map((c) => ({ value: c.id, label: c.name }))}
                                 />
                             </label>
                             <label>
@@ -85,10 +93,21 @@ export const CloudExport = ({ version }: { version: Version }) => {
                                 />
                             </label>
                             <p className="muted">В папке появится отдельная копия с уникальным именем.</p>
-                            <Button disabled={transfer.isPending || !connection}>
-                                {transfer.isPending ? 'Добавляем в очередь…' : 'Экспортировать'}
-                            </Button>{' '}
-                            <Link to="/integrations">Подключить диск</Link>
+                            <footer>
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    onClick={() => setOpen(false)}
+                                    disabled={transfer.isPending}
+                                >
+                                    Отмена
+                                </Button>
+                                <Button
+                                    disabled={transfer.isPending || !available.some((item) => item.id === connection)}
+                                >
+                                    {transfer.isPending ? 'Добавляем в очередь…' : 'Экспортировать'}
+                                </Button>
+                            </footer>
                         </form>
                     )}
                 </Modal>

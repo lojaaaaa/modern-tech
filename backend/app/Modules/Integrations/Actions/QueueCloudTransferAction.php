@@ -34,6 +34,7 @@ final class QueueCloudTransferAction
         if ($version !== null) {
             $document = $version->document ?? abort(404);
             $this->documents->export($user, $document)->authorize();
+            $this->documents->readVersion($user, $version)->authorize();
             abort_unless($version->isReady(), 409);
 
             $filename = sprintf(
