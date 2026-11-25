@@ -1,6 +1,6 @@
 import type { components, paths } from './schema';
 export type Role = 'admin' | 'employee' | 'observer';
-export type User = Pick<components['schemas']['User'], 'id' | 'name' | 'email' | 'active' | 'email_verified_at'> & {
+export type User = Pick<components['schemas']['User'], 'id' | 'name' | 'email' | 'active'> & {
     role: Role;
 };
 export type RegistrationInput = components['schemas']['RegisterRequest'];

@@ -2,7 +2,7 @@ import { queryKeys } from '@/shared/api/query-keys';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, initializeCsrf, ApiError } from '@/shared/api/client';
 import type { Resource, User, RegistrationInput } from '@/shared/api/types';
-import type { components, operations } from '@/shared/api/schema';
+import type { components } from '@/shared/api/schema';
 import { clearPrivateSession, replaceSession } from './transition';
 export { replaceSession } from './transition';
 
@@ -65,12 +65,3 @@ export const useRegister = () => {
         },
     });
 };
-
-export const useResendVerification = () =>
-    useMutation({
-        mutationFn: () =>
-            api<operations['emailVerification.store']['responses'][202]['content']['application/json']>(
-                '/auth/verification-notification',
-                { method: 'POST' }
-            ),
-    });

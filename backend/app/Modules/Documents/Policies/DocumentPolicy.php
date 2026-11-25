@@ -21,9 +21,7 @@ final class DocumentPolicy
             return Response::deny(__('documents.upload_unavailable'));
         }
 
-        return $user->hasVerifiedEmail()
-            ? Response::allow()
-            : Response::deny(__('documents.upload_requires_verified_email'));
+        return Response::allow();
     }
 
     public function uploadVersion(User $user, Document $document): Response
@@ -90,9 +88,6 @@ final class DocumentPolicy
         $read = $this->read($user, $document);
         if ($read->denied()) {
             return $read;
-        }
-        if ($permission->isRequiredVerifiedEmail() && ! $user->hasVerifiedEmail()) {
-            return Response::deny(__('documents.edit_requires_verified_email'));
         }
 
         return $this->allows($user, $document, $permission)

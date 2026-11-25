@@ -34,7 +34,6 @@ class AppServiceProvider extends ServiceProvider
 {
     public const LOGIN_LIMITER = 'login';
     public const REGISTRATION_LIMITER = 'registration';
-    public const VERIFICATION_LIMITER = 'email-verification';
 
     public function register(): void
     {
@@ -75,7 +74,6 @@ class AppServiceProvider extends ServiceProvider
                 ));
         });
         RateLimiter::for(self::REGISTRATION_LIMITER, fn (Request $request) => Limit::perMinute(5)->by($request->ip())->response(fn (Request $request, array $headers) => abort(429, 'Слишком много попыток регистрации. Повторите через минуту.', $headers)));
-        RateLimiter::for(self::VERIFICATION_LIMITER, fn (Request $request) => Limit::perMinute(6)->by((string) $request->user()->getAuthIdentifier())->response(fn (Request $request, array $headers) => abort(429, 'Слишком много писем подтверждения. Повторите через минуту.', $headers)));
 
         ResetPassword::createUrlUsing(fn ($user, string $token) => config('app.url').'/reset-password?'.http_build_query(['token' => $token, 'email' => $user->email]));
     }

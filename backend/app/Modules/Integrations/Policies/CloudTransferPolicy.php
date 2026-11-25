@@ -19,12 +19,12 @@ final class CloudTransferPolicy
 
     public function create(User $user, ?TransferDirection $direction = null): Response
     {
-        if (! $user->isActive() || $user->role === UserRole::OBSERVER) {
-            return Response::deny('');
+        if ($direction === TransferDirection::IMPORT) {
+            return $this->documents->create($user);
         }
 
-        if ($direction === TransferDirection::IMPORT && $this->documents->create($user)->denied()) {
-            return Response::deny('Подтвердите электронную почту перед импортом документов.');
+        if (! $user->isActive() || $user->role === UserRole::OBSERVER) {
+            return Response::deny('');
         }
 
         return Response::allow();

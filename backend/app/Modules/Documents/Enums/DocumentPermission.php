@@ -11,12 +11,4 @@ enum DocumentPermission: string
     case EDIT = 'edit';
     case EXPORT = 'export';
     case MANAGE = 'manage';
-
-    public function isRequiredVerifiedEmail(): bool
-    {
-        return match ($this) {
-            self::EDIT, self::COMMENT, self::MANAGE => true,
-            self::READ, self::EXPORT => false,
-        };
-    }
 }
