@@ -11,7 +11,7 @@ afterEach(() => {
     vi.unstubAllGlobals();
 });
 
-it('registers a visitor and shows the account-specific email verification step', async () => {
+it('registers a visitor and opens the library', async () => {
     const requests: { path: string; body: unknown }[] = [];
     vi.stubGlobal(
         'fetch',
@@ -32,11 +32,13 @@ it('registers a visitor and shows the account-specific email verification step',
                             email: 'visitor@example.test',
                             role: 'employee',
                             active: true,
-                            email_verified_at: null,
                         },
                     },
                     { status: 201 }
                 );
+            }
+            if (path.startsWith('/api/v1/documents?')) {
+                return Response.json({ data: [], meta: { total: 0 } });
             }
             throw new Error('Unexpected request: ' + path);
         })
@@ -54,8 +56,8 @@ it('registers a visitor and shows the account-specific email verification step',
     await user.type(screen.getByLabelText('Пароль'), 'A-secure-password-2026!');
     await user.type(screen.getByLabelText('Повторите пароль'), 'A-secure-password-2026!');
     await user.click(screen.getByRole('button', { name: 'Создать учётную запись' }));
-    expect(await screen.findByRole('heading', { name: 'Подтвердите электронную почту' })).toBeVisible();
-    expect(screen.getByText('visitor@example.test', { exact: false })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: /Все документы/ })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Загрузить документ' })).toBeEnabled();
     expect(requests.find((request) => request.path === '/api/v1/auth/register')?.body).toEqual({
         name: 'Новый сотрудник',
         email: 'visitor@example.test',

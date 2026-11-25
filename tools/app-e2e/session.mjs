@@ -48,18 +48,6 @@ try {
     await page.goto(base);
     await login(first.toUpperCase());
     await page.getByText('Session First', { exact: true }).waitFor();
-    let verification;
-    for (let attempt = 0; attempt < 30 && !verification; attempt++) {
-        const search = await (await fetch(`${mailpit}/api/v1/search?query=${encodeURIComponent(`to:${first}`)}`)).json();
-        for (const item of search.messages ?? []) {
-            const mail = await (await fetch(`${mailpit}/api/v1/message/${encodeURIComponent(item.ID)}`)).json();
-            const href = mail.HTML?.match(/href="([^\"]*\/auth\/verify-email\/[^\"]+)"/)?.[1];
-            if (href) verification = new URL(href.replaceAll('&amp;', '&'), base);
-        }
-        if (!verification) await new Promise(resolve => setTimeout(resolve, 300));
-    }
-    assert(verification && verification.origin === new URL(base).origin, 'Verification message was not delivered');
-    await page.goto(verification.href);
     await page.getByRole('heading', { name: /Все документы/ }).waitFor();
     const csrf = (await context.cookies(base)).find(cookie => cookie.name === 'XSRF-TOKEN');
     const title = `private-session-${run}.txt`;

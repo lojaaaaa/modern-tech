@@ -16,8 +16,6 @@ return [
     'invalid_office_format' => 'Содержимое не соответствует формату Office.',
     'unreadable_office_structure' => 'Не удалось прочитать структуру Office.',
     'unsafe_office_archive' => 'Документ содержит запрещённое содержимое или превышает лимит распаковки.',
-    'upload_requires_verified_email' => 'Подтвердите электронную почту перед загрузкой документов.',
-    'edit_requires_verified_email' => 'Подтвердите электронную почту перед изменением документа.',
     'upload_unavailable' => 'Загрузка недоступна для этой учётной записи.',
     'idempotency_key_conflict' => 'Ключ уже использован для другого файла.',
     'invalid_idempotency_key' => 'Нужен Idempotency-Key длиной 8-100 символов.',

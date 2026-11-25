@@ -22,10 +22,10 @@ class SessionRecoveryTest extends TestCase
 
     public function test_login_normalizes_the_email_and_authenticated_json_is_not_cached(): void
     {
-        $user = User::factory()->unverified()->create(['email' => 'session@example.test']);
+        $user = User::factory()->create(['email' => 'session@example.test']);
         $this->postJson('/api/v1/auth/login', ['email' => ' SESSION@EXAMPLE.TEST ', 'password' => 'password'])
             ->assertOk()->assertJsonPath('data.id', $user->id)->assertHeader('Cache-Control', 'no-store, private');
-        $this->getJson('/api/v1/me')->assertOk()->assertJsonPath('data.email_verified_at', null)->assertHeader('Cache-Control', 'no-store, private');
+        $this->getJson('/api/v1/me')->assertOk()->assertJsonMissingPath('data.email_verified_at')->assertHeader('Cache-Control', 'no-store, private');
     }
 
     public function test_login_limits_failed_attempts_with_a_uniform_error_and_retry_header(): void

@@ -32,9 +32,6 @@ const PasswordPage = lazy(() => import('@/pages/password').then((module) => ({ d
 const RegistrationPage = lazy(() =>
     import('@/pages/registration').then((module) => ({ default: module.RegistrationPage }))
 );
-const VerificationPage = lazy(() =>
-    import('@/pages/registration').then((module) => ({ default: module.VerificationPage }))
-);
 
 export const App = () => {
     const location = useLocation();
@@ -97,7 +94,6 @@ export const App = () => {
         '/integrations': 'Облачные диски',
         '/users': 'Команда',
         '/audit': 'Журнал действий',
-        '/verify-email': 'Подтверждение почты',
     };
     const pageName = location.pathname.startsWith('/documents/')
         ? 'Документ'
@@ -205,12 +201,6 @@ export const App = () => {
                     </div>
                 </header>
                 <main id="main-content" tabIndex={-1}>
-                    {user.email_verified_at === null && location.pathname !== '/verify-email' && (
-                        <div className="verification-banner" role="status">
-                            <span>Подтвердите email перед загрузкой, редактированием и комментированием.</span>
-                            <Link to="/verify-email">Подтвердить электронную почту</Link>
-                        </div>
-                    )}
                     <Suspense
                         fallback={
                             <div className="empty-state" role="status">
@@ -219,11 +209,7 @@ export const App = () => {
                         }
                     >
                         <Routes>
-                            <Route
-                                path="/register"
-                                element={<Navigate to={user.email_verified_at ? '/' : '/verify-email'} replace />}
-                            />
-                            <Route path="/verify-email" element={<VerificationPage user={user} />} />
+                            <Route path="/register" element={<Navigate to="/" replace />} />
                             <Route path="/" element={<LibraryPage key={`documents:${user.id}`} user={user} />} />
                             <Route
                                 path="/trash"

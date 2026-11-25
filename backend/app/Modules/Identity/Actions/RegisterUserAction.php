@@ -17,7 +17,7 @@ final class RegisterUserAction
     public function handle(RegisterUserData $data): User
     {
         try {
-            $user = DB::transaction(function () use ($data): User {
+            return DB::transaction(function () use ($data): User {
                 $user = User::query()->create([
                     'name' => $data->name,
                     'email' => $data->email,
@@ -39,8 +39,5 @@ final class RegisterUserAction
                 'email' => __('identity.email_in_use'),
             ]);
         }
-        $user->sendEmailVerificationNotification();
-
-        return $user;
     }
 }

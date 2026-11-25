@@ -29,7 +29,6 @@ try {
         'role' => UserRole::EMPLOYEE,
         'active' => true,
     ]);
-    $user->markEmailAsVerified();
     $document = app(UploadDocument::class)->import($user, new IncomingFile($temporary, 'smoke.txt'), 'smoke-test');
     $version = $document->versions()->firstOrFail();
     $stored = $version->storage_key;

@@ -149,11 +149,7 @@ export const LibraryPage = ({ user, isTrash = false }: { user: User; isTrash?: b
                     </h1>
                 </div>
                 {!isTrash && user.role !== 'observer' && (
-                    <Button
-                        disabled={user.email_verified_at === null}
-                        title={user.email_verified_at === null ? 'Сначала подтвердите электронную почту' : undefined}
-                        onClick={() => setUpload(true)}
-                    >
+                    <Button onClick={() => setUpload(true)}>
                         <Plus size={18} />
                         Загрузить документ
                     </Button>

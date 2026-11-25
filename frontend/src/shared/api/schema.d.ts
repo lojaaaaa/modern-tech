@@ -356,38 +356,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/auth/verification-notification": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["emailVerification.store"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/auth/verify-email/{id}/{hash}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["verification.verify"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/folders": {
         parameters: {
             query?: never;
@@ -989,8 +957,6 @@ export interface components {
             id: number;
             name: string;
             email: string;
-            /** Format: date-time */
-            email_verified_at: string | null;
             /** Format: date-time */
             created_at: string | null;
             /** Format: date-time */
@@ -2096,108 +2062,6 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
-        };
-    };
-    "emailVerification.store": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        data: {
-                            /** @constant */
-                            message: "Электронная почта уже подтверждена.";
-                        };
-                    };
-                };
-            };
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        data: {
-                            /** @constant */
-                            message: "Письмо подтверждения поставлено в очередь отправки.";
-                        };
-                    };
-                };
-            };
-            401: components["responses"]["AuthenticationException"];
-            /** @description The CSRF session token is missing or expired. */
-            419: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Verification mail requests are rate limited per account. */
-            429: {
-                headers: {
-                    /** @description Seconds before retrying the operation. */
-                    "Retry-After": string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-        };
-    };
-    "verification.verify": {
-        parameters: {
-            query: {
-                expires: number;
-                signature: string;
-            };
-            header?: never;
-            path: {
-                id: number;
-                hash: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        data: components["schemas"]["User"];
-                    };
-                };
-            };
-            302: {
-                headers: {
-                    Location: string;
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["AuthenticationException"];
-            /** @description The signed link is expired, modified, or belongs to another account. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
         };
     };
     "library.folders": {
