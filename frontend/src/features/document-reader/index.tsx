@@ -19,6 +19,8 @@ export const TextReader = ({
     text,
     isCommentAllowed,
     target,
+    searchTarget,
+    onDismissSearch,
     onComment,
     onSubmitComment,
     activeComment,
@@ -28,6 +30,8 @@ export const TextReader = ({
     text: string;
     isCommentAllowed: boolean;
     target: AnchorTarget | null;
+    searchTarget?: TextAnchor | null;
+    onDismissSearch?: () => void;
     activeComment?: CommentRecord | null;
     comments?: CommentRecord[];
     onSelectComment?: (comment: CommentRecord) => void;
@@ -42,6 +46,11 @@ export const TextReader = ({
     const [position, setPosition] = useState({ left: 20, top: 20 });
     const root = useRef<HTMLDivElement>(null);
     const [selection, setSelection] = useState<TextAnchor | null>(null);
+    useEffect(() => {
+        if (searchTarget) {
+            root.current?.querySelector('[data-search-match]')?.scrollIntoView?.({ block: 'center' });
+        }
+    }, [searchTarget, text]);
     useEffect(() => {
         if (!target || text.slice(target.start, target.end) !== target.quote) {
             return;
@@ -82,6 +91,22 @@ export const TextReader = ({
         setSelection(quote.trim() && quote.length <= 2000 ? { start, end: start + quote.length, quote } : null);
     };
     const isValid = target && text.slice(target.start, target.end) === target.quote;
+    const renderText = (start: number, end: number) => {
+        if (!searchTarget || searchTarget.start >= end || searchTarget.end <= start) {
+            return text.slice(start, end);
+        }
+        const matchStart = Math.max(start, searchTarget.start);
+        const matchEnd = Math.min(end, searchTarget.end);
+        return (
+            <>
+                {text.slice(start, matchStart)}
+                <mark className="search-mark" data-search-match>
+                    {text.slice(matchStart, matchEnd)}
+                </mark>
+                {text.slice(matchEnd, end)}
+            </>
+        );
+    };
     return (
         <div className="text-reader">
             {target && !isValid && (
@@ -184,7 +209,14 @@ export const TextReader = ({
                     )}
                 </div>
             )}
-            <div ref={root} className="selectable-text" onMouseUp={capture} onKeyUp={capture} onTouchEnd={capture}>
+            <div
+                ref={root}
+                className="selectable-text"
+                onClick={onDismissSearch}
+                onMouseUp={capture}
+                onKeyUp={capture}
+                onTouchEnd={capture}
+            >
                 {(() => {
                     const anchors = comments
                         .filter(
@@ -206,21 +238,41 @@ export const TextReader = ({
                         } as CommentRecord);
                         anchors.sort((a, b) => (a.anchor_start ?? 0) - (b.anchor_start ?? 0));
                     }
-                    const parts: React.ReactNode[] = [];
-                    let offset = 0;
+                    const bounds = new Map<number, { opens: CommentRecord[]; closes: string[] }>();
+                    const boundary = (offset: number) => {
+                        const current = bounds.get(offset) ?? { opens: [], closes: [] };
+                        bounds.set(offset, current);
+                        return current;
+                    };
+                    boundary(0);
+                    boundary(text.length);
                     for (const comment of anchors) {
                         const start = comment.anchor_start!;
                         const end = comment.anchor_end!;
-                        if (start < offset || end <= start) {
-                            continue;
+                        if (start >= 0 && end > start && end <= text.length) {
+                            boundary(start).opens.push(comment);
+                            boundary(end).closes.push(comment.id);
                         }
-                        parts.push(text.slice(offset, start));
-                        parts.push(
+                    }
+                    const active = new Map<string, CommentRecord>();
+                    const focused = new Set<string>();
+                    const edges = [...bounds].sort(([left], [right]) => left - right);
+                    return edges.slice(0, -1).map(([start, { opens, closes }], index) => {
+                        closes.forEach((id) => active.delete(id));
+                        opens.forEach((comment) => active.set(comment.id, comment));
+                        const end = edges[index + 1]![0];
+                        const comment = (target && active.get(target.key)) || active.values().next().value;
+                        if (!comment) {
+                            return <span key={start}>{renderText(start, end)}</span>;
+                        }
+                        const isFocusable = !focused.has(comment.id);
+                        focused.add(comment.id);
+                        return (
                             <mark
-                                key={comment.id}
+                                key={start}
                                 className={`comment-mark ${target?.key === comment.id ? 'comment-mark-selected' : ''}`}
                                 data-selected={target?.key === comment.id ? 'true' : undefined}
-                                tabIndex={0}
+                                tabIndex={isFocusable ? 0 : -1}
                                 role="button"
                                 aria-label={`Открыть комментарий ${comment.author_name}`}
                                 onClick={() => onSelectComment?.(comment)}
@@ -243,13 +295,10 @@ export const TextReader = ({
                                     }
                                 }}
                             >
-                                {text.slice(start, end)}
+                                {renderText(start, end)}
                             </mark>
                         );
-                        offset = end;
-                    }
-                    parts.push(text.slice(offset));
-                    return parts;
+                    });
                 })()}
             </div>
         </div>

@@ -4,7 +4,8 @@ export type User = Pick<components['schemas']['User'], 'id' | 'name' | 'email' |
     role: Role;
 };
 export type RegistrationInput = components['schemas']['RegisterRequest'];
-export type DocumentRecord = components['schemas']['DocumentResource'] & { snippet?: string | null };
+export type DocumentRecord = components['schemas']['DocumentResource'];
+export type DocumentSearchMatch = NonNullable<DocumentRecord['search_match']>;
 export type Version = NonNullable<DocumentRecord['version']>;
 export type CloudConnection = components['schemas']['CloudConnection'];
 export type RemoteFile =
@@ -18,7 +19,8 @@ export interface Resource<T> {
     data: T;
 }
 export interface CommentRecord {
-    resolved_at: string | null;
+    can_delete?: boolean;
+    parent_id?: string | null;
     anchor_start: number | null;
     anchor_end: number | null;
     anchor_quote: string | null;

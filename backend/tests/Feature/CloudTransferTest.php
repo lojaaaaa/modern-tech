@@ -7,6 +7,7 @@ namespace Tests\Feature;
 use App\Models\User;
 use App\Modules\Documents\Models\Document;
 use App\Modules\Documents\Models\DocumentVersion;
+use App\Modules\Documents\Policies\DocumentPolicy;
 use App\Modules\Documents\Services\UploadDocument;
 use App\Modules\Integrations\Enums\CloudTransferStatus;
 use App\Modules\Integrations\Jobs\ProcessTransfer;
@@ -65,6 +66,7 @@ class CloudTransferTest extends TestCase
         $doc = Document::query()->create(['owner_id' => $owner->id, 'title' => 'Confidential']);
         $doc->grants()->create(['user_id' => $actor->id, 'read' => true, 'export' => true]);
         $version = DocumentVersion::query()->create(['document_id' => $doc->id, 'creator_id' => $owner->id, 'number' => 1, 'storage_key' => 'file.txt', 'original_name' => 'file.txt', 'mime' => 'text/plain', 'size' => 4, 'sha256' => hash('sha256', 'text'), 'status' => 'ready']);
+        $doc->update(['published_version_id' => $version->id, 'desired_version_id' => $version->id]);
         $connection = CloudConnection::query()->create(['owner_id' => $actor->id, 'provider' => 'yandex', 'name' => 'Disk', 'credentials' => ['token' => 'token']]);
         $payload = [
             'connection_id' => $connection->id,
@@ -83,7 +85,7 @@ class CloudTransferTest extends TestCase
         ]);
         $doc->grants()->delete();
         $job = new ProcessTransfer($response->json('data.id'));
-        $job->handle(app(ProviderFactory::class), app(UploadDocument::class));
+        $job->handle(app(ProviderFactory::class), app(UploadDocument::class), app(DocumentPolicy::class));
         $this->assertDatabaseHas('cloud_transfers', ['id' => $job->transferId, 'status' => 'failed']);
         Http::assertNothingSent();
     }
@@ -99,8 +101,8 @@ class CloudTransferTest extends TestCase
         $connection = CloudConnection::query()->create(['owner_id' => $user->id, 'provider' => 'yandex', 'name' => 'Disk', 'credentials' => ['token' => 'secret']]);
         $transfer = CloudTransfer::query()->create(['initiator_id' => $user->id, 'connection_id' => $connection->id, 'version_id' => $version->id, 'direction' => 'export', 'remote_path' => '/file.txt', 'filename' => 'file.txt']);
         $job = new ProcessTransfer($transfer->id);
-        $job->handle(app(ProviderFactory::class), app(UploadDocument::class));
-        $job->handle(app(ProviderFactory::class), app(UploadDocument::class));
+        $job->handle(app(ProviderFactory::class), app(UploadDocument::class), app(DocumentPolicy::class));
+        $job->handle(app(ProviderFactory::class), app(UploadDocument::class), app(DocumentPolicy::class));
         $this->assertSame(CloudTransferStatus::COMPLETED, $transfer->fresh()->status);
         Http::assertSentCount(2);
         Http::assertSent(fn ($request) => $request->url() === 'https://storage.yandex.net/upload' && ! $request->hasHeader('Authorization'));
@@ -133,13 +135,13 @@ class CloudTransferTest extends TestCase
         $providers = app(ProviderFactory::class);
         $uploads = app(UploadDocument::class);
 
-        (new ProcessTransfer($invalid->id))->handle($providers, $uploads);
+        (new ProcessTransfer($invalid->id))->handle($providers, $uploads, app(DocumentPolicy::class));
         $this->assertSame(CloudTransferStatus::FAILED, $invalid->fresh()->status);
         $this->assertSame('TRANSFER_FAILED', $invalid->fresh()->error_code);
         $this->assertDatabaseCount('document_versions', 0);
         $this->assertSame([], Storage::disk('local')->allFiles());
 
-        (new ProcessTransfer($valid->id))->handle($providers, $uploads);
+        (new ProcessTransfer($valid->id))->handle($providers, $uploads, app(DocumentPolicy::class));
         $this->assertSame(CloudTransferStatus::COMPLETED, $valid->fresh()->status, $valid->fresh()->error_code ?? '');
         $this->assertDatabaseHas('document_versions', [
             'document_id' => $valid->fresh()->document_id,

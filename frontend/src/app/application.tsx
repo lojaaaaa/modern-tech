@@ -88,16 +88,6 @@ export const App = () => {
         }
         return <Login />;
     }
-    const pageNames: Record<string, string> = {
-        '/': 'Документы',
-        '/trash': 'Корзина',
-        '/integrations': 'Облачные диски',
-        '/users': 'Команда',
-        '/audit': 'Журнал действий',
-    };
-    const pageName = location.pathname.startsWith('/documents/')
-        ? 'Документ'
-        : (pageNames[location.pathname] ?? 'Документы');
     return (
         <div key={user.id} className="app-shell">
             <a className="skip-link" href="#main-content">
@@ -152,11 +142,20 @@ export const App = () => {
                     <div className="user-card">
                         <span className="avatar">{user.name.slice(0, 1)}</span>
                         <div>
-                            <strong>{user.name}</strong>
+                            <strong title={user.name}>{user.name}</strong>
                             <small>
                                 {{ admin: 'Администратор', employee: 'Сотрудник', observer: 'Наблюдатель' }[user.role]}
                             </small>
                         </div>
+                        <Button
+                            className="sidebar-theme"
+                            variant="ghost"
+                            size="icon"
+                            aria-label={isDark ? 'Светлая тема' : 'Тёмная тема'}
+                            onClick={toggle}
+                        >
+                            {isDark ? <Sun size={17} /> : <Moon size={17} />}
+                        </Button>
                         <Button
                             variant="ghost"
                             size="icon"
@@ -170,7 +169,7 @@ export const App = () => {
                 </div>
             </aside>
             <div className="workspace-main">
-                <header className="topbar">
+                <header className={location.pathname.startsWith('/documents/') ? 'topbar topbar-document' : 'topbar'}>
                     <div>
                         <Button
                             className="menu-toggle"
@@ -183,14 +182,24 @@ export const App = () => {
                             {isMenuOpen ? <PanelLeftClose size={19} /> : <PanelLeftOpen size={19} />}
                         </Button>
                         {location.pathname.startsWith('/documents/') && (
-                            <Link to="/" className="topbar-back" aria-label="Все документы">
+                            <Link
+                                to={{
+                                    pathname: '/',
+                                    search:
+                                        typeof location.state?.librarySearch === 'string'
+                                            ? location.state.librarySearch
+                                            : '',
+                                }}
+                                className="topbar-back"
+                                aria-label="Все документы"
+                            >
                                 <ArrowLeft size={19} />
                             </Link>
                         )}
-                        <span className="topbar-section">{pageName}</span>
                     </div>
                     <div>
                         <Button
+                            className="topbar-theme"
                             variant="ghost"
                             size="icon"
                             aria-label={isDark ? 'Светлая тема' : 'Тёмная тема'}

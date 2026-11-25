@@ -18,18 +18,15 @@ make up
 `OFFICE_JWT_SECRET` в защищённом файле `.local/office.env`, затем запустите:
 
 ```sh
-docker compose -f compose.yaml -f compose.office.yaml --env-file .env --env-file .local/office.env up -d --build --no-deps api office-documentserver
-docker compose -f compose.yaml -f compose.office.yaml --env-file .env --env-file .local/office.env exec api php artisan migrate --force --path=database/migrations/2026_11_08_140000_create_office_drafts.php
+make up
 ```
 
 В готовом опубликованном DOCX с правом редактирования или комментирования
-появится вкладка «Совместная работа». Редактор доступен на `localhost:8895`;
-эта конфигурация рассчитана на браузеры на том же компьютере. Секрет должен
-быть одинаковым для API и ONLYOFFICE и не должен попадать в Git.
-По умолчанию URL редактора — `http://localhost:8895`. Если приложение открывают
-с другого устройства, укажите в `.local/office.env` внешний `OFFICE_PUBLIC_URL`
-и настройте доверенный обратный прокси; порт редактора в локальном Compose
-остаётся доступным только на loopback.
+появится вкладка «Совместная работа». Браузер загружает редактор по пути
+`/office-editor/` на том же домене, где открыто приложение. Если приложение
+доступно через туннель, направьте его на порт `8088` и укажите внешний адрес
+редактора с путём `/office-editor` в `OFFICE_PUBLIC_URL` в `.local/office.env`.
+Compose передаёт один секрет API и ONLYOFFICE. Храните этот файл вне Git.
 
 Интеграция экспериментальная: сохранение выполняется при закрытии всех
 участников, активное подключение пока не отзывается немедленно при изменении

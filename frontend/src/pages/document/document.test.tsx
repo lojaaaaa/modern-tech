@@ -125,7 +125,6 @@ const existingComments = [1, 2].map((number) => ({
     version_id: 'v1',
     created_at: '2026-10-31T10:00:00Z',
     anchor_quote: null,
-    resolved_at: null,
     deleted_at: null,
 }));
 const renderDocument = () => {
@@ -209,7 +208,6 @@ it('brings a new comment into view in an overflowing discussion', async () => {
         version_id: 'v1',
         created_at: '2026-10-31T10:00:00Z',
         anchor_quote: null,
-        resolved_at: null,
         deleted_at: null,
     };
     vi.stubGlobal(
@@ -270,7 +268,6 @@ it('brings a comment on selected text into view in an overflowing discussion', a
         anchor_start: 0,
         anchor_end: 6,
         anchor_quote: 'Важный',
-        resolved_at: null,
         deleted_at: null,
     };
     vi.stubGlobal(

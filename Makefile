@@ -1,16 +1,23 @@
 .PHONY: bootstrap dependencies up down migrate smoke test lint web-check backup staging staging-down
+
+LOCAL_COMPOSE := docker compose
+ifneq ($(wildcard .local/office.env),)
+LOCAL_COMPOSE += -f compose.yaml -f compose.office.yaml --env-file .env --env-file .local/office.env
+LOCAL_OFFICE_SERVICE := office-documentserver
+endif
+
 bootstrap:
 	./scripts/bootstrap.sh
 dependencies: bootstrap
 	docker run --rm -v "$(CURDIR)/backend:/app" -w /app composer:2 composer install --no-interaction --prefer-dist
 up: dependencies
-	docker compose up -d --build --wait --wait-timeout 180 postgres redis-queue redis-cache tika gotenberg clamav mailpit api web
-	docker compose exec -T api php artisan migrate --force
-	docker compose up -d --build --wait --wait-timeout 180 gateway worker worker-processing worker-transfers scheduler
+	$(LOCAL_COMPOSE) up -d --build --wait --wait-timeout 180 postgres redis-queue redis-cache tika gotenberg clamav mailpit api web
+	$(LOCAL_COMPOSE) exec -T api php artisan migrate --force
+	$(LOCAL_COMPOSE) up -d --build --wait --wait-timeout 240 gateway worker worker-processing worker-transfers scheduler $(LOCAL_OFFICE_SERVICE)
 migrate:
 	docker compose exec api php artisan migrate --force
 down:
-	docker compose down
+	$(LOCAL_COMPOSE) down
 smoke:
 	docker compose exec -T api php tests/Smoke/pipeline.php
 	docker compose exec -T api php tests/Smoke/session.php

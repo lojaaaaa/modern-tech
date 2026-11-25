@@ -11,6 +11,11 @@ final class SearchIndexer
     private const SEGMENT_LENGTH = 12000;
     private const OVERLAP = 200;
 
+    public static function segmentStart(int $ordinal): int
+    {
+        return $ordinal * (self::SEGMENT_LENGTH - self::OVERLAP);
+    }
+
     /** @return list<string> */
     public function segments(string $text): array
     {

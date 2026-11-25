@@ -47,17 +47,25 @@ final class DocumentPolicy
 
     public function preview(User $user, DocumentVersion $version): Response
     {
-        $document = $version->document;
-        if ($document === null) {
-            return Response::denyAsNotFound();
-        }
-
-        $read = $this->read($user, $document);
+        $read = $this->readVersion($user, $version);
         if ($read->denied()) {
             return $read;
         }
 
         return $version->isReady() ? Response::allow() : Response::denyWithStatus(HttpResponse::HTTP_CONFLICT);
+    }
+
+    public function readVersion(User $user, DocumentVersion $version): Response
+    {
+        $document = $version->document;
+        if ($document === null || ! $this->allows($user, $document, DocumentPermission::READ)) {
+            return Response::denyAsNotFound();
+        }
+
+        return $version->id === $document->published_version_id
+            || $this->allows($user, $document, DocumentPermission::EDIT)
+            ? Response::allow()
+            : Response::denyAsNotFound();
     }
 
     public function comment(User $user, Document $document): Response

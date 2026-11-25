@@ -1,14 +1,20 @@
 import { useEffect, useRef, type ReactNode } from 'react';
+import { X } from 'lucide-react';
+import { Button } from './button';
 export const Modal = ({
     children,
     titleId,
     onClose,
     isBusy = false,
+    closeLabel = 'Закрыть окно',
+    descriptionId,
 }: {
     children: ReactNode;
     titleId: string;
     onClose: () => void;
     isBusy?: boolean;
+    closeLabel?: string;
+    descriptionId?: string;
 }) => {
     const ref = useRef<HTMLDialogElement>(null);
     useEffect(() => {
@@ -21,6 +27,8 @@ export const Modal = ({
             ref={ref}
             className="modal"
             aria-labelledby={titleId}
+            aria-describedby={descriptionId}
+            role={descriptionId ? 'alertdialog' : undefined}
             onCancel={(e) => {
                 e.preventDefault();
                 if (!isBusy) {
@@ -41,6 +49,17 @@ export const Modal = ({
                 }
             }}
         >
+            <Button
+                variant="ghost"
+                size="icon"
+                type="button"
+                className="modal-close"
+                aria-label={closeLabel}
+                disabled={isBusy}
+                onClick={onClose}
+            >
+                <X size={17} />
+            </Button>
             {children}
         </dialog>
     );

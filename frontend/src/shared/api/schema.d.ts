@@ -100,22 +100,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/comments/{id}/resolution": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: operations["comment.resolve"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/comments/{id}": {
         parameters: {
             query?: never;
@@ -203,7 +187,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["modules.documents.document.index_33"];
+        get: operations["modules.documents.document.index_30"];
         put?: never;
         post: operations["document.store"];
         delete?: never;
@@ -219,7 +203,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["modules.documents.document.index_34"];
+        get: operations["modules.documents.document.index_27"];
         put?: never;
         post?: never;
         delete?: never;
@@ -676,6 +660,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/documents/{document}/draft/publication": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["document.draftStatus"];
+        put?: never;
+        post: operations["document.publishDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/documents/{id}/purge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["document.purge"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -785,7 +801,14 @@ export interface components {
         };
         /** DocumentResource */
         DocumentResource: {
-            snippet: string;
+            snippet: string | null;
+            matched_title: boolean | null;
+            search_match: {
+                version_id: string;
+                start: number;
+                quote: string;
+                snippet_offset: number;
+            } | null;
             id: string;
             title: string;
             owner: {
@@ -969,6 +992,17 @@ export interface components {
          * @enum {string}
          */
         UserRole: "admin" | "employee" | "observer";
+        /** StoreCommentRequest */
+        StoreCommentRequest: {
+            body: string;
+            /** Format: uuid */
+            version_id: string;
+            /** Format: uuid */
+            parent_id?: string | null;
+            anchor_start?: number | null;
+            anchor_end?: number | null;
+            anchor_quote?: string | null;
+        };
     };
     responses: {
         /** @description Not found */
@@ -1248,16 +1282,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
-                    body: string;
-                    /** Format: uuid */
-                    version_id: string;
-                    /** Format: uuid */
-                    parent_id?: string | null;
-                    anchor_start?: number | null;
-                    anchor_end?: number | null;
-                    anchor_quote?: string | null;
-                };
+                "application/json": components["schemas"]["StoreCommentRequest"];
             };
         };
         responses: {
@@ -1286,37 +1311,6 @@ export interface operations {
             422: components["responses"]["ValidationException"];
         };
     };
-    "comment.resolve": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    resolved: boolean;
-                };
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        data: Record<string, never> | null;
-                    };
-                };
-            };
-            401: components["responses"]["AuthenticationException"];
-            422: components["responses"]["ValidationException"];
-        };
-    };
     "comment.destroy": {
         parameters: {
             query?: never;
@@ -1339,8 +1333,6 @@ export interface operations {
                 };
             };
             401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            404: components["responses"]["ModelNotFoundException"];
         };
     };
     "comment.update": {
@@ -1534,7 +1526,7 @@ export interface operations {
             422: components["responses"]["ValidationException"];
         };
     };
-    "modules.documents.document.index_33": {
+    "modules.documents.document.index_30": {
         parameters: {
             query?: {
                 q?: string | null;
@@ -1633,7 +1625,7 @@ export interface operations {
             422: components["responses"]["ValidationException"];
         };
     };
-    "modules.documents.document.index_34": {
+    "modules.documents.document.index_27": {
         parameters: {
             query?: {
                 q?: string | null;
@@ -1820,7 +1812,6 @@ export interface operations {
                 };
             };
             401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
         };
     };
     "document.versions": {
@@ -2436,6 +2427,8 @@ export interface operations {
                                 customization: {
                                     autosave: boolean;
                                     forcesave: boolean;
+                                    /** @enum {string} */
+                                    uiTheme: "default-dark" | "default-light";
                                 };
                             };
                             token: string;
@@ -2915,6 +2908,105 @@ export interface operations {
                     "application/json": components["schemas"]["ApiError"];
                 };
             };
+        };
+    };
+    "document.draftStatus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The document ID */
+                document: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            available: boolean;
+                            reason: string;
+                        };
+                    } | {
+                        data: {
+                            available: boolean;
+                            reason: null;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+        };
+    };
+    "document.publishDraft": {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description An idempotency key of 8–94 bytes. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                /** @description The document ID */
+                document: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `DocumentResource` */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["DocumentResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            /** @description An error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    "document.purge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: null;
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
         };
     };
 }

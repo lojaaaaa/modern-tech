@@ -42,10 +42,12 @@ final class ListDocumentsQuery
                 DB::table('document_tags')->select('document_id')->where('tag_id', $filters->tagId),
             ));
 
-        $version = DocumentVersion::query()->whereColumn(
-            'document_versions.id',
-            $filters->term === null ? 'documents.desired_version_id' : 'documents.published_version_id',
-        );
+        $version = DocumentVersion::query();
+        if ($filters->term === null) {
+            $version->whereColumn('document_versions.id', 'documents.desired_version_id');
+        } else {
+            $version->whereRaw('document_versions.id = COALESCE(documents.published_version_id, documents.desired_version_id)');
+        }
         if ($filters->format !== null || $filters->status !== null) {
             $query->whereExists(
                 (clone $version)
@@ -99,7 +101,7 @@ final class ListDocumentsQuery
         }
 
         $column = match ($filters->sort) {
-            'title', 'created_at', 'updated_at' => 'documents.' . $filters->sort,
+            'title', 'created_at', 'updated_at', 'deleted_at' => 'documents.' . $filters->sort,
             'owner' => User::query()->select('name')->whereColumn('users.id', 'documents.owner_id')->limit(1),
             'format' => $version->selectRaw("lower(substring(original_name from '[^.]+$'))"),
             'size', 'status' => $version->select($filters->sort),

@@ -10,6 +10,7 @@ use App\Modules\Documents\DTO\IncomingFile;
 use App\Modules\Documents\Enums\DocumentPermission;
 use App\Modules\Documents\Models\Document;
 use App\Modules\Documents\Models\DocumentVersion;
+use App\Modules\Documents\Policies\DocumentPolicy;
 use App\Modules\Documents\Services\UploadDocument;
 use App\Modules\Identity\Enums\UserRole;
 use App\Modules\Integrations\Enums\CloudConnectionStatus;
@@ -38,7 +39,7 @@ final class ProcessTransfer implements ShouldQueue
         $this->onQueue('transfers');
     }
 
-    public function handle(ProviderFactory $providers, UploadDocument $uploads): void
+    public function handle(ProviderFactory $providers, UploadDocument $uploads, DocumentPolicy $documents): void
     {
         if (! CloudTransfer::query()
             ->whereKey($this->transferId)
@@ -65,6 +66,7 @@ final class ProcessTransfer implements ShouldQueue
                     throw new CloudFailure('VERSION_UNAVAILABLE');
                 }
                 Gate::forUser($user)->authorize(DocumentPermission::EXPORT->value, $version->document);
+                $documents->readVersion($user, $version)->authorize();
                 $isRemoteWriteStarted = true;
                 $provider->upload($transfer->remote_path, Storage::disk('local')->path($version->storage_key));
             } else {

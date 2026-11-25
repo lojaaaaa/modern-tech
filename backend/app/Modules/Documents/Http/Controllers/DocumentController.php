@@ -6,6 +6,9 @@ namespace App\Modules\Documents\Http\Controllers;
 
 use App\Models\User;
 use App\Modules\Audit\Services\AuditWriter;
+use App\Modules\Collaboration\Services\SavedOfficeDraft;
+use App\Modules\Documents\Actions\PublishOfficeDraftAction;
+use App\Modules\Documents\Actions\PurgeDocumentAction;
 use App\Modules\Documents\Actions\RenameDocumentAction;
 use App\Modules\Documents\Actions\ReplaceDocumentGrantsAction;
 use App\Modules\Documents\Enums\DocumentPermission;
@@ -17,6 +20,7 @@ use App\Modules\Documents\Http\Requests\UploadRequest;
 use App\Modules\Documents\Http\Resources\DocumentResource;
 use App\Modules\Documents\Models\Document;
 use App\Modules\Documents\Models\DocumentVersion;
+use App\Modules\Documents\Policies\DocumentPolicy;
 use App\Modules\Documents\Queries\ListDocumentsQuery;
 use App\Modules\Documents\Services\UploadDocument;
 use Dedoc\Scramble\Attributes\HeaderParameter;
@@ -26,6 +30,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 final class DocumentController
 {
@@ -93,15 +98,24 @@ final class DocumentController
 
     public function restore(RestoreDocumentRequest $request): DocumentResource
     {
-        $document = $request->getDocument();
-        Gate::authorize(DocumentPermission::MANAGE->value, $document);
-        DB::transaction(function () use ($document, $request): void {
+        $document = DB::transaction(function () use ($request): Document {
+            $document = $request->getDocument();
+            Gate::authorize(DocumentPermission::MANAGE->value, $document);
             $document->restore();
             $document->update(['purge_after' => null]);
             AuditWriter::record($request->user()->id, 'document.restored', $document->id);
+
+            return $document;
         });
 
         return new DocumentResource($document->load(['owner', 'publishedVersion', 'desiredVersion']));
+    }
+
+    public function purge(Request $request, string $id, PurgeDocumentAction $action): JsonResponse
+    {
+        $action->handle($request->user(), $id);
+
+        return response()->json(['data' => null]);
     }
 
     public function versions(Request $request, Document $document): JsonResponse
@@ -109,10 +123,49 @@ final class DocumentController
         Gate::authorize(DocumentPermission::READ->value, $document);
 
         $versions = $document->versions()
+            ->when(
+                $request->user()->cannot(DocumentPermission::EDIT->value, $document),
+                fn ($versions) => $versions->where('document_versions.id', $document->published_version_id),
+            )
             ->orderByDesc('number')
-            ->get(['id', 'number', 'original_name', 'mime', 'size', 'status', 'error_code', 'created_at']);
+            ->leftJoin('users', 'users.id', '=', 'document_versions.creator_id')
+            ->get([
+                'document_versions.id', 'number', 'original_name', 'mime', 'size', 'status', 'error_code',
+                'document_versions.created_at', 'users.name as creator_name',
+            ]);
 
         return response()->json(['data' => $versions]);
+    }
+
+    public function draftStatus(Document $document, SavedOfficeDraft $draft): JsonResponse
+    {
+        Gate::authorize(DocumentPermission::MANAGE->value, $document);
+        try {
+            DB::transaction(function () use ($document, $draft): void {
+                $draft->file(Document::query()->lockForUpdate()->findOrFail($document->id));
+            });
+
+            return response()->json(['data' => ['available' => true, 'reason' => null]]);
+        } catch (HttpExceptionInterface $error) {
+            if (! in_array($error->getStatusCode(), [409, 503], true)) {
+                throw $error;
+            }
+
+            return response()->json(['data' => ['available' => false, 'reason' => $error->getMessage()]]);
+        }
+    }
+
+    #[HeaderParameter(UploadRequest::IDEMPOTENCY_HEADER, 'An idempotency key of 8–94 bytes.', required: true, type: 'string')]
+    public function publishDraft(Request $request, Document $document, PublishOfficeDraftAction $action)
+    {
+        Gate::authorize(DocumentPermission::MANAGE->value, $document);
+        $key = $request->header(UploadRequest::IDEMPOTENCY_HEADER);
+        abort_unless(is_string($key) && strlen($key) >= 8 && strlen($key) <= 94, 422, __('documents.invalid_idempotency_key'));
+        $document = $action->handle($request->user(), $document, $key);
+
+        return (new DocumentResource($document->load(['owner', 'publishedVersion', 'desiredVersion'])))
+            ->response()
+            ->setStatusCode(202);
     }
 
     #[HeaderParameter(
@@ -136,10 +189,11 @@ final class DocumentController
             ->setStatusCode(202);
     }
 
-    public function download(Request $request, DocumentVersion $version)
+    public function download(Request $request, DocumentVersion $version, DocumentPolicy $policy)
     {
         abort_unless($version->document !== null, 404);
         Gate::authorize(DocumentPermission::EXPORT->value, $version->document);
+        $policy->readVersion($request->user(), $version)->authorize();
         abort_unless($version->isReady(), 409, 'Файл ещё не прошёл обработку.');
 
         return Storage::disk('local')->download($version->storage_key, $version->original_name, [
@@ -162,10 +216,9 @@ final class DocumentController
         return response()->json(['data' => $entities]);
     }
 
-    public function text(Request $request, DocumentVersion $version): JsonResponse
+    public function text(Request $request, DocumentVersion $version, DocumentPolicy $policy): JsonResponse
     {
-        abort_unless($version->document !== null, 404);
-        Gate::authorize(DocumentPermission::READ->value, $version->document);
+        $policy->readVersion($request->user(), $version)->authorize();
 
         return response()->json(['data' => ['text' => $version->extracted_text, 'status' => $version->status]]);
     }
@@ -178,7 +231,7 @@ final class DocumentController
             ->where('active', true)
             ->where('id', '!=', $document->owner_id)
             ->orderBy('name')
-            ->get(['id', 'name', 'role']);
+            ->get(['id', 'name', 'email', 'role']);
 
         return response()->json(['data' => $participants]);
     }

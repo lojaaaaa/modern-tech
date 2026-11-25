@@ -102,6 +102,7 @@ Route::prefix('api/v1')->group(function (): void {
                 Route::get('/', 'index');
                 Route::post('/', 'store');
                 Route::post('/{id}/restore', 'restore');
+                Route::delete('/{id}/purge', 'purge')->whereUuid('id');
             });
 
             Route::prefix('{document}')->group(function (): void {
@@ -111,6 +112,8 @@ Route::prefix('api/v1')->group(function (): void {
                     Route::delete('/', 'destroy');
                     Route::get('/versions', 'versions');
                     Route::post('/versions', 'addVersion');
+                    Route::get('/draft/publication', 'draftStatus');
+                    Route::post('/draft/publication', 'publishDraft');
                     Route::get('/participants', 'participants');
                     Route::get('/grants', 'grants');
                     Route::put('/grants', 'setGrants');
@@ -142,7 +145,6 @@ Route::prefix('api/v1')->group(function (): void {
         });
 
         Route::prefix('comments/{id}')->controller(CommentController::class)->group(function (): void {
-            Route::put('/resolution', 'resolve');
             Route::patch('/', 'update');
             Route::delete('/', 'destroy');
         });

@@ -12,7 +12,7 @@ use Illuminate\Validation\Rule;
 
 final class LibraryQueryRequest extends FormRequest
 {
-    private const SORT_FIELDS = ['relevance', 'title', 'created_at', 'updated_at', 'status', 'format', 'size', 'owner'];
+    private const SORT_FIELDS = ['relevance', 'title', 'created_at', 'updated_at', 'deleted_at', 'status', 'format', 'size', 'owner'];
 
     public function authorize(): bool
     {
@@ -60,7 +60,7 @@ final class LibraryQueryRequest extends FormRequest
             createdTo: $this->validated('created_to'),
             updatedFrom: $this->validated('updated_from'),
             updatedTo: $this->validated('updated_to'),
-            sort: $this->validated('sort') ?? ($term === null ? 'updated_at' : 'relevance'),
+            sort: $this->validated('sort') ?? ($term !== null ? 'relevance' : ($this->boolean('trash') ? 'deleted_at' : 'updated_at')),
             direction: $this->validated('direction') ?? 'desc',
         );
     }

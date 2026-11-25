@@ -33,6 +33,8 @@ class PreviewAndAnchorsTest extends TestCase
         Storage::disk('local')->put('original', 'test');
         $version = DocumentVersion::query()->create(['document_id' => $doc->id, 'creator_id' => $owner->id, 'number' => 1, 'storage_key' => 'original', 'original_name' => $name, 'mime' => $mime, 'size' => 4, 'sha256' => hash('sha256', 'test'), 'status' => 'ready', 'extracted_text' => "Начало 😀\nВажный фрагмент\nКонец"]);
 
+        $doc->update(['published_version_id' => $version->id, 'desired_version_id' => $version->id]);
+
         return [$owner, $doc, $version];
     }
 

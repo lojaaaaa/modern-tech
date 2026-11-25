@@ -1,10 +1,11 @@
 import { queryKeys } from '@/shared/api/query-keys';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { MessageSquare, Send, X } from 'lucide-react';
+import { MessageSquare, MoreHorizontal, Send, Trash2, X } from 'lucide-react';
 import type { TextAnchor } from '@/features/document-reader';
 import { api } from '@/shared/api/client';
 import type { CommentRecord, Resource } from '@/shared/api/types';
+import { Popover } from '@/shared/ui/popover';
 import { Button } from '@/shared/ui/button';
 import { ErrorMessage } from '@/shared/ui/error-message';
 import { formatDate } from '@/shared/lib/utils';
@@ -21,6 +22,7 @@ export const DiscussionPanel = ({
     onCommentShown,
     onClearAnchor,
     onJump,
+    onClose,
 }: {
     documentId: string;
     versionId: string | undefined;
@@ -33,10 +35,22 @@ export const DiscussionPanel = ({
     onCommentShown: () => void;
     onClearAnchor: () => void;
     onJump: (comment: CommentRecord) => void;
+    onClose: () => void;
 }) => {
     const client = useQueryClient();
-    const [isOpenOnly, setOpenOnly] = useState(false);
-    const visibleComments = comments.filter((comment) => !isOpenOnly || !comment.resolved_at);
+    const count = comments.filter((comment) => !comment.deleted_at).length;
+    const replies = new Map<string, CommentRecord[]>();
+    for (const comment of comments) {
+        if (!comment.parent_id) {
+            continue;
+        }
+        const children = replies.get(comment.parent_id) ?? [];
+        children.push(comment);
+        replies.set(comment.parent_id, children);
+    }
+    const orderedComments = comments
+        .filter((comment) => !comment.parent_id)
+        .flatMap((comment) => [comment, ...(replies.get(comment.id) ?? [])]);
     const listRef = useRef<HTMLDivElement>(null);
     const newCommentRef = useRef<HTMLElement>(null);
     useLayoutEffect(() => {
@@ -54,34 +68,54 @@ export const DiscussionPanel = ({
         }
         onCommentShown();
     }, [comments, newCommentId, onCommentShown]);
-    const resolution = useMutation({
-        mutationFn: (comment: CommentRecord) =>
-            api(`/comments/${comment.id}/resolution`, {
-                method: 'PUT',
-                body: JSON.stringify({ resolved: !comment.resolved_at }),
-            }),
+    const remove = useMutation({
+        mutationFn: (id: string) => api(`/comments/${id}`, { method: 'DELETE' }),
         onSuccess: () => client.invalidateQueries({ queryKey: [queryKeys.comments, documentId] }),
     });
     return (
         <aside className="content-panel comments-panel">
-            <h2>
-                <MessageSquare size={18} />
-                Обсуждение<span className="count-pill">{comments.length ?? 0}</span>
-            </h2>
-            <ErrorMessage error={error} />
-            <label className="discussion-filter">
-                <input type="checkbox" checked={isOpenOnly} onChange={(e) => setOpenOnly(e.target.checked)} />
-                Только открытые
-            </label>
-            <ErrorMessage error={resolution.error} />
+            <header className="discussion-heading">
+                <h2>
+                    <MessageSquare size={17} />
+                    Обсуждение <span className="count-pill">{count}</span>
+                </h2>
+                <Button variant="ghost" size="icon" aria-label="Закрыть панель обсуждения" onClick={onClose}>
+                    <X size={16} />
+                </Button>
+            </header>
+            <ErrorMessage error={error || remove.error} />
             <div className="comment-list" ref={listRef}>
-                {visibleComments.length ? (
-                    visibleComments.map((c) => (
-                        <article key={c.id} ref={c.id === newCommentId ? newCommentRef : null}>
+                {orderedComments.length ? (
+                    orderedComments.map((c) => (
+                        <article
+                            key={c.id}
+                            className={c.parent_id ? 'comment-reply' : undefined}
+                            ref={c.id === newCommentId ? newCommentRef : null}
+                        >
                             <div className="comment-meta">
                                 <span className="avatar tiny">{c.author_name.slice(0, 1)}</span>
                                 <strong>{c.author_name}</strong>
                                 <small>{formatDate(c.created_at)}</small>
+                                {c.can_delete && (
+                                    <Popover
+                                        align="end"
+                                        label="Действия с комментарием"
+                                        trigger={<MoreHorizontal size={16} />}
+                                    >
+                                        {(close) => (
+                                            <Button
+                                                variant="destructive"
+                                                disabled={remove.isPending}
+                                                onClick={() => {
+                                                    close();
+                                                    remove.mutate(c.id);
+                                                }}
+                                            >
+                                                <Trash2 size={15} /> Удалить комментарий
+                                            </Button>
+                                        )}
+                                    </Popover>
+                                )}
                             </div>
                             {c.anchor_quote && (
                                 <button
@@ -93,23 +127,10 @@ export const DiscussionPanel = ({
                                 </button>
                             )}
                             <p>{c.body}</p>
-                            {c.resolved_at && <small className="muted">Обсуждение закрыто</small>}
-                            {isCommentAllowed && !c.deleted_at && (
-                                <Button
-                                    variant="ghost"
-                                    size="small"
-                                    disabled={resolution.isPending}
-                                    onClick={() => resolution.mutate(c)}
-                                >
-                                    {c.resolved_at ? 'Открыть снова' : 'Закрыть обсуждение'}
-                                </Button>
-                            )}
                         </article>
                     ))
                 ) : (
-                    <div className="comment-empty">
-                        {isOpenOnly ? 'Открытых обсуждений нет' : 'Комментариев пока нет'}
-                    </div>
+                    <div className="comment-empty">Комментариев пока нет</div>
                 )}
             </div>
             {isCommentAllowed && versionId && (

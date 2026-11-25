@@ -11,6 +11,6 @@ final class RestoreDocumentRequest extends FormRequest
 {
     public function getDocument(): Document
     {
-        return Document::query()->onlyTrashed()->findOrFail($this->route('id'));
+        return Document::query()->onlyTrashed()->lockForUpdate()->findOrFail($this->route('id'));
     }
 }

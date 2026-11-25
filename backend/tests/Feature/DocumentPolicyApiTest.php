@@ -51,6 +51,39 @@ class DocumentPolicyApiTest extends TestCase
         $this->actingAs($stranger)->getJson('/api/v1/versions/'.$published->id.'/entities')->assertNotFound();
     }
 
+    public function test_deleting_own_discussion_keeps_replies_and_rejects_other_authors(): void
+    {
+        $owner = User::factory()->create();
+        $peer = User::factory()->create();
+        $document = Document::query()->create(['owner_id' => $owner->id, 'title' => 'Рецензия']);
+        $version = $document->versions()->create([
+            'creator_id' => $owner->id, 'number' => 1, 'storage_key' => 'review.txt',
+            'original_name' => 'review.txt', 'mime' => 'text/plain', 'size' => 3,
+            'sha256' => hash('sha256', 'abc'), 'status' => 'ready', 'extracted_text' => 'abc',
+        ]);
+        $document->update(['published_version_id' => $version->id, 'desired_version_id' => $version->id]);
+        $document->grants()->create(['user_id' => $peer->id, 'read' => true, 'comment' => true]);
+        $url = '/api/v1/documents/' . $document->id . '/comments';
+        $parent = $this->actingAs($owner)->postJson($url, [
+            'body' => 'Замечание', 'version_id' => $version->id, 'anchor_start' => 0, 'anchor_end' => 3, 'anchor_quote' => 'abc',
+        ])->assertCreated()->json('data.id');
+        DB::table('document_comments')->where('id', $parent)->update(['resolved_at' => now()]);
+        $this->actingAs($peer)->postJson($url, [
+            'body' => 'Ответ', 'version_id' => $version->id, 'parent_id' => $parent,
+        ])->assertCreated();
+        $this->getJson($url)->assertOk()->assertJsonCount(2, 'data')->assertJsonPath('data.0.can_delete', false);
+        $this->deleteJson('/api/v1/comments/' . $parent)->assertForbidden();
+        $this->actingAs($owner)->deleteJson('/api/v1/comments/' . $parent)->assertOk();
+        $this->deleteJson('/api/v1/comments/' . $parent)->assertOk();
+        $this->getJson($url)->assertOk()->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.body', 'Комментарий удалён')
+            ->assertJsonPath('data.0.anchor_quote', null)
+            ->assertJsonPath('data.1.parent_id', $parent)
+            ->assertJsonPath('data.1.body', 'Ответ');
+        $this->assertSame(1, DB::table('audit_events')->where(['action' => 'comment.deleted', 'resource_id' => $parent])->count());
+        $this->assertSame('abc', $version->fresh()->extracted_text);
+    }
+
     #[DataProvider('roles')]
     public function test_current_document_permissions_apply_to_the_card_and_version_resources(string $role, bool $isOwner, array $grants, array $permissions, int $readStatus, bool $isActive = true): void
     {

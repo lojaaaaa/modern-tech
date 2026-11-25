@@ -53,10 +53,13 @@ it('separates connections, credentials and transfers by provider', async () => {
     expect(await screen.findByText('yandex.txt')).toBeVisible();
     expect(screen.queryByText('mail.txt')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Токен доступа Яндекс Диска')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Подключить диск' }));
     expect(screen.getByRole('button', { name: 'Подключить Яндекс Диск' })).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Отмена' }));
     fireEvent.click(screen.getByRole('button', { name: /Облако Mail/ }));
     expect(screen.getByText('mail.txt')).toBeVisible();
     expect(screen.queryByText('yandex.txt')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Подключить диск' }));
     expect(screen.getByLabelText('Пароль приложения')).toBeVisible();
     expect(screen.queryByLabelText('Токен доступа Яндекс Диска')).not.toBeInTheDocument();
     client.clear();
@@ -117,6 +120,7 @@ it('explains unavailable server configuration without falling back to a manual t
             </MemoryRouter>
         </QueryClientProvider>
     );
+    fireEvent.click(screen.getByRole('button', { name: 'Подключить диск' }));
     expect(await screen.findByText('Подключение пока недоступно. Обратитесь к администратору.')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Подключить Яндекс Диск' })).toBeDisabled();
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();

@@ -18,7 +18,7 @@ it('offers a retry when the editor never reports readiness', async () => {
         destroyEditor = destroyEditor;
     }
     vi.stubGlobal('DocsAPI', { DocEditor });
-    session.mockResolvedValue({ documentServerUrl: 'http://localhost:8895', config: { documentType: 'word' } });
+    session.mockResolvedValue({ documentServerUrl: '/office-editor', config: { documentType: 'word' } });
     const append = document.head.appendChild.bind(document.head);
     vi.spyOn(document.head, 'appendChild').mockImplementation((element) => {
         const result = append(element);
@@ -30,6 +30,8 @@ it('offers a retry when the editor never reports readiness', async () => {
         await Promise.resolve();
         await Promise.resolve();
     });
+    const scriptUrl = new URL('/office-editor/web-apps/apps/api/documents/api.js', window.location.origin);
+    expect(document.head.querySelector(`script[src="${scriptUrl.href}"]`)).toBeInTheDocument();
     await act(async () => {
         await vi.advanceTimersByTimeAsync(30000);
     });
@@ -47,7 +49,7 @@ it('opens the editor and destroys it when the document workspace closes', async 
         destroyEditor = destroyEditor;
     }
     vi.stubGlobal('DocsAPI', { DocEditor });
-    session.mockResolvedValue({ documentServerUrl: 'http://localhost:8895', config: { documentType: 'word' } });
+    session.mockResolvedValue({ documentServerUrl: '/office-editor', config: { documentType: 'word' } });
     const append = document.head.appendChild.bind(document.head);
     vi.spyOn(document.head, 'appendChild').mockImplementation((element) => {
         const result = append(element);

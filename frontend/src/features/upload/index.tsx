@@ -1,7 +1,7 @@
 import { queryKeys } from '@/shared/api/query-keys';
 import type { DocumentRecord, Resource } from '@/shared/api/types';
 import { useRef, useState } from 'react';
-import { Upload, X, FileUp, CheckCircle2 } from 'lucide-react';
+import { Upload, FileUp, CheckCircle2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { api } from '@/shared/api/client';
 import { Modal } from '@/shared/ui/modal';
@@ -84,7 +84,7 @@ export const UploadPanel = ({ onClose }: { onClose: () => void }) => {
         await client.invalidateQueries({ queryKey: [queryKeys.documents] });
     };
     return (
-        <Modal titleId="upload-title" onClose={onClose} isBusy={isBusy}>
+        <Modal titleId="upload-title" closeLabel="Закрыть загрузку" onClose={onClose} isBusy={isBusy}>
             {duplicate && (
                 <section className="duplicate-choice">
                     <strong>Файл совпадает с документом «{duplicate.title}»</strong>
@@ -110,15 +110,7 @@ export const UploadPanel = ({ onClose }: { onClose: () => void }) => {
                     </div>
                 </section>
             )}
-            <header>
-                <div>
-                    <span className="eyebrow">Загрузка файлов</span>
-                    <h2 id="upload-title">Загрузить документы</h2>
-                </div>
-                <Button variant="ghost" size="icon" aria-label="Закрыть загрузку" onClick={onClose} disabled={isBusy}>
-                    <X size={20} />
-                </Button>
-            </header>
+            <h2 id="upload-title">Загрузить документы</h2>
             <button
                 className="dropzone"
                 onClick={() => input.current?.click()}

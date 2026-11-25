@@ -14,7 +14,8 @@ let scriptUrl: string | undefined;
 let loadingScript: HTMLScriptElement | undefined;
 
 const loadEditor = (baseUrl: string): Promise<void> => {
-    const url = new URL('web-apps/apps/api/documents/api.js', baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`);
+    const base = new URL(baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`, window.location.origin);
+    const url = new URL('web-apps/apps/api/documents/api.js', base);
     if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) {
         return Promise.reject(new Error('Недопустимый адрес редактора.'));
     }
@@ -77,6 +78,7 @@ export const OfficeEditor = ({ documentId }: { documentId: string }) => {
                 const session = await api<EditorSession>(`/documents/${documentId}/editor/session`, {
                     method: 'POST',
                     signal: controller.signal,
+                    body: JSON.stringify({ dark: document.documentElement.classList.contains('dark') }),
                 });
                 await loadEditor(session.documentServerUrl);
                 if (isDisposed || isFailed) {
