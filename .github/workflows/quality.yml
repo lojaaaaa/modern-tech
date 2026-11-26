@@ -88,6 +88,13 @@ jobs:
           target: production
           push: false
           tags: modern-tech-web:${{ github.sha }}
+      - name: Build Render image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/render/Dockerfile
+          push: false
+          tags: modern-tech-render:${{ github.sha }}
       - name: Validate isolated staging configuration
         run: |
           bash scripts/staging-init.sh
