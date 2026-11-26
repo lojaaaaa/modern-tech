@@ -24,6 +24,8 @@ final class GoogleDriveTest extends TestCase
         parse_str(parse_url($url, PHP_URL_QUERY), $query);
         $this->assertSame('accounts.google.com', parse_url($url, PHP_URL_HOST));
         $this->assertSame('offline', $query['access_type']);
+        $this->assertSame('consent', $query['prompt']);
+        $this->assertArrayNotHasKey('approval_prompt', $query);
         $this->assertSame('S256', $query['code_challenge_method']);
         $pending = app(GoogleOAuthCache::class)->getAndConsumeState($user, 'session-1', $query['state']);
         $this->assertNotEmpty($pending['verifier']);

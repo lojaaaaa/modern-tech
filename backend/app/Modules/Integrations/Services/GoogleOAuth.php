@@ -31,7 +31,14 @@ final class GoogleOAuth
     {
         $provider = $this->getProvider();
         $state = Str::random(64);
-        $url = $provider->getAuthorizationUrl(['state' => $state, 'access_type' => 'offline', 'prompt' => 'consent', 'include_granted_scopes' => 'true']);
+        $url = $provider->getAuthorizationUrl([
+            'state' => $state,
+            'access_type' => 'offline',
+            'prompt' => 'consent',
+            // Suppress the League default because Google rejects it alongside prompt.
+            'approval_prompt' => null,
+            'include_granted_scopes' => 'true',
+        ]);
         $this->cache->store($user, $sessionId, $state, [
             'verifier' => $provider->getPkceCode(),
             'connection_id' => $connection?->id,
