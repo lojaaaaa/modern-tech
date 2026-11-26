@@ -461,7 +461,7 @@ h1 {
 .sidebar nav a.active {
     background: var(--soft);
     color: var(--text);
-    box-shadow: inset 2px 0 var(--blue);
+    box-shadow: inset 2px 0 var(--danger-text);
     border-radius: 0 5px 5px 0;
 }
 .admin-panel {
