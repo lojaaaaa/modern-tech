@@ -7,3 +7,16 @@
 .admin-table .documents-table th {
     position: static;
 }
+
+.admin-panel > .list-toolbar {
+    border-bottom: 1px solid var(--border);
+}
+
+.admin-panel > .pagination {
+    padding-inline: 16px;
+}
+
+.admin-table .documents-table td:has(> .action-popover) {
+    text-align: right;
+    width: 64px;
+}

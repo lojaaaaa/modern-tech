@@ -18,6 +18,7 @@ export const HighlightedText = ({
         if (text.slice(start, start + match.length) !== match) {
             return text;
         }
+
         return (
             <>
                 {text.slice(0, start)}
@@ -28,6 +29,7 @@ export const HighlightedText = ({
     }
 
     const parts = text.split(new RegExp(`(${escapePattern(match)})`, 'giu'));
+
     return parts.map((part, index) =>
         index % 2 ? (
             <mark key={index} className="search-mark">

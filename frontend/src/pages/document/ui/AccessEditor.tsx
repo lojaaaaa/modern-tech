@@ -1,16 +1,15 @@
-import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { MoreHorizontal } from 'lucide-react';
-import { api } from '@/shared/api/client';
+import { api, ApiError } from '@/shared/api/client';
 import { queryKeys } from '@/shared/api/query-keys';
 import type { DocumentRecord, Resource } from '@/shared/api/types';
+import { ActionMenu } from '@/shared/ui/action-menu';
 import { AlertDialog } from '@/shared/ui/alert-dialog';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
 import { ErrorMessage } from '@/shared/ui/error-message';
 import { Modal } from '@/shared/ui/modal';
-import { Popover } from '@/shared/ui/popover';
-import { Select } from '@/shared/ui/select';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { ParticipantSelect } from './ParticipantSelect';
 
 interface Grant {
     user_id: number;
@@ -28,35 +27,62 @@ export const AccessEditor = ({ id, owner }: { id: string; owner: DocumentRecord[
         queryKey: [queryKeys.participants, id],
         queryFn: ({ signal }) =>
             api<Resource<{ id: number; name: string; email?: string; role: string }[]>>(
-                `/documents/${id}/participants`,
+                `/documents/${id}/participants?granted=1`,
                 { signal }
             ),
     });
+
     const client = useQueryClient();
     const [mode, setMode] = useState<'add' | 'edit' | 'revoke' | null>(null);
+
+    const [selectedPerson, setSelectedPerson] = useState<{
+        id: number;
+        name: string;
+        email?: string;
+        role: string;
+    } | null>(null);
+
     const [draft, setDraft] = useState(emptyGrant);
-    const [search, setSearch] = useState('');
+    const [revision, setRevision] = useState<number | null>(null);
+
     const query = useQuery({
         queryKey: [queryKeys.grants, id],
-        queryFn: ({ signal }) => api<Resource<Grant[]>>(`/documents/${id}/grants`, { signal }),
+        queryFn: ({ signal }) =>
+            api<Resource<Grant[]> & { meta: { revision: number; owner_permissions: Record<string, boolean> } }>(
+                `/documents/${id}/grants`,
+                { signal }
+            ),
     });
+
     const update = useMutation({
         mutationFn: (grants: Grant[]) =>
-            api(`/documents/${id}/grants`, { method: 'PUT', body: JSON.stringify({ grants }) }),
+            api(`/documents/${id}/grants`, {
+                method: 'PUT',
+                body: JSON.stringify({ grants, revision }),
+            }),
+        onError: (error) => {
+            if (error instanceof ApiError && error.status === 409) {
+                void client.invalidateQueries({ queryKey: [queryKeys.grants, id] });
+            }
+        },
         onSuccess: async () => {
             await client.invalidateQueries({ queryKey: [queryKeys.grants, id] });
             setMode(null);
         },
     });
+
     const grants = query.data?.data ?? [];
     const people = participants.data?.data ?? [];
-    const person = people.find((candidate) => candidate.id === draft.user_id);
+    const person = selectedPerson ?? people.find((candidate) => candidate.id === draft.user_id);
+
     const open = (next: typeof mode, value = emptyGrant) => {
         update.reset();
-        setSearch('');
+        setSelectedPerson(null);
         setDraft(value);
+        setRevision(query.data?.meta.revision ?? null);
         setMode(next);
     };
+
     const save = () => {
         if (update.isPending || !query.data || !draft.user_id) {
             return;
@@ -64,6 +90,7 @@ export const AccessEditor = ({ id, owner }: { id: string; owner: DocumentRecord[
         const remaining = grants.filter((grant) => grant.user_id !== draft.user_id);
         update.mutate(mode === 'revoke' ? remaining : [...remaining, draft]);
     };
+
     return (
         <div className="access-editor">
             <header className="section-heading">
@@ -93,13 +120,22 @@ export const AccessEditor = ({ id, owner }: { id: string; owner: DocumentRecord[
                             </td>
                             {accessColumns.map((right) => (
                                 <td key={right}>
-                                    <span aria-label="Разрешено">✓</span>
+                                    <span
+                                        aria-label={
+                                            query.data?.meta.owner_permissions?.[right] === false
+                                                ? 'Нет доступа'
+                                                : 'Разрешено'
+                                        }
+                                    >
+                                        {query.data?.meta.owner_permissions?.[right] === false ? '—' : '✓'}
+                                    </span>
                                 </td>
                             ))}
                             <td />
                         </tr>
                         {grants.map((grant) => {
                             const participant = people.find((candidate) => candidate.id === grant.user_id);
+
                             return (
                                 <tr key={grant.user_id}>
                                     <td>
@@ -114,11 +150,7 @@ export const AccessEditor = ({ id, owner }: { id: string; owner: DocumentRecord[
                                         </td>
                                     ))}
                                     <td>
-                                        <Popover
-                                            label={`Действия: ${participant?.name ?? 'участник'}`}
-                                            align="end"
-                                            trigger={<MoreHorizontal size={16} />}
-                                        >
+                                        <ActionMenu label={`Действия: ${participant?.name ?? 'участник'}`}>
                                             {(close) => (
                                                 <div className="menu-actions">
                                                     <Button
@@ -142,7 +174,7 @@ export const AccessEditor = ({ id, owner }: { id: string; owner: DocumentRecord[
                                                     </Button>
                                                 </div>
                                             )}
-                                        </Popover>
+                                        </ActionMenu>
                                     </td>
                                 </tr>
                             );
@@ -173,30 +205,24 @@ export const AccessEditor = ({ id, owner }: { id: string; owner: DocumentRecord[
                         }}
                     >
                         {mode === 'add' ? (
-                            <>
-                                <input
-                                    aria-label="Поиск участника"
-                                    placeholder="Имя или почта"
-                                    value={search}
-                                    onChange={(event) => setSearch(event.target.value)}
-                                />
-                                <Select
-                                    label="Участник"
-                                    value={String(draft.user_id)}
-                                    onValueChange={(value) => setDraft({ ...emptyGrant, user_id: Number(value) })}
-                                    options={people
-                                        .filter((candidate) => !grants.some((item) => item.user_id === candidate.id))
-                                        .filter((candidate) =>
-                                            `${candidate.name} ${candidate.email ?? ''}`
-                                                .toLocaleLowerCase()
-                                                .includes(search.trim().toLocaleLowerCase())
-                                        )
-                                        .map((candidate) => ({ value: String(candidate.id), label: candidate.name }))}
-                                />
-                            </>
+                            <ParticipantSelect
+                                documentId={id}
+                                excluded={grants.map((grant) => grant.user_id)}
+                                onSelect={(person) => {
+                                    setSelectedPerson(person);
+                                    setDraft({ ...emptyGrant, user_id: person?.id ?? 0 });
+                                }}
+                            />
                         ) : (
                             <strong>{person?.name}</strong>
                         )}
+                        <p className="field-hint muted" role="status">
+                            {!person
+                                ? 'Выберите сотрудника из списка, чтобы настроить разрешения.'
+                                : person.role === 'observer'
+                                  ? 'Наблюдателю доступно только чтение. Остальные разрешения ограничены его ролью.'
+                                  : 'Чтение обязательно. Остальные разрешения можно включать независимо.'}
+                        </p>
                         <div className="permission-fields">
                             {accessColumns.map((right) => (
                                 <label key={right}>
@@ -209,7 +235,9 @@ export const AccessEditor = ({ id, owner }: { id: string; owner: DocumentRecord[
                                             person.role === 'observer' ||
                                             update.isPending
                                         }
-                                        onChange={(event) => setDraft({ ...draft, [right]: event.target.checked })}
+                                        onChange={(event) =>
+                                            setDraft((current) => ({ ...current, [right]: event.target.checked }))
+                                        }
                                     />
                                     {accessRights[right]}
                                 </label>

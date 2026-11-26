@@ -10,13 +10,14 @@ use App\Modules\Integrations\Models\CloudConnection;
 
 final class ProviderFactory
 {
-    public function __construct(private readonly YandexOAuth $yandexOAuth)
+    public function __construct(private readonly YandexOAuth $yandexOAuth, private readonly GoogleOAuth $googleOAuth)
     {
     }
 
     public function for(CloudConnection $connection): CloudProvider
     {
         return match (CloudProviderId::tryFrom($connection->provider)) {
+            CloudProviderId::GOOGLE => new GoogleDisk($this->googleOAuth->getAccessToken($connection), fn (string $token): string => $this->googleOAuth->getAccessToken($connection, $token)),
             CloudProviderId::MAIL => $this->mailCloud($connection),
             CloudProviderId::YANDEX => new YandexDisk(
                 $this->yandexOAuth->getAccessToken($connection),

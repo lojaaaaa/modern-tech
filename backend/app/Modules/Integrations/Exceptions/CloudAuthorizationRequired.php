@@ -17,6 +17,7 @@ final class CloudAuthorizationRequired extends CloudFailure
     public function recoveryMessage(): string
     {
         return match ($this->provider) {
+            CloudProviderId::GOOGLE => 'Доступ к Google Drive истёк или отозван. Подключите диск заново.',
             CloudProviderId::MAIL => 'Mail отклонил данные доступа. Проверьте почту и пароль приложения с доступом к Облаку.',
             CloudProviderId::YANDEX => 'Доступ к Яндекс Диску истёк или отозван. Подключите диск заново через Яндекс.',
         };

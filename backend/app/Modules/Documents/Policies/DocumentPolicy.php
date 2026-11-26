@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Modules\Documents\Policies;
 
 use App\Models\User;
-use App\Modules\Documents\Enums\BatchDocumentOperation;
 use App\Modules\Documents\Enums\DocumentPermission;
 use App\Modules\Documents\Models\Document;
 use App\Modules\Documents\Models\DocumentVersion;
@@ -36,13 +35,6 @@ final class DocumentPolicy
         return $this->allows($user, $document, DocumentPermission::READ)
             ? Response::allow()
             : Response::denyAsNotFound();
-    }
-
-    public function batch(User $user, Document $document, BatchDocumentOperation $operation): Response
-    {
-        return $operation === BatchDocumentOperation::FAVORITE
-            ? $this->read($user, $document)
-            : $this->manage($user, $document);
     }
 
     public function preview(User $user, DocumentVersion $version): Response

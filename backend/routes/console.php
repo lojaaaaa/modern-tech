@@ -72,3 +72,8 @@ Artisan::command('processing:reconcile', function (VersionProcessing $processing
         ->update(['status' => CloudTransferStatus::FAILED, 'error_code' => 'OUTCOME_UNKNOWN']);
 })->purpose('Recover interrupted local processing without replaying remote writes');
 Schedule::command('processing:reconcile')->everyFiveMinutes()->withoutOverlapping();
+
+Artisan::command('office:cleanup {--delete : Remove old unreferenced Office files}', function (\App\Modules\Collaboration\Services\OfficeDraftCleanup $cleanup): void {
+    $this->info('Old unreferenced Office files: '.$cleanup->handle((bool) $this->option('delete')));
+})->purpose('Inspect or clean Office files older than 24 hours with no database references');
+Schedule::command('office:cleanup --delete')->daily()->withoutOverlapping();

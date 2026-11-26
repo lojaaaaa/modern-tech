@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { api, ApiError } from './client';
+
 afterEach(() => vi.unstubAllGlobals());
 describe('API boundary', () => {
     it('does not invalidate the pending session query for an anonymous visitor', async () => {

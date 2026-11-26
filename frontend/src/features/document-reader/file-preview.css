@@ -6,3 +6,20 @@
     font-size: 13px;
     line-height: 1.5;
 }
+
+.pdf-preview {
+    position: relative;
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    background: var(--canvas);
+}
+.pdf-preview .pdf-reader {
+    flex: 1;
+}
+.pdf-preview-loading {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+}

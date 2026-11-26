@@ -15,11 +15,13 @@ export const CloudExport = ({ version }: { version: Version }) => {
     const [isOpen, setOpen] = useState(false);
     const [connection, setConnection] = useState('');
     const [path, setPath] = useState('/');
+
     const connections = useQuery({
         queryKey: [queryKeys.connections],
         queryFn: ({ signal }) => api<Resource<CloudConnection[]>>('/connections', { signal }),
         enabled: isOpen,
     });
+
     const transfer = useMutation({
         mutationFn: () =>
             api('/transfers', {
@@ -34,7 +36,9 @@ export const CloudExport = ({ version }: { version: Version }) => {
                 }),
             }),
     });
+
     const available = (connections.data?.data ?? []).filter((item) => item.status === 'connected');
+
     return (
         <div className="export-control">
             <Button variant="secondary" onClick={() => setOpen(!isOpen)} aria-expanded={isOpen}>
@@ -57,7 +61,7 @@ export const CloudExport = ({ version }: { version: Version }) => {
                     ) : !available.length ? (
                         <>
                             <p className="muted">Для экспорта нужен подключённый облачный диск.</p>
-                            <footer>
+                            <footer className="modal-actions">
                                 <Button variant="secondary" onClick={() => setOpen(false)}>
                                     Отмена
                                 </Button>
@@ -93,7 +97,7 @@ export const CloudExport = ({ version }: { version: Version }) => {
                                 />
                             </label>
                             <p className="muted">В папке появится отдельная копия с уникальным именем.</p>
-                            <footer>
+                            <footer className="modal-actions">
                                 <Button
                                     type="button"
                                     variant="secondary"

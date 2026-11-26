@@ -1,8 +1,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
 import { IntegrationsPage } from './index';
-import { MemoryRouter } from 'react-router-dom';
+
 afterEach(() => vi.unstubAllGlobals());
 it('separates connections, credentials and transfers by provider', async () => {
     vi.stubGlobal(

@@ -23,6 +23,7 @@ it('offers a retry when the editor never reports readiness', async () => {
     vi.spyOn(document.head, 'appendChild').mockImplementation((element) => {
         const result = append(element);
         queueMicrotask(() => element.dispatchEvent(new Event('load')));
+
         return result;
     });
     render(<OfficeEditor documentId="doc-2" />);
@@ -54,6 +55,7 @@ it('opens the editor and destroys it when the document workspace closes', async 
     vi.spyOn(document.head, 'appendChild').mockImplementation((element) => {
         const result = append(element);
         queueMicrotask(() => element.dispatchEvent(new Event('load')));
+
         return result;
     });
     const { unmount } = render(<OfficeEditor documentId="doc-1" />);

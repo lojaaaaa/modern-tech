@@ -1,18 +1,20 @@
+import { FilterOptions, FilterPopover } from '@/shared/ui/filter-popover';
+import { ActionMenu } from '@/shared/ui/action-menu';
 import { queryKeys } from '@/shared/api/query-keys';
 import './admin-controls.css';
 import { useState } from 'react';
-import { MoreHorizontal, Plus, SlidersHorizontal } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/shared/api/client';
 import type { User, Role } from '@/shared/api/types';
 import type { operations } from '@/shared/api/schema';
 import { Select } from '@/shared/ui/select';
-import { DataTable, TableSkeleton } from '@/shared/ui/data-table';
+import { CursorPagination } from '@/shared/ui/pagination';
+import { DataTable, TableSkeleton, TableToolbar, TableViewport } from '@/shared/ui/data-table';
 import { Button } from '@/shared/ui/button';
 import { ErrorMessage } from '@/shared/ui/error-message';
 import { AlertDialog } from '@/shared/ui/alert-dialog';
 import { Modal } from '@/shared/ui/modal';
-import { Popover } from '@/shared/ui/popover';
 import { SearchInput } from '@/shared/ui/search-input';
 import { DateRangePicker } from '@/shared/ui/date-range-picker';
 
@@ -21,6 +23,7 @@ const roleLabels: Record<Role, string> = { admin: 'Администратор', 
 export const UsersPage = () => {
     const client = useQueryClient();
     const listing = useCursorFilters({ sort: 'name', direction: 'asc' });
+
     const query = useQuery({
         queryKey: [queryKeys.users, listing.search],
         queryFn: ({ signal }) =>
@@ -28,12 +31,14 @@ export const UsersPage = () => {
                 signal,
             }),
     });
+
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [role, setRole] = useState<Role>('employee');
     const [isCreateOpen, setCreateOpen] = useState(false);
     const [blockUser, setBlockUser] = useState<User | null>(null);
+
     const create = useMutation({
         mutationFn: () => api('/users', { method: 'POST', body: JSON.stringify({ name, email, password, role }) }),
         onSuccess: async () => {
@@ -44,6 +49,7 @@ export const UsersPage = () => {
             await client.invalidateQueries({ queryKey: [queryKeys.users] });
         },
     });
+
     const toggle = useMutation({
         mutationFn: (u: User) =>
             api(`/users/${u.id}`, { method: 'PATCH', body: JSON.stringify({ is_active: !u.active }) }),
@@ -53,6 +59,7 @@ export const UsersPage = () => {
             await client.invalidateQueries({ queryKey: [queryKeys.users] });
         },
     });
+
     const changeRole = useMutation({
         mutationFn: ({ user, role }: { user: User; role: Role }) =>
             api(`/users/${user.id}`, { method: 'PATCH', body: JSON.stringify({ role }) }),
@@ -61,6 +68,7 @@ export const UsersPage = () => {
             await client.invalidateQueries({ queryKey: [queryKeys.users] });
         },
     });
+
     return (
         <>
             <div className="page-heading">
@@ -74,89 +82,87 @@ export const UsersPage = () => {
                     <Plus size={16} /> Добавить участника
                 </Button>
             </div>
-            <AdminFilters listing={listing} kind="users" />
             <ErrorMessage error={query.error || changeRole.error || (!blockUser && toggle.error)} />
-            <section className="content-panel admin-table table-scroll">
-                <DataTable isBusy={query.isFetching}>
-                    <thead>
-                        <tr>
-                            <SortHeader listing={listing} field="name" label="Пользователь" />
-                            <th>Роль</th>
-                            <th>Статус</th>
-                            <th aria-label="Действия" />
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {query.data?.data.map((u) => (
-                            <tr key={u.id}>
-                                <td>
-                                    <div className="owner-cell">
-                                        <span className="avatar">{u.name.slice(0, 1)}</span>
-                                        <div>
-                                            <strong>{u.name}</strong>
-                                            <small className="block muted">{u.email}</small>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>{roleLabels[u.role]}</td>
-                                <td>
-                                    <span className={`user-status ${u.active ? 'active' : 'blocked'}`}>
-                                        <span aria-hidden="true" />
-                                        {u.active ? 'Активен' : 'Заблокирован'}
-                                    </span>
-                                </td>
-                                <td>
-                                    <Popover
-                                        label={`Действия: ${u.name}`}
-                                        align="end"
-                                        trigger={<MoreHorizontal size={16} />}
-                                    >
-                                        {(close) => (
-                                            <div className="menu-actions">
-                                                <Select
-                                                    label={`Роль пользователя ${u.name}`}
-                                                    value={u.role}
-                                                    isDisabled={changeRole.isPending || toggle.isPending}
-                                                    onValueChange={(value) => {
-                                                        close();
-                                                        if (value !== u.role) {
-                                                            changeRole.mutate({ user: u, role: value as Role });
-                                                        }
-                                                    }}
-                                                    options={Object.entries(roleLabels).map(([value, label]) => ({
-                                                        value,
-                                                        label,
-                                                    }))}
-                                                />
-                                                <Button
-                                                    variant={u.active ? 'destructive' : 'ghost'}
-                                                    disabled={toggle.isPending}
-                                                    onClick={() => {
-                                                        close();
-                                                        toggle.reset();
-                                                        if (u.active) {
-                                                            setBlockUser(u);
-                                                        } else {
-                                                            toggle.mutate(u);
-                                                        }
-                                                    }}
-                                                >
-                                                    {u.active ? 'Заблокировать' : 'Разблокировать'}
-                                                </Button>
-                                            </div>
-                                        )}
-                                    </Popover>
-                                </td>
+            <section className="content-panel admin-panel">
+                <AdminFilters listing={listing} kind="users" />
+                <TableViewport className="admin-table">
+                    <DataTable isBusy={query.isFetching}>
+                        <thead>
+                            <tr>
+                                <SortHeader listing={listing} field="name" label="Пользователь" />
+                                <th>Роль</th>
+                                <th>Статус</th>
+                                <th aria-label="Действия" />
                             </tr>
-                        ))}
-                    </tbody>
-                </DataTable>
-                {query.isPending && <TableSkeleton label="Загружаем участников" />}
-                {!query.isPending && !query.isError && !query.data?.data.length && (
-                    <p className="empty-state">Участники не найдены.</p>
-                )}
+                        </thead>
+                        <tbody>
+                            {query.data?.data.map((u) => (
+                                <tr key={u.id}>
+                                    <td>
+                                        <div className="owner-cell">
+                                            <span className="avatar">{u.name.slice(0, 1)}</span>
+                                            <div>
+                                                <strong>{u.name}</strong>
+                                                <small className="block muted">{u.email}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{roleLabels[u.role]}</td>
+                                    <td>
+                                        <span className={`user-status ${u.active ? 'active' : 'blocked'}`}>
+                                            <span aria-hidden="true" />
+                                            {u.active ? 'Активен' : 'Заблокирован'}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <ActionMenu label={`Действия: ${u.name}`}>
+                                            {(close) => (
+                                                <div className="menu-actions">
+                                                    <Select
+                                                        label={`Роль пользователя ${u.name}`}
+                                                        value={u.role}
+                                                        isDisabled={changeRole.isPending || toggle.isPending}
+                                                        onValueChange={(value) => {
+                                                            close();
+                                                            if (value !== u.role) {
+                                                                changeRole.mutate({ user: u, role: value as Role });
+                                                            }
+                                                        }}
+                                                        options={Object.entries(roleLabels).map(([value, label]) => ({
+                                                            value,
+                                                            label,
+                                                        }))}
+                                                    />
+                                                    <Button
+                                                        variant={u.active ? 'destructive' : 'ghost'}
+                                                        disabled={toggle.isPending}
+                                                        onClick={() => {
+                                                            close();
+                                                            toggle.reset();
+                                                            if (u.active) {
+                                                                setBlockUser(u);
+                                                            } else {
+                                                                toggle.mutate(u);
+                                                            }
+                                                        }}
+                                                    >
+                                                        {u.active ? 'Заблокировать' : 'Разблокировать'}
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </ActionMenu>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </DataTable>
+                    {query.isPending && <TableSkeleton label="Загружаем участников" />}
+                    {!query.isPending && !query.isError && !query.data?.data.length && (
+                        <p className="empty-state">Участники не найдены.</p>
+                    )}
+                </TableViewport>
+                <CursorPagination meta={query.data} isBusy={query.isFetching} onChange={listing.navigate} />
             </section>
-            <CursorNavigation meta={query.data} isBusy={query.isFetching} onChange={listing.navigate} />
             {blockUser && (
                 <AlertDialog
                     title="Заблокировать пользователя?"
@@ -254,6 +260,7 @@ interface AuditEvent {
     resource_id: string | null;
     created_at: string;
 }
+
 const auditLabels: Record<string, string> = {
     'version.uploaded': 'Загружена версия',
     'comment.created': 'Добавлен комментарий',
@@ -282,54 +289,59 @@ const auditLabels: Record<string, string> = {
     'document.moved': 'Документ перемещён',
     'document.tags.updated': 'Изменены теги',
 };
+
 export const AuditPage = () => {
     const listing = useCursorFilters({ sort: 'created_at', direction: 'desc' });
+
     const query = useQuery({
         queryKey: [queryKeys.audit, listing.search],
         queryFn: ({ signal }) => api<CursorResult<AuditEvent>>(`/admin/audit?${listing.search}`, { signal }),
     });
+
     return (
         <>
             <div className="page-heading">
                 <h1>Журнал действий</h1>
             </div>
-            <AdminFilters listing={listing} kind="audit" />
             <ErrorMessage error={query.error} />
-            <section className="content-panel admin-table table-scroll">
-                <DataTable isBusy={query.isFetching}>
-                    <thead>
-                        <tr>
-                            <SortHeader listing={listing} field="action" label="Событие" />
-                            <th>Пользователь</th>
-                            <th>Ресурс</th>
-                            <SortHeader listing={listing} field="created_at" label="Время" />
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {query.data?.data.map((e) => (
-                            <tr key={e.id}>
-                                <td>
-                                    <span title={e.action}>
-                                        {auditLabels[e.display_action ?? e.action] ?? e.action}
-                                    </span>
-                                </td>
-                                <td>{e.actor_name ?? 'Система'}</td>
-                                <td>
-                                    <span title={e.resource_id ?? undefined}>
-                                        {e.resource_name ?? e.resource_id?.slice(0, 12) ?? '—'}
-                                    </span>
-                                </td>
-                                <td>{new Date(e.created_at).toLocaleString('ru-RU')}</td>
+            <section className="content-panel admin-panel">
+                <AdminFilters listing={listing} kind="audit" />
+                <TableViewport className="admin-table">
+                    <DataTable isBusy={query.isFetching}>
+                        <thead>
+                            <tr>
+                                <SortHeader listing={listing} field="action" label="Событие" />
+                                <th>Пользователь</th>
+                                <th>Ресурс</th>
+                                <SortHeader listing={listing} field="created_at" label="Время" />
                             </tr>
-                        ))}
-                    </tbody>
-                </DataTable>
-                {!query.data?.data.length && !query.isPending && !query.isError && (
-                    <div className="empty-state">События не найдены.</div>
-                )}
-                {query.isPending && <TableSkeleton label="Загружаем журнал" />}
+                        </thead>
+                        <tbody>
+                            {query.data?.data.map((e) => (
+                                <tr key={e.id}>
+                                    <td>
+                                        <span title={e.action}>
+                                            {auditLabels[e.display_action ?? e.action] ?? e.action}
+                                        </span>
+                                    </td>
+                                    <td>{e.actor_name ?? 'Система'}</td>
+                                    <td>
+                                        <span title={e.resource_id ?? undefined}>
+                                            {e.resource_name ?? e.resource_id?.slice(0, 12) ?? '—'}
+                                        </span>
+                                    </td>
+                                    <td>{new Date(e.created_at).toLocaleString('ru-RU')}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </DataTable>
+                    {!query.data?.data.length && !query.isPending && !query.isError && (
+                        <div className="empty-state">События не найдены.</div>
+                    )}
+                    {query.isPending && <TableSkeleton label="Загружаем журнал" />}
+                </TableViewport>
+                <CursorPagination meta={query.data} isBusy={query.isFetching} onChange={listing.navigate} />
             </section>
-            <CursorNavigation meta={query.data} isBusy={query.isFetching} onChange={listing.navigate} />
         </>
     );
 };
@@ -342,6 +354,7 @@ interface CursorMeta {
 interface CursorResult<T> extends CursorMeta {
     data: T[];
 }
+
 const useCursorFilters = (defaults: Record<string, string>) => {
     const [filters, setFilters] = useState(defaults);
     const [cursor, setCursor] = useState('');
@@ -349,6 +362,7 @@ const useCursorFilters = (defaults: Record<string, string>) => {
     if (cursor) {
         params.set('cursor', cursor);
     }
+
     return {
         filters,
         search: params.toString(),
@@ -371,6 +385,7 @@ const useCursorFilters = (defaults: Record<string, string>) => {
         navigate: (value: string) => setCursor(value),
     };
 };
+
 const SortHeader = ({
     listing,
     field,
@@ -382,6 +397,7 @@ const SortHeader = ({
 }) => {
     const isActive = listing.filters.sort === field;
     const isAscending = listing.filters.direction === 'asc';
+
     return (
         <th aria-sort={isActive ? (isAscending ? 'ascending' : 'descending') : undefined}>
             <button type="button" className="table-sort" onClick={() => listing.sort(field)}>
@@ -390,39 +406,10 @@ const SortHeader = ({
         </th>
     );
 };
-const CursorNavigation = ({
-    meta,
-    isBusy,
-    onChange,
-}: {
-    meta: CursorMeta | undefined;
-    isBusy: boolean;
-    onChange: (cursor: string) => void;
-}) => (
-    <nav className="pagination" aria-label="Навигация по списку">
-        <span className="muted" aria-live="polite">
-            {isBusy ? 'Загружаем…' : ''}
-        </span>
-        <div>
-            <Button
-                variant="secondary"
-                disabled={isBusy || !meta?.prev_cursor}
-                onClick={() => meta?.prev_cursor && onChange(meta.prev_cursor)}
-            >
-                Назад
-            </Button>
-            <Button
-                variant="secondary"
-                disabled={isBusy || !meta?.next_cursor}
-                onClick={() => meta?.next_cursor && onChange(meta.next_cursor)}
-            >
-                Дальше
-            </Button>
-        </div>
-    </nav>
-);
+
 const AdminFilters = ({ listing, kind }: { listing: ReturnType<typeof useCursorFilters>; kind: 'users' | 'audit' }) => {
     const isUsersList = kind === 'users';
+
     const field = (key: string, label: string, type = 'text') => (
         <label>
             {label}
@@ -434,19 +421,22 @@ const AdminFilters = ({ listing, kind }: { listing: ReturnType<typeof useCursorF
             />
         </label>
     );
+
     const select = (key: string, label: string, options: { value: string; label: string }[]) => (
-        <label>
-            {label}
-            <Select
-                label={label}
-                value={listing.filters[key] ?? ''}
-                onValueChange={(value) => listing.change(key, value)}
-                options={options}
-            />
-        </label>
+        <FilterOptions
+            label={label}
+            value={listing.filters[key] ?? ''}
+            onValueChange={(value) => listing.change(key, value)}
+            options={options}
+        />
     );
+
+    const count = Object.entries(listing.filters).filter(
+        ([key, value]) => !['q', 'sort', 'direction'].includes(key) && value
+    ).length;
+
     return (
-        <section className="list-toolbar" aria-label={isUsersList ? 'Фильтры пользователей' : 'Фильтры журнала'}>
+        <TableToolbar label={isUsersList ? 'Фильтры пользователей' : 'Фильтры журнала'}>
             <SearchInput
                 initialValue={listing.filters.q ?? ''}
                 maxLength={200}
@@ -454,56 +444,44 @@ const AdminFilters = ({ listing, kind }: { listing: ReturnType<typeof useCursorF
                 placeholder={isUsersList ? 'Имя или почта' : 'Пользователь или ресурс'}
                 onSearch={(value) => listing.change('q', value)}
             />
-            <Popover
-                label="Фильтры"
-                trigger={
+            <FilterPopover count={count} onReset={listing.reset}>
+                {isUsersList ? (
                     <>
-                        <SlidersHorizontal size={16} /> Фильтры
+                        {select('role', 'Роль', [
+                            { value: '', label: 'Все роли' },
+                            { value: 'admin', label: 'Администратор' },
+                            { value: 'employee', label: 'Сотрудник' },
+                            { value: 'observer', label: 'Наблюдатель' },
+                        ])}
+                        {select('active', 'Статус', [
+                            { value: '', label: 'Все статусы' },
+                            { value: '1', label: 'Активен' },
+                            { value: '0', label: 'Заблокирован' },
+                        ])}
                     </>
-                }
-            >
-                <div className="filter-fields">
-                    {isUsersList ? (
-                        <>
-                            {select('role', 'Роль', [
-                                { value: '', label: 'Все роли' },
-                                { value: 'admin', label: 'Администратор' },
-                                { value: 'employee', label: 'Сотрудник' },
-                                { value: 'observer', label: 'Наблюдатель' },
-                            ])}
-                            {select('active', 'Статус', [
-                                { value: '', label: 'Все статусы' },
-                                { value: '1', label: 'Активен' },
-                                { value: '0', label: 'Заблокирован' },
-                            ])}
-                        </>
-                    ) : (
-                        <>
-                            {select('action', 'Событие', [
-                                { value: '', label: 'Все события' },
-                                ...Object.entries(auditLabels)
-                                    .filter(
-                                        ([value]) =>
-                                            !['user.blocked', 'user.unblocked', 'user.role_changed'].includes(value)
-                                    )
-                                    .map(([value, label]) => ({ value, label })),
-                            ])}
-                            {field('action', 'Код события')}
-                            {field('actor_id', 'ID пользователя', 'number')}
-                            <DateRangePicker
-                                label="Период"
-                                from={listing.filters.date_from ?? ''}
-                                to={listing.filters.date_to ?? ''}
-                                onFromChange={(value) => listing.change('date_from', value)}
-                                onToChange={(value) => listing.change('date_to', value)}
-                            />
-                        </>
-                    )}
-                    <Button variant="ghost" onClick={listing.reset}>
-                        Сбросить
-                    </Button>
-                </div>
-            </Popover>
-        </section>
+                ) : (
+                    <>
+                        {select('action', 'Событие', [
+                            { value: '', label: 'Все события' },
+                            ...Object.entries(auditLabels)
+                                .filter(
+                                    ([value]) =>
+                                        !['user.blocked', 'user.unblocked', 'user.role_changed'].includes(value)
+                                )
+                                .map(([value, label]) => ({ value, label })),
+                        ])}
+                        {field('action', 'Код события')}
+                        {field('actor_id', 'ID пользователя', 'number')}
+                        <DateRangePicker
+                            label="Период"
+                            from={listing.filters.date_from ?? ''}
+                            to={listing.filters.date_to ?? ''}
+                            onFromChange={(value) => listing.change('date_from', value)}
+                            onToChange={(value) => listing.change('date_to', value)}
+                        />
+                    </>
+                )}
+            </FilterPopover>
+        </TableToolbar>
     );
 };

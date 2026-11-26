@@ -19,7 +19,8 @@ final class ReplaceDocumentGrantsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'grants' => ['required', 'array', 'max:100'],
+            'revision' => ['required', 'integer', 'min:0'],
+            'grants' => ['present', 'array', 'max:100'],
             'grants.*.user_id' => ['required', 'integer', 'distinct'],
             'grants.*.read' => ['required', 'boolean'],
             'grants.*.comment' => ['required', 'boolean'],
@@ -41,6 +42,6 @@ final class ReplaceDocumentGrantsRequest extends FormRequest
             $this->validated('grants'),
         );
 
-        return new ReplaceDocumentGrantsData($grants);
+        return new ReplaceDocumentGrantsData($grants, $this->integer('revision'));
     }
 }

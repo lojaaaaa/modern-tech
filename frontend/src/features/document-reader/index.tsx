@@ -1,3 +1,4 @@
+import { Spinner } from '@/shared/ui/spinner';
 import { queryKeys } from '@/shared/api/query-keys';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -7,6 +8,8 @@ import type { CommentRecord, Resource } from '@/shared/api/types';
 import { Button } from '@/shared/ui/button';
 import { ErrorMessage } from '@/shared/ui/error-message';
 import './file-preview.css';
+import { PdfPreview } from './PdfPreview';
+
 export interface TextAnchor {
     start: number;
     end: number;
@@ -61,21 +64,26 @@ export const TextReader = ({
             mark.focus({ preventScroll: true });
         }
     }, [target, text]);
+
     const capture = () => {
         const selected = window.getSelection();
         if (!isCommentAllowed || !selected?.rangeCount || !root.current || selected.isCollapsed) {
             setSelection(null);
+
             return;
         }
         const range = selected.getRangeAt(0);
         if (!root.current.contains(range.startContainer) || !root.current.contains(range.endContainer)) {
             setSelection(null);
+
             return;
         }
+
         const rect =
             typeof range.getBoundingClientRect === 'function'
                 ? range.getBoundingClientRect()
                 : { left: 20, bottom: 20 };
+
         const container = root.current.parentElement?.getBoundingClientRect();
         if (container) {
             setPosition({
@@ -90,13 +98,16 @@ export const TextReader = ({
         const quote = range.toString();
         setSelection(quote.trim() && quote.length <= 2000 ? { start, end: start + quote.length, quote } : null);
     };
+
     const isValid = target && text.slice(target.start, target.end) === target.quote;
+
     const renderText = (start: number, end: number) => {
         if (!searchTarget || searchTarget.start >= end || searchTarget.end <= start) {
             return text.slice(start, end);
         }
         const matchStart = Math.max(start, searchTarget.start);
         const matchEnd = Math.min(end, searchTarget.end);
+
         return (
             <>
                 {text.slice(start, matchStart)}
@@ -107,6 +118,7 @@ export const TextReader = ({
             </>
         );
     };
+
     return (
         <div className="text-reader">
             {target && !isValid && (
@@ -228,6 +240,7 @@ export const TextReader = ({
                                 text.slice(comment.anchor_start, comment.anchor_end) === comment.anchor_quote
                         )
                         .sort((a, b) => (a.anchor_start ?? 0) - (b.anchor_start ?? 0));
+
                     if (isValid && !anchors.some((comment) => comment.id === target.key)) {
                         anchors.push({
                             id: target.key,
@@ -239,11 +252,14 @@ export const TextReader = ({
                         anchors.sort((a, b) => (a.anchor_start ?? 0) - (b.anchor_start ?? 0));
                     }
                     const bounds = new Map<number, { opens: CommentRecord[]; closes: string[] }>();
+
                     const boundary = (offset: number) => {
                         const current = bounds.get(offset) ?? { opens: [], closes: [] };
                         bounds.set(offset, current);
+
                         return current;
                     };
+
                     boundary(0);
                     boundary(text.length);
                     for (const comment of anchors) {
@@ -257,6 +273,7 @@ export const TextReader = ({
                     const active = new Map<string, CommentRecord>();
                     const focused = new Set<string>();
                     const edges = [...bounds].sort(([left], [right]) => left - right);
+
                     return edges.slice(0, -1).map(([start, { opens, closes }], index) => {
                         closes.forEach((id) => active.delete(id));
                         opens.forEach((comment) => active.set(comment.id, comment));
@@ -267,6 +284,7 @@ export const TextReader = ({
                         }
                         const isFocusable = !focused.has(comment.id);
                         focused.add(comment.id);
+
                         return (
                             <mark
                                 key={start}
@@ -306,6 +324,7 @@ export const TextReader = ({
 };
 export const FilePreview = ({ versionId, fallback }: { versionId: string; fallback: React.ReactNode }) => {
     const [zoom, setZoom] = useState(1);
+
     const query = useQuery({
         queryKey: [queryKeys.preview, versionId],
         queryFn: ({ signal }) =>
@@ -315,6 +334,7 @@ export const FilePreview = ({ versionId, fallback }: { versionId: string; fallba
             ),
         refetchInterval: (q) => (q.state.data?.data.status === 'pending' ? 2500 : false),
     });
+
     const preview = query.data?.data;
     if (query.error) {
         return <ErrorMessage error={query.error} />;
@@ -322,7 +342,7 @@ export const FilePreview = ({ versionId, fallback }: { versionId: string; fallba
     if (query.isPending || preview?.status === 'pending') {
         return (
             <div className="empty-state" role="status">
-                <div className="loading-orbit" />
+                <Spinner />
                 Готовим предпросмотр…
             </div>
         );
@@ -375,5 +395,6 @@ export const FilePreview = ({ versionId, fallback }: { versionId: string; fallba
             </div>
         );
     }
-    return <iframe className="pdf-reader" title="Предпросмотр PDF" src={`${url}#view=Fit&navpanes=0`} />;
+
+    return <PdfPreview key={versionId} url={url} />;
 };

@@ -207,8 +207,6 @@ final class DocumentController
         abort_unless($version->document !== null, 404);
         Gate::authorize(DocumentPermission::READ->value, $version->document);
 
-        // A ready candidate may never have been published. The current schema
-        // only records the current published version, not publication history.
         abort_unless($version->isReady() && $version->document->published_version_id === $version->id, 404);
 
         $entities = DB::table('document_entities')->where('version_id', $version->id)->orderBy('offset')->get();
@@ -227,30 +225,43 @@ final class DocumentController
     {
         Gate::authorize(DocumentPermission::MANAGE->value, $document);
 
+        $search = $request->validate(['search' => ['nullable', 'string', 'max:120'], 'granted' => ['sometimes', 'boolean']])['search'] ?? '';
         $participants = User::query()
-            ->where('active', true)
+            ->when($request->boolean('granted'), fn ($query) => $query->whereIn('id', $document->grants()->select('user_id')), fn ($query) => $query->where('active', true))
             ->where('id', '!=', $document->owner_id)
+            ->when($search !== '', fn ($query) => $query->where(fn ($query) => $query->whereLike('name', '%'.$search.'%')->orWhereLike('email', '%'.$search.'%')))
             ->orderBy('name')
+            ->limit($request->has('search') ? 30 : 100)
             ->get(['id', 'name', 'email', 'role']);
 
         return response()->json(['data' => $participants]);
     }
 
+    #[Response(type: 'array{data: list<\App\Modules\Documents\Models\DocumentGrant>, meta: array{revision: int, owner_permissions: array{read: bool, comment: bool, edit: bool, export: bool}}}')]
     public function grants(Request $request, Document $document): JsonResponse
     {
         Gate::authorize(DocumentPermission::MANAGE->value, $document);
 
-        return response()->json(['data' => $document->grants()->get()]);
+        return DB::transaction(function () use ($document): JsonResponse {
+            $document = Document::query()->whereKey($document->id)->lockForUpdate()->firstOrFail();
+            Gate::authorize(DocumentPermission::MANAGE->value, $document);
+            $owner = $document->owner;
+            $permissions = [];
+            foreach (['read', 'comment', 'edit', 'export'] as $right) {
+                $permissions[$right] = $owner?->can($right, $document) ?? false;
+            }
+            return response()->json(['data' => $document->grants()->get(), 'meta' => ['revision' => $document->revision, 'owner_permissions' => $permissions]]);
+        });
     }
 
-    #[Response(type: 'array{data: list<\App\Modules\Documents\Models\DocumentGrant>}')]
+    #[Response(type: 'array{data: list<\App\Modules\Documents\Models\DocumentGrant>, meta: array{revision: int, owner_permissions: array{read: bool, comment: bool, edit: bool, export: bool}}}')]
     public function setGrants(
         ReplaceDocumentGrantsRequest $request,
         Document $document,
         ReplaceDocumentGrantsAction $action,
     ): JsonResponse {
-        $grants = $action->handle($request->user(), $document, $request->getData());
+        $action->handle($request->user(), $document, $request->getData());
 
-        return response()->json(['data' => $grants]);
+        return $this->grants($request, $document);
     }
 }

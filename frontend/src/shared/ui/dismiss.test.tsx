@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
 import { DatePicker } from './date-picker';
 import { Select } from './select';
+
 it('closes calendar on outside pointer and Escape', () => {
     render(<DatePicker label="Дата" value="2026-10-31" onChange={vi.fn()} />);
     const trigger = screen.getByRole('button', { name: 'Дата' });

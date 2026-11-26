@@ -14,23 +14,28 @@ export const VersionCompare = ({ versions }: { versions: Version[] }) => {
     const [left, setLeft] = useState(versions[1]?.id ?? '');
     const [right, setRight] = useState(versions[0]?.id ?? '');
     const [comparison, setComparison] = useState<{ left: string; right: string } | null>(null);
+
     const before = useQuery({
         queryKey: [queryKeys.documentText, comparison?.left],
         queryFn: ({ signal }) =>
             api<Resource<{ text: string | null }>>(`/versions/${comparison?.left}/text`, { signal }),
         enabled: !!comparison,
     });
+
     const after = useQuery({
         queryKey: [queryKeys.documentText, comparison?.right],
         queryFn: ({ signal }) =>
             api<Resource<{ text: string | null }>>(`/versions/${comparison?.right}/text`, { signal }),
         enabled: !!comparison,
     });
+
     const options = versions.map((v) => ({ value: v.id, label: `Версия ${v.number}` }));
+
     const changes = useMemo(
         () => diffLines(before.data?.data.text ?? '', after.data?.data.text ?? ''),
         [before.data?.data.text, after.data?.data.text]
     );
+
     return (
         <div className="version-compare">
             <div className="section-heading">

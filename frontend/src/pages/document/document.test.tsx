@@ -1,16 +1,17 @@
-import { afterEach, expect, it, vi } from 'vitest';
+import type * as DocumentReader from '@/features/document-reader';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { afterEach, expect, it, vi } from 'vitest';
 import { DocumentPage } from './ui/DocumentPage';
-import type * as DocumentReader from '@/features/document-reader';
 
 const previewRender = vi.hoisted(() => vi.fn());
 vi.mock('@/features/document-reader', async (importOriginal) => ({
     ...(await importOriginal<typeof DocumentReader>()),
     FilePreview: ({ versionId }: { versionId: string }) => {
         previewRender();
+
         return (
             <div>
                 Просмотр изображения<span data-testid="preview-version">{versionId}</span>
@@ -33,6 +34,7 @@ it('opens the selected ready version and returns to the current one', async () =
         size: 1024,
         original_name: 'first.pdf',
     };
+
     const v2 = { ...v1, id: 'v2', number: 2, original_name: 'second.pdf' };
     const pending = { ...v1, id: 'v3', number: 3, status: 'scanning' };
     vi.stubGlobal(
@@ -62,12 +64,17 @@ it('opens the selected ready version and returns to the current one', async () =
     );
     renderDocument();
     expect(await screen.findByTestId('preview-version')).toHaveTextContent('v2');
+    const initialPreview = screen.getByTestId('preview-version');
     const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Версии' }));
+    await user.click(screen.getByRole('button', { name: 'Предпросмотр' }));
+    expect(screen.getByTestId('preview-version')).toBe(initialPreview);
     await user.click(screen.getByRole('button', { name: 'Версии' }));
     expect(await screen.findByRole('button', { name: 'Открыть версию 1' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Открыть версию 3' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Открыть версию 1' }));
     expect(await screen.findByTestId('preview-version')).toHaveTextContent('v1');
+    expect(screen.queryByRole('button', { name: 'Данные' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Текущая версия' }));
     expect(await screen.findByTestId('preview-version')).toHaveTextContent('v2');
 });
@@ -81,6 +88,7 @@ it('does not offer historical version preview without edit permission', async ()
         size: 1024,
         original_name: 'current.pdf',
     };
+
     vi.stubGlobal(
         'fetch',
         vi.fn(async (url: string) => {
@@ -127,8 +135,10 @@ const existingComments = [1, 2].map((number) => ({
     anchor_quote: null,
     deleted_at: null,
 }));
+
 const renderDocument = () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
     const view = render(
         <QueryClientProvider client={queryClient}>
             <MemoryRouter initialEntries={['/documents/image-1']}>
@@ -138,8 +148,10 @@ const renderDocument = () => {
             </MemoryRouter>
         </QueryClientProvider>
     );
+
     return { ...view, queryClient };
 };
+
 it('hides image entities, loads history on demand and isolates comment typing from preview', async () => {
     const fetcher = vi.fn(async (url: string) => {
         if (url === '/api/v1/documents/image-1') {
@@ -167,6 +179,7 @@ it('hides image entities, loads history on demand and isolates comment typing fr
         }
         throw new Error('Unexpected request: ' + url);
     });
+
     vi.stubGlobal('fetch', fetcher);
     const view = renderDocument();
     fireEvent.click(await screen.findByRole('button', { name: 'Обсуждение' }));
@@ -187,6 +200,7 @@ it('aborts an unfinished document request when leaving the page', async () => {
         'fetch',
         vi.fn((_url: string, init: RequestInit) => {
             requestSignal = init.signal;
+
             return new Promise<Response>((_resolve, reject) => {
                 init.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
             });
@@ -200,6 +214,7 @@ it('aborts an unfinished document request when leaving the page', async () => {
 
 it('brings a new comment into view in an overflowing discussion', async () => {
     let isSaved = false;
+
     const comment = {
         id: 'comment-1',
         author_id: 1,
@@ -210,6 +225,7 @@ it('brings a new comment into view in an overflowing discussion', async () => {
         anchor_quote: null,
         deleted_at: null,
     };
+
     vi.stubGlobal(
         'fetch',
         vi.fn(async (url: string, init?: RequestInit) => {
@@ -236,8 +252,10 @@ it('brings a new comment into view in an overflowing discussion', async () => {
             if (url.endsWith('/comments')) {
                 if (init?.method === 'POST') {
                     isSaved = true;
+
                     return Response.json({ data: comment }, { status: 201 });
                 }
+
                 return Response.json({ data: isSaved ? [...existingComments, comment] : existingComments });
             }
             throw new Error('Unexpected request: ' + url);
@@ -258,6 +276,7 @@ it('brings a new comment into view in an overflowing discussion', async () => {
 
 it('brings a comment on selected text into view in an overflowing discussion', async () => {
     let isSaved = false;
+
     const comment = {
         id: 'comment-1',
         author_id: 1,
@@ -270,6 +289,7 @@ it('brings a comment on selected text into view in an overflowing discussion', a
         anchor_quote: 'Важный',
         deleted_at: null,
     };
+
     vi.stubGlobal(
         'fetch',
         vi.fn(async (url: string, init?: RequestInit) => {
@@ -299,8 +319,10 @@ it('brings a comment on selected text into view in an overflowing discussion', a
             if (url.endsWith('/comments')) {
                 if (init?.method === 'POST') {
                     isSaved = true;
+
                     return Response.json({ data: comment }, { status: 201 });
                 }
+
                 return Response.json({ data: isSaved ? [...existingComments, comment] : existingComments });
             }
             throw new Error('Unexpected request: ' + url);

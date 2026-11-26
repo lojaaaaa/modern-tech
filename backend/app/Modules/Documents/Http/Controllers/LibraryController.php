@@ -72,20 +72,6 @@ final class LibraryController
         return response()->json(['data' => null]);
     }
 
-    public function favorite(Request $request, Document $document): JsonResponse
-    {
-        Gate::authorize(DocumentPermission::READ->value, $document);
-        $data = $request->validate(['favorite' => 'required|boolean']);
-        $key = ['document_id' => $document->id, 'user_id' => $request->user()->id];
-        if ($data['favorite']) {
-            DB::table('document_favorites')->insertOrIgnore($key);
-        } else {
-            DB::table('document_favorites')->where($key)->delete();
-        }
-
-        return response()->json(['data' => $data]);
-    }
-
     public function tags(Request $request): JsonResponse
     {
         $visible = Document::query()->visibleTo($request->user())->select('documents.id');

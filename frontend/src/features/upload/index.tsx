@@ -1,3 +1,4 @@
+import { Spinner } from '@/shared/ui/spinner';
 import { queryKeys } from '@/shared/api/query-keys';
 import type { DocumentRecord, Resource } from '@/shared/api/types';
 import { useRef, useState } from 'react';
@@ -5,9 +6,11 @@ import { Upload, FileUp, CheckCircle2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { api } from '@/shared/api/client';
 import { Modal } from '@/shared/ui/modal';
+
 import { Button } from '@/shared/ui/button';
 import { ErrorMessage } from '@/shared/ui/error-message';
 import { formatBytes } from '@/shared/lib/utils';
+
 interface Result {
     name: string;
     isSuccessful: boolean;
@@ -22,6 +25,7 @@ export const UploadPanel = ({ onClose }: { onClose: () => void }) => {
     const [duplicate, setDuplicate] = useState<DocumentRecord | null>(null);
     const input = useRef<HTMLInputElement>(null);
     const client = useQueryClient();
+
     const choose = (values: FileList | null) => {
         if (!values) {
             return;
@@ -29,12 +33,14 @@ export const UploadPanel = ({ onClose }: { onClose: () => void }) => {
         const next = Array.from(values);
         if (!next.length || next.length > 20 || next.some((f) => f.size > 50 * 1024 * 1024 || f.size === 0)) {
             setError('Выберите от 1 до 20 файлов размером до 50 МБ каждый. Пустые файлы загрузить нельзя.');
+
             return;
         }
         setFiles(next);
         setError(null);
         setResults([]);
     };
+
     const submit = async () => {
         setBusy(true);
         const completed: Result[] = [];
@@ -46,6 +52,7 @@ export const UploadPanel = ({ onClose }: { onClose: () => void }) => {
                     method: 'POST',
                     body: data,
                 });
+
                 const match = matches.data[0];
                 let action = 'copy';
                 if (match) {
@@ -83,6 +90,7 @@ export const UploadPanel = ({ onClose }: { onClose: () => void }) => {
         setBusy(false);
         await client.invalidateQueries({ queryKey: [queryKeys.documents] });
     };
+
     return (
         <Modal titleId="upload-title" closeLabel="Закрыть загрузку" onClose={onClose} isBusy={isBusy}>
             {duplicate && (
@@ -151,6 +159,14 @@ export const UploadPanel = ({ onClose }: { onClose: () => void }) => {
                     </div>
                 ))}
             </div>
+            {isBusy && !duplicate && (
+                <progress
+                    className="upload-progress"
+                    aria-label="Обработано файлов"
+                    max={files.length}
+                    value={results.length}
+                />
+            )}
             <footer>
                 <Button variant="secondary" onClick={onClose} disabled={isBusy}>
                     Закрыть
@@ -159,7 +175,9 @@ export const UploadPanel = ({ onClose }: { onClose: () => void }) => {
                     disabled={!files.length || isBusy || results.length === files.length}
                     onClick={() => void submit()}
                 >
-                    {results.length === files.length && files.length ? (
+                    {isBusy && !duplicate ? (
+                        <Spinner />
+                    ) : results.length === files.length && files.length ? (
                         <CheckCircle2 size={16} />
                     ) : (
                         <Upload size={16} />

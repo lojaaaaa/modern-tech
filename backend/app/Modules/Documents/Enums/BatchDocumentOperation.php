@@ -8,5 +8,4 @@ enum BatchDocumentOperation: string
 {
     case TRASH = 'trash';
     case RESTORE = 'restore';
-    case FAVORITE = 'favorite';
 }

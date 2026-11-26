@@ -22,6 +22,7 @@ export const AlertDialog = ({
 }) => {
     const titleId = useId();
     const descriptionId = useId();
+
     return (
         <Modal titleId={titleId} descriptionId={descriptionId} isBusy={isBusy} onClose={onClose}>
             <h2 id={titleId}>{title}</h2>

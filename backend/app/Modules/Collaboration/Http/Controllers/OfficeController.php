@@ -32,8 +32,10 @@ final class OfficeController
         foreach (['public_url', 'internal_url', 'app_internal_url', 'jwt_secret'] as $setting) {
             abort_unless(is_string(config('office.'.$setting)) && config('office.'.$setting) !== '', 503, 'Офисный редактор не настроен.');
         }
-        $draft = DB::transaction(function () use ($document) {
+        $draft = DB::transaction(function () use ($document, $user) {
             $locked = Document::query()->whereKey($document->id)->lockForUpdate()->firstOrFail();
+            $currentUser = User::query()->findOrFail($user->id);
+            abort_unless($currentUser->canAny([DocumentPermission::EDIT->value, DocumentPermission::COMMENT->value], $locked), 403);
             $version = $locked->publishedVersion;
             abort_unless(
                 $version && $version->isReady() && str_ends_with(strtolower($version->original_name), '.docx'),
@@ -58,7 +60,7 @@ final class OfficeController
             'document' => [
                 'fileType' => 'docx',
                 'key' => $draft->editor_key,
-                'title' => $document->title . '.docx',
+                'title' => str_ends_with(strtolower($document->title), '.docx') ? $document->title : $document->title . '.docx',
                 'url' => $base . '/api/v1/office/source/' . $capability,
                 'permissions' => [
                     'edit' => $isEditingAllowed,
@@ -68,8 +70,8 @@ final class OfficeController
             ],
             'editorConfig' => ['mode' => 'edit', 'lang' => 'ru', 'user' => ['id' => (string) $user->id, 'name' => $user->name], 'callbackUrl' => $base.'/api/v1/office/callback', 'coEditing' => ['mode' => 'fast', 'change' => true], 'customization' => ['autosave' => true, 'forcesave' => false]],
         ];
-        $config['editorConfig']['customization']['uiTheme'] = $request->boolean('dark') ? 'default-dark' : 'default-light';
-        $config['token'] = $tokens->sign($config);
+        $config['editorConfig']['customization']['uiTheme'] = 'theme-white';
+        $config['token'] = $tokens->sign($config + ['exp' => time() + 300]);
 
         $browserUrl = config('office.browser_url') ?: config('office.public_url');
 
@@ -117,18 +119,34 @@ final class OfficeController
 
             return response()->json(['error' => 0]);
         }
-        // Force-save callbacks have no proven ordering; never overwrite with them.
-        if ($status !== 2 || ! is_string($payload['url'] ?? null)) {
+        // Only explicitly requested snapshots are accepted, into isolated files.
+        $snapshotNonce = $payload['userdata'] ?? null;
+        $snapshotKey = is_string($snapshotNonce) ? 'office-snapshot:'.$snapshotNonce : null;
+        $snapshot = $snapshotKey ? \Illuminate\Support\Facades\Cache::get($snapshotKey) : null;
+        $isSnapshot = $status === 6 && ($snapshot['key'] ?? null) === $draft->editor_key;
+        if ($status === 6 && ! $isSnapshot) {
+            return response()->json(['error' => 0]);
+        }
+        if (($status !== 2 && ! $isSnapshot) || ! is_string($payload['url'] ?? null)) {
             return response()->json(['error' => 1]);
         }
         $url = parse_url($payload['url']);
         $public = parse_url((string) config('office.public_url'));
         $internal = parse_url((string) config('office.internal_url'));
         $origin = fn ($parts) => strtolower(($parts['scheme'] ?? '').'://'.($parts['host'] ?? '').':'.($parts['port'] ?? (($parts['scheme'] ?? '') === 'https' ? 443 : 80)));
-        if (! is_array($url) || (isset($url['user']) || isset($url['pass'])) || ! str_starts_with($url['path'] ?? '', '/cache/') || ! in_array($origin($url), [$origin($public), $origin($internal)], true)) {
+        $path = is_array($url) ? ($url['path'] ?? '') : '';
+        $allowedOrigins = [$origin($public), $origin($internal)];
+        $browser = (string) config('office.browser_url');
+        $browserOrigin = parse_url(str_starts_with($browser, '/') ? rtrim((string) config('app.url'), '/').$browser : $browser);
+        $prefix = rtrim($browserOrigin['path'] ?? '', '/');
+        if (is_array($url) && $prefix !== '' && $origin($url) === $origin($browserOrigin) && str_starts_with($path, $prefix.'/cache/')) {
+            $path = substr($path, strlen($prefix));
+            $allowedOrigins[] = $origin($browserOrigin);
+        }
+        if (! is_array($url) || isset($url['user']) || isset($url['pass']) || ! str_starts_with($path, '/cache/') || ! in_array($origin($url), $allowedOrigins, true)) {
             return response()->json(['error' => 1]);
         }
-        $target = rtrim((string) config('office.internal_url'), '/').$url['path'].(isset($url['query']) ? '?'.$url['query'] : '');
+        $target = rtrim((string) config('office.internal_url'), '/').$path.(isset($url['query']) ? '?'.$url['query'] : '');
         $temporary = tempnam(sys_get_temp_dir(), 'office-');
         if ($temporary === false) {
             return response()->json(['error' => 1]);
@@ -164,7 +182,7 @@ final class OfficeController
             if (! $isValid) {
                 return response()->json(['error' => 1]);
             }
-            $newPath = 'office-drafts/'.Str::uuid().'.docx';
+            $newPath = ($isSnapshot ? 'office-snapshots/' : 'office-drafts/').Str::uuid().'.docx';
             $input = fopen($temporary, 'rb');
             if (! $input) {
                 return response()->json(['error' => 1]);
@@ -176,7 +194,22 @@ final class OfficeController
             } finally {
                 fclose($input);
             }
-            $updated = DB::table('office_drafts')->where('document_id', $draft->document_id)->where('editor_key', $draft->editor_key)->update(['storage_key' => $newPath, 'editor_key' => (string) Str::uuid(), 'updated_at' => now()]);
+            if ($isSnapshot) {
+                $pendingSnapshot = \Illuminate\Support\Facades\Cache::get($snapshotKey);
+                if (($pendingSnapshot['key'] ?? null) !== $draft->editor_key || isset($pendingSnapshot['path'])) {
+                    Storage::disk('local')->delete($newPath);
+                    return response()->json(['error' => 0]);
+                }
+                \Illuminate\Support\Facades\Cache::put($snapshotKey, ['key' => $draft->editor_key, 'path' => $newPath], 90);
+                return response()->json(['error' => 0]);
+            }
+            $updated = DB::transaction(function () use ($draft, $newPath) {
+                $updated = DB::table('office_drafts')->where('document_id', $draft->document_id)->where('editor_key', $draft->editor_key)->update(['storage_key' => $newPath, 'editor_key' => (string) Str::uuid(), 'updated_at' => now()]);
+                if ($updated) {
+                    DB::table('outbox_events')->insert(['id' => (string) Str::uuid(), 'type' => 'storage.remove_document_files', 'payload' => json_encode(['keys' => [$draft->storage_key]], JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now()]);
+                }
+                return $updated;
+            });
             if (! $updated) {
                 Storage::disk('local')->delete($newPath);
             }

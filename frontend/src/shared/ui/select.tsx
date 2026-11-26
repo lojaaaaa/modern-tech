@@ -1,6 +1,7 @@
 import { useDismiss } from '@/shared/lib/use-dismiss';
 import { useEffect, useId, useRef, useState } from 'react';
 import { Check, ChevronDown } from 'lucide-react';
+
 export const Select = ({
     value,
     onValueChange,
@@ -43,6 +44,7 @@ export const Select = ({
             document.getElementById(`${id}-${active}`)?.scrollIntoView({ block: 'nearest' });
         }
     }, [active, id, isOpen]);
+
     const choose = (index: number) => {
         const option = options[index];
         if (option) {
@@ -51,6 +53,7 @@ export const Select = ({
         setOpen(false);
         trigger.current?.focus();
     };
+
     return (
         <div
             ref={root}

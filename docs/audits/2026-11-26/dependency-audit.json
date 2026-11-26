@@ -1,0 +1,313 @@
+{
+  "npm": {
+    "auditReportVersion": 2,
+    "vulnerabilities": {
+      "@eslint/config-array": {
+        "name": "@eslint/config-array",
+        "severity": "moderate",
+        "isDirect": false,
+        "via": [
+          "minimatch"
+        ],
+        "effects": [],
+        "range": "0.23.0 - 0.23.5",
+        "nodes": [
+          "node_modules/@eslint/config-array"
+        ],
+        "fixAvailable": true
+      },
+      "@typescript-eslint/eslint-plugin": {
+        "name": "@typescript-eslint/eslint-plugin",
+        "severity": "moderate",
+        "isDirect": false,
+        "via": [
+          "@typescript-eslint/type-utils",
+          "@typescript-eslint/utils"
+        ],
+        "effects": [],
+        "range": "6.16.0 - 8.72.2",
+        "nodes": [
+          "node_modules/@typescript-eslint/eslint-plugin"
+        ],
+        "fixAvailable": true
+      },
+      "@typescript-eslint/parser": {
+        "name": "@typescript-eslint/parser",
+        "severity": "moderate",
+        "isDirect": false,
+        "via": [
+          "@typescript-eslint/typescript-estree"
+        ],
+        "effects": [
+          "typescript-eslint"
+        ],
+        "range": "6.16.0 - 8.72.2",
+        "nodes": [
+          "node_modules/@typescript-eslint/parser"
+        ],
+        "fixAvailable": true
+      },
+      "@typescript-eslint/type-utils": {
+        "name": "@typescript-eslint/type-utils",
+        "severity": "moderate",
+        "isDirect": false,
+        "via": [
+          "@typescript-eslint/typescript-estree",
+          "@typescript-eslint/utils"
+        ],
+        "effects": [
+          "@typescript-eslint/eslint-plugin"
+        ],
+        "range": "6.16.0 - 8.72.2",
+        "nodes": [
+          "node_modules/@typescript-eslint/type-utils"
+        ],
+        "fixAvailable": true
+      },
+      "@typescript-eslint/typescript-estree": {
+        "name": "@typescript-eslint/typescript-estree",
+        "severity": "moderate",
+        "isDirect": false,
+        "via": [
+          "minimatch"
+        ],
+        "effects": [
+          "@typescript-eslint/parser",
+          "@typescript-eslint/type-utils",
+          "@typescript-eslint/utils",
+          "typescript-eslint"
+        ],
+        "range": "6.16.0 - 8.72.2",
+        "nodes": [
+          "node_modules/@typescript-eslint/typescript-estree"
+        ],
+        "fixAvailable": true
+      },
+      "@typescript-eslint/utils": {
+        "name": "@typescript-eslint/utils",
+        "severity": "moderate",
+        "isDirect": false,
+        "via": [
+          "@typescript-eslint/typescript-estree"
+        ],
+        "effects": [
+          "typescript-eslint"
+        ],
+        "range": "6.16.0 - 8.72.2",
+        "nodes": [
+          "node_modules/@typescript-eslint/utils"
+        ],
+        "fixAvailable": true
+      },
+      "eslint": {
+        "name": "eslint",
+        "severity": "moderate",
+        "isDirect": true,
+        "via": [
+          "minimatch"
+        ],
+        "effects": [],
+        "range": "10.0.0-alpha.0 - 10.14.0",
+        "nodes": [
+          "node_modules/eslint"
+        ],
+        "fixAvailable": true
+      },
+      "minimatch": {
+        "name": "minimatch",
+        "severity": "moderate",
+        "isDirect": false,
+        "via": [
+          {
+            "source": 1244623,
+            "name": "minimatch",
+            "dependency": "minimatch",
+            "title": "minimatch has potential denial of service via globparts amplification",
+            "url": "https://github.com/advisories/GHSA-g3hv-75wg-m249",
+            "severity": "moderate",
+            "cwe": [
+              "CWE-405"
+            ],
+            "cvss": {
+              "score": 0,
+              "vectorString": null
+            },
+            "range": ">=7.0.0 <11.0.1"
+          }
+        ],
+        "effects": [
+          "@eslint/config-array",
+          "@typescript-eslint/typescript-estree",
+          "eslint"
+        ],
+        "range": "7.0.0 - 11.0.0",
+        "nodes": [
+          "node_modules/minimatch"
+        ],
+        "fixAvailable": true
+      },
+      "typescript-eslint": {
+        "name": "typescript-eslint",
+        "severity": "moderate",
+        "isDirect": true,
+        "via": [
+          "@typescript-eslint/eslint-plugin",
+          "@typescript-eslint/parser",
+          "@typescript-eslint/typescript-estree",
+          "@typescript-eslint/utils"
+        ],
+        "effects": [],
+        "range": "<=8.72.2",
+        "nodes": [
+          "node_modules/typescript-eslint"
+        ],
+        "fixAvailable": true
+      }
+    },
+    "metadata": {
+      "vulnerabilities": {
+        "info": 0,
+        "low": 0,
+        "moderate": 9,
+        "high": 0,
+        "critical": 0,
+        "total": 9
+      },
+      "dependencies": {
+        "prod": 17,
+        "dev": 346,
+        "optional": 77,
+        "peer": 18,
+        "peerOptional": 0,
+        "total": 365
+      }
+    }
+  },
+  "composer": {
+    "advisories": {
+      "laravel/framework": [
+        {
+          "advisoryId": "PKSA-yxbx-3c9s-cjt9",
+          "packageName": "laravel/framework",
+          "affectedVersions": ">=13.0.0,<13.40.0|<12.71.0",
+          "title": "Laravel: Task Output Injection - Concurrency Process",
+          "cve": "CVE-2026-128083",
+          "link": "https://github.com/advisories/GHSA-63hm-g96r-2m2q",
+          "reportedAt": "2026-11-13T18:54:31+00:00",
+          "sources": [
+            {
+              "name": "GitHub",
+              "remoteId": "GHSA-63hm-g96r-2m2q"
+            }
+          ],
+          "severity": "low"
+        }
+      ],
+      "symfony/http-foundation": [
+        {
+          "advisoryId": "PKSA-nxjs-s6hn-vb6m",
+          "packageName": "symfony/http-foundation",
+          "affectedVersions": ">=7.2.0,<7.3.0|>=7.3.0,<7.4.0|>=7.4.0,<7.4.23|>=8.0.0,<8.1.0|>=8.1.0,<8.1.11",
+          "title": "The \"private_ranges\" Trusted Proxies Shortcut Trusts Clients Presenting an IPv4-Mapped, 6to4, Teredo or NAT64 Address as Reverse Proxies",
+          "cve": "CVE-2026-121619",
+          "link": "https://github.com/symfony/symfony/security/advisories/GHSA-xg2q-4rrq-657q",
+          "reportedAt": "2026-11-04T11:26:51+00:00",
+          "sources": [
+            {
+              "name": "FriendsOfPHP/security-advisories",
+              "remoteId": "symfony/http-foundation/CVE-2026-121619.yaml"
+            }
+          ],
+          "severity": null
+        },
+        {
+          "advisoryId": "PKSA-qgp8-6q73-5w6n",
+          "packageName": "symfony/http-foundation",
+          "affectedVersions": ">=2.0.0,<2.1.0|>=2.1.0,<2.2.0|>=2.2.0,<2.3.0|>=2.3.0,<2.4.0|>=2.4.0,<2.5.0|>=2.5.0,<2.6.0|>=2.6.0,<2.7.0|>=2.7.0,<2.8.0|>=2.8.0,<3.0.0|>=3.0.0,<3.1.0|>=3.1.0,<3.2.0|>=3.2.0,<3.3.0|>=3.3.0,<3.4.0|>=3.4.0,<4.0.0|>=4.0.0,<4.1.0|>=4.1.0,<4.2.0|>=4.2.0,<4.3.0|>=4.3.0,<4.4.0|>=4.4.0,<5.0.0|>=5.0.0,<5.1.0|>=5.1.0,<5.2.0|>=5.2.0,<5.3.0|>=5.3.0,<5.4.0|>=5.4.0,<5.4.56|>=6.0.0,<6.1.0|>=6.1.0,<6.2.0|>=6.2.0,<6.3.0|>=6.3.0,<6.4.0|>=6.4.0,<6.4.50|>=7.0.0,<7.1.0|>=7.1.0,<7.2.0|>=7.2.0,<7.3.0|>=7.3.0,<7.4.0|>=7.4.0,<7.4.23|>=8.0.0,<8.1.0|>=8.1.0,<8.1.11",
+          "title": "CVE-2026-135802: Generated URLs Can Point to a Host Chosen by the Client",
+          "cve": "CVE-2026-135802",
+          "link": "https://symfony.com/cve-2026-135802",
+          "reportedAt": "2026-11-04T10:45:07+00:00",
+          "sources": [
+            {
+              "name": "FriendsOfPHP/security-advisories",
+              "remoteId": "symfony/http-foundation/CVE-2026-135802.yaml"
+            }
+          ],
+          "severity": null
+        },
+        {
+          "advisoryId": "PKSA-mfk7-7n9q-vfyt",
+          "packageName": "symfony/http-foundation",
+          "affectedVersions": ">=5.4.50,<5.4.56|>=6.4.29,<6.4.50|>=7.3.7,<7.4.0|>=7.4.0,<7.4.23|>=8.0.0,<8.1.0|>=8.1.0,<8.1.11",
+          "title": "CVE-2026-135801: Path Rules Enforced in Front of PHP Can Be Bypassed by Appending the Path to the Script Name",
+          "cve": "CVE-2026-135801",
+          "link": "https://symfony.com/cve-2026-135801",
+          "reportedAt": "2026-11-04T10:45:07+00:00",
+          "sources": [
+            {
+              "name": "FriendsOfPHP/security-advisories",
+              "remoteId": "symfony/http-foundation/CVE-2026-135801.yaml"
+            }
+          ],
+          "severity": null
+        },
+        {
+          "advisoryId": "PKSA-24ph-xkrh-y79j",
+          "packageName": "symfony/http-foundation",
+          "affectedVersions": ">=2.0.0,<3.0.0|>=3.0.0,<4.0.0|>=4.0.0,<5.0.0|>=5.0.0,<5.1.0|>=5.1.0,<5.2.0|>=5.2.0,<5.3.0|>=5.3.0,<5.4.0|>=5.4.0,<5.4.56|>=6.0.0,<6.1.0|>=6.1.0,<6.2.0|>=6.2.0,<6.3.0|>=6.3.0,<6.4.0|>=6.4.0,<6.4.50|>=7.0.0,<7.1.0|>=7.1.0,<7.2.0|>=7.2.0,<7.3.0|>=7.3.0,<7.4.0|>=7.4.0,<7.4.23|>=8.0.0,<8.1.0|>=8.1.0,<8.1.11",
+          "title": "CVE-2026-118514: HEAD Requests Bypass the methods Option of security.access_control Rules and Firewalls: Incomplete Fix for CVE-2026-45075",
+          "cve": "CVE-2026-118514",
+          "link": "https://symfony.com/cve-2026-118514",
+          "reportedAt": "2026-11-04T10:45:07+00:00",
+          "sources": [
+            {
+              "name": "FriendsOfPHP/security-advisories",
+              "remoteId": "symfony/http-foundation/CVE-2026-118514.yaml"
+            }
+          ],
+          "severity": null
+        }
+      ],
+      "symfony/http-kernel": [
+        {
+          "advisoryId": "PKSA-3gxv-7xhq-mgmz",
+          "packageName": "symfony/http-kernel",
+          "affectedVersions": ">=2.8.44,<3.0.0|>=3.4.14,<4.0.0|>=4.0.14,<5.0.0|>=5.0.0,<5.1.0|>=5.1.0,<5.2.0|>=5.2.0,<5.3.0|>=5.3.0,<5.4.0|>=5.4.0,<5.4.56|>=6.0.0,<6.1.0|>=6.1.0,<6.2.0|>=6.2.0,<6.3.0|>=6.3.0,<6.4.0|>=6.4.0,<6.4.50|>=7.0.0,<7.1.0|>=7.1.0,<7.2.0|>=7.2.0,<7.3.0|>=7.3.0,<7.4.0|>=7.4.0,<7.4.23|>=8.0.0,<8.1.0|>=8.1.0,<8.1.11",
+          "title": "Inline Fragments Let Untrusted Forwarded Headers Set the Host, Scheme and Port of the URLs Generated for the Main Request",
+          "cve": "CVE-2026-123339",
+          "link": "https://github.com/symfony/symfony/security/advisories/GHSA-wg5q-m2ww-f3c9",
+          "reportedAt": "2026-11-04T10:45:07+00:00",
+          "sources": [
+            {
+              "name": "FriendsOfPHP/security-advisories",
+              "remoteId": "symfony/http-kernel/CVE-2026-123339.yaml"
+            }
+          ],
+          "severity": null
+        }
+      ],
+      "symfony/routing": [
+        {
+          "advisoryId": "PKSA-y8c5-1b7f-r1gj",
+          "packageName": "symfony/routing",
+          "affectedVersions": ">=4.1.0,<4.2.0|>=4.2.0,<4.3.0|>=4.3.0,<4.4.0|>=4.4.0,<5.0.0|>=5.0.0,<5.1.0|>=5.1.0,<5.2.0|>=5.2.0,<5.3.0|>=5.3.0,<5.4.0|>=5.4.0,<5.4.56|>=6.0.0,<6.1.0|>=6.1.0,<6.2.0|>=6.2.0,<6.3.0|>=6.3.0,<6.4.0|>=6.4.0,<6.4.50|>=7.0.0,<7.1.0|>=7.1.0,<7.2.0|>=7.2.0,<7.3.0|>=7.3.0,<7.4.0|>=7.4.0,<7.4.23|>=8.0.0,<8.1.0|>=8.1.0,<8.1.11",
+          "title": "CVE-2026-118516: Host Placeholders Can Match the Start of the Path in Compiled URL Matchers, Bypassing Path-Based Access Control",
+          "cve": "CVE-2026-118516",
+          "link": "https://symfony.com/cve-2026-118516",
+          "reportedAt": "2026-11-04T10:45:07+00:00",
+          "sources": [
+            {
+              "name": "FriendsOfPHP/security-advisories",
+              "remoteId": "symfony/routing/CVE-2026-118516.yaml"
+            }
+          ],
+          "severity": null
+        }
+      ]
+    },
+    "abandoned": [],
+    "filter": [],
+    "cooldown": []
+  }
+}

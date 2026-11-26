@@ -1,6 +1,8 @@
 import { useEffect, useRef, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { Button } from './button';
+
 export const Modal = ({
     children,
     titleId,
@@ -20,9 +22,11 @@ export const Modal = ({
     useEffect(() => {
         const dialog = ref.current;
         dialog?.showModal();
+
         return () => dialog?.close();
     }, []);
-    return (
+
+    return createPortal(
         <dialog
             ref={ref}
             className="modal"
@@ -61,6 +65,7 @@ export const Modal = ({
                 <X size={17} />
             </Button>
             {children}
-        </dialog>
+        </dialog>,
+        document.body
     );
 };

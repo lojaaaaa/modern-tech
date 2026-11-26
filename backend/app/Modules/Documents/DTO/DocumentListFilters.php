@@ -14,7 +14,6 @@ final readonly class DocumentListFilters
         public int $perPage,
         public bool $isTrash,
         public bool $isMine,
-        public bool $isFavorite,
         public ?string $folderId,
         public ?string $tagId,
         public ?string $format,

@@ -26,3 +26,23 @@ export const TableSkeleton = ({ label }: { label: string }) => (
         ))}
     </div>
 );
+
+export const TableViewport = ({
+    children,
+    className,
+    isPlaceholderData = false,
+}: {
+    children: ReactNode;
+    className?: string;
+    isPlaceholderData?: boolean;
+}) => (
+    <div className={cn('table-scroll', className)} inert={isPlaceholderData || undefined}>
+        {children}
+    </div>
+);
+
+export const TableToolbar = ({ children, label }: { children: ReactNode; label: string }) => (
+    <section className="list-toolbar" aria-label={label}>
+        {children}
+    </section>
+);

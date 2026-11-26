@@ -15,6 +15,10 @@ use Illuminate\Validation\ValidationException;
 
 final class ReplaceDocumentGrantsAction
 {
+    public function __construct(private \App\Modules\Collaboration\Services\OfficeAccess $office)
+    {
+    }
+
     /** @return Collection<int, DocumentGrant> */
     public function handle(User $actor, Document $document, ReplaceDocumentGrantsData $data): Collection
     {
@@ -37,8 +41,14 @@ final class ReplaceDocumentGrantsAction
                 ->lockForUpdate()
                 ->firstOrFail();
 
+            abort_unless($document->revision === $data->revision, 409, 'Разрешения изменились. Обновите список и повторите действие.');
+            $previous = $document->grants()->get()->keyBy('user_id');
+            $next = $grants->keyBy('user_id');
+            $changed = $previous->filter(fn ($grant, $id) => !isset($next[$id]) || collect(['read', 'comment', 'edit', 'export'])->contains(fn ($right) => $grant->$right && !$next[$id]->$right))->keys()->all();
+            $this->office->revokeDocument($document->id, $changed);
             $document->grants()->delete();
             $document->grants()->saveMany($grants);
+            $document->increment('revision');
 
             AuditWriter::record($actor->id, 'document.grants.updated', $document->id);
 
