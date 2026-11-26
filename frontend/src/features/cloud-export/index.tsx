@@ -96,7 +96,11 @@ export const CloudExport = ({ version }: { version: Version }) => {
                                     placeholder="/Документы"
                                 />
                             </label>
-                            <p className="muted">В папке появится отдельная копия с уникальным именем.</p>
+                            <p className="muted">
+                                Укажите существующую папку от корня диска, например /Документы. Для экспорта в корень
+                                оставьте /. Новые папки автоматически не создаются. Файл сохранится отдельной копией с
+                                уникальным именем.
+                            </p>
                             <footer className="modal-actions">
                                 <Button
                                     type="button"

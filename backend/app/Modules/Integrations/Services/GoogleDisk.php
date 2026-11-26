@@ -41,8 +41,11 @@ final class GoogleDisk implements CloudProvider
         foreach (array_filter(explode('/', CloudHttp::validatePath($path))) as $name) {
             $escaped = str_replace(["\\", "'"], ["\\\\", "\\'"], $name);
             $items = $this->get('/files', ['q' => "'{$folder}' in parents and trashed = false and mimeType = 'application/vnd.google-apps.folder' and name = '{$escaped}'", 'fields' => 'files(id)', 'pageSize' => 2])->json('files');
-            if (count($items ?? []) !== 1) {
-                throw new CloudFailure('REMOTE_NOT_FOUND');
+            if (count($items ?? []) === 0) {
+                throw new CloudFailure('REMOTE_FOLDER_NOT_FOUND');
+            }
+            if (count($items) > 1) {
+                throw new CloudFailure('AMBIGUOUS_REMOTE_FOLDER');
             }
             $folder = $items[0]['id'];
         }

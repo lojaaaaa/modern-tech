@@ -17,6 +17,15 @@ const statuses: Record<CloudTransfer['status'], string> = {
     cancelled: 'Отменено',
 };
 
+const transferErrors: Record<string, string> = {
+    REMOTE_FOLDER_NOT_FOUND: 'Папка не найдена. Укажите существующий путь или / для корня диска.',
+    REMOTE_NOT_FOUND: 'Файл или папка не найдены. Проверьте путь и доступ на облачном диске.',
+    AMBIGUOUS_REMOTE_FOLDER: 'Найдено несколько папок с одинаковым именем. Укажите однозначный путь.',
+    REMOTE_CONFLICT: 'Файл с таким именем уже существует. Выберите другое имя или папку.',
+    QUOTA_EXCEEDED: 'На облачном диске недостаточно свободного места.',
+    OUTCOME_UNKNOWN: 'Не удалось подтвердить результат. Проверьте облачный диск перед повторным экспортом.',
+};
+
 const authorizationMessages = new Map([
     ['connected', 'Google Drive подключён.'],
     ['cancelled', 'Подключение отменено.'],
@@ -227,7 +236,8 @@ export const IntegrationsPage = () => {
                             <span>{statuses[t.status] ?? t.status}</span>
                             {t.status === 'failed' && (
                                 <small className="muted">
-                                    Не удалось передать файл. Проверьте подключение и доступ.
+                                    {transferErrors[t.error_code ?? ''] ??
+                                        'Не удалось передать файл. Проверьте подключение и доступ.'}
                                 </small>
                             )}
                             {t.status === 'queued' && (

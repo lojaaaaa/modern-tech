@@ -68,4 +68,26 @@ final class GoogleDriveTest extends TestCase
         $user = User::factory()->create(['role' => 'observer']);
         $this->actingAs($user)->postJson('/api/v1/connections/google/authorization')->assertForbidden();
     }
+    public function test_export_reports_missing_and_ambiguous_folders_before_uploading(): void
+    {
+        Http::preventStrayRequests();
+        $source = tempnam(sys_get_temp_dir(), 'google-folder-test');
+        file_put_contents($source, 'Test content');
+        Http::fake([GoogleDisk::API_URL . '/files*' => Http::sequence()
+            ->push(['files' => []])
+            ->push(['files' => [['id' => 'a'], ['id' => 'b']]])]);
+        try {
+            foreach (['REMOTE_FOLDER_NOT_FOUND', 'AMBIGUOUS_REMOTE_FOLDER'] as $code) {
+                try {
+                    (new GoogleDisk('test-token'))->upload('/Photos/test.txt', $source);
+                    $this->fail('Export should stop before writing a file.');
+                } catch (\App\Modules\Integrations\Services\CloudFailure $error) {
+                    $this->assertSame($code, $error->getMessage());
+                }
+            }
+            Http::assertNotSent(fn ($request) => $request->method() === 'POST');
+        } finally {
+            unlink($source);
+        }
+    }
 }
