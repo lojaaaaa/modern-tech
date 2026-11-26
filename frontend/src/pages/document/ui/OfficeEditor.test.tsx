@@ -67,3 +67,23 @@ it('opens the editor and destroys it when the document workspace closes', async 
     unmount();
     expect(destroyEditor).toHaveBeenCalledOnce();
 });
+
+it('shows a retry when ONLYOFFICE replaces the placeholder and then reports an error', async () => {
+    let reportError: (() => void) | undefined;
+    class DocEditor {
+        constructor(id: string, config: { events: { onError: () => void } }) {
+            document.getElementById(id)?.replaceWith(document.createElement('iframe'));
+            reportError = config.events.onError;
+        }
+
+        destroyEditor = vi.fn();
+    }
+    vi.stubGlobal('DocsAPI', { DocEditor });
+    session.mockResolvedValue({ documentServerUrl: '/office-editor', config: { documentType: 'word' } });
+    render(<OfficeEditor documentId="doc-3" />);
+    await waitFor(() => expect(reportError).toBeDefined());
+
+    act(() => reportError?.());
+
+    expect(screen.getByRole('button', { name: 'Повторить подключение' })).toBeInTheDocument();
+});

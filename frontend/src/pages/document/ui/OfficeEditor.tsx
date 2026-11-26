@@ -2,7 +2,7 @@ import { api } from '@/shared/api/client';
 import { Button } from '@/shared/ui/button';
 import { ErrorMessage } from '@/shared/ui/error-message';
 import { Spinner } from '@/shared/ui/spinner';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 type EditorInstance = { destroyEditor: () => void };
 type OfficeWindow = Window & {
@@ -53,8 +53,13 @@ export const OfficeEditor = ({ documentId }: { documentId: string }) => {
     const [attempt, setAttempt] = useState(0);
     const [isLoading, setLoading] = useState(true);
     const [elementId] = useState(() => `office-editor-${crypto.randomUUID()}`);
+    const frameHost = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
+        const host = frameHost.current;
+        if (!host) {
+            return;
+        }
         // The proxied editor shares this origin. Its stored theme overrides uiTheme.
         try {
             localStorage.setItem('ui-theme-id', 'theme-white');
@@ -100,6 +105,10 @@ export const OfficeEditor = ({ documentId }: { documentId: string }) => {
                 if (!DocsAPI) {
                     throw new Error('Редактор не загрузился.');
                 }
+                // ONLYOFFICE replaces this placeholder with its iframe.
+                const placeholder = document.createElement('div');
+                placeholder.id = elementId;
+                host.replaceChildren(placeholder);
                 editor = new DocsAPI.DocEditor(elementId, {
                     ...session.config,
                     events: {
@@ -137,6 +146,7 @@ export const OfficeEditor = ({ documentId }: { documentId: string }) => {
             window.clearTimeout(timeout);
             controller.abort();
             editor?.destroyEditor();
+            host.replaceChildren();
         };
     }, [documentId, elementId, attempt]);
 
@@ -160,7 +170,7 @@ export const OfficeEditor = ({ documentId }: { documentId: string }) => {
                     Повторить подключение
                 </Button>
             )}
-            <div id={elementId} className="office-editor-frame" />
+            <div ref={frameHost} className="office-editor-frame" />
         </div>
     );
 };
