@@ -4,6 +4,7 @@ import { replaceSession } from '@/features/session';
 import { api, initializeCsrf } from '@/shared/api/client';
 import { Button } from '@/shared/ui/button';
 import { ErrorMessage } from '@/shared/ui/error-message';
+
 export const PasswordPage = () => {
     const client = useQueryClient();
     const params = new URLSearchParams(window.location.search);
@@ -11,9 +12,11 @@ export const PasswordPage = () => {
     const [email, setEmail] = useState(params.get('email') ?? '');
     const [password, setPassword] = useState('');
     const [confirmation, setConfirmation] = useState('');
+
     const mutation = useMutation({
         mutationFn: async () => {
             await initializeCsrf();
+
             return api('/auth/' + (token ? 'reset-password' : 'forgot-password'), {
                 method: 'POST',
                 body: JSON.stringify({
@@ -28,6 +31,7 @@ export const PasswordPage = () => {
             }
         },
     });
+
     return (
         <div className="password-page">
             <section className="content-panel form-panel">

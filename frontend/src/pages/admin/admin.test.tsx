@@ -9,8 +9,7 @@ test.each([
         Page: UsersPage,
         filter: 'active=0',
         changeFilter: () => {
-            fireEvent.click(screen.getByRole('combobox', { name: 'Статус' }));
-            fireEvent.click(screen.getByRole('option', { name: 'Заблокирован' }));
+            fireEvent.click(screen.getByRole('radio', { name: 'Заблокирован' }));
         },
     },
     {
@@ -27,6 +26,7 @@ test.each([
         'fetch',
         vi.fn(async (input: string) => {
             requests.push(String(input));
+
             return Response.json({
                 data: [],
                 path: `/api/v1${path}`,

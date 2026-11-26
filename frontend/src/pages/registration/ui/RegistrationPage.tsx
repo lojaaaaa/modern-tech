@@ -10,6 +10,7 @@ export const RegistrationPage = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmation, setConfirmation] = useState('');
+
     return (
         <div className="password-page">
             <section className="content-panel form-panel">

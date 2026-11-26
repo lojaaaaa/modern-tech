@@ -1,4 +1,5 @@
 import { Check, Clock3, LoaderCircle, ShieldAlert, X } from 'lucide-react';
+
 const labels: Record<string, string> = {
     ready: 'Готово',
     pending: 'Ожидание',
@@ -13,6 +14,7 @@ const labels: Record<string, string> = {
     rejected: 'Отклонён',
     cancelled: 'Отменён',
 };
+
 export const Status = ({ value }: { value: string }) => {
     return (
         <span className={`status status-${value}`}>

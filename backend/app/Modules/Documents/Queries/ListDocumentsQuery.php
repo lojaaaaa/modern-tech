@@ -32,10 +32,6 @@ final class ListDocumentsQuery
                 $filters->isMine || ($filters->isTrash && ! $user->isAdministrator()) || $filters->folderId !== null,
                 fn (Builder $query) => $query->where('owner_id', $user->id),
             )
-            ->when($filters->isFavorite, fn (Builder $query) => $query->whereIn(
-                'id',
-                DB::table('document_favorites')->select('document_id')->where('user_id', $user->id),
-            ))
             ->when($filters->folderId !== null, fn (Builder $query) => $query->where('folder_id', $filters->folderId))
             ->when($filters->tagId !== null, fn (Builder $query) => $query->whereIn(
                 'id',

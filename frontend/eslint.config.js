@@ -17,6 +17,16 @@ export default tseslint.config(
             '@typescript-eslint/no-explicit-any': 'error',
             '@typescript-eslint/consistent-type-imports': 'error',
             curly: ['error', 'all'],
+            'max-lines-per-function': ['error', { max: 300, skipBlankLines: true, skipComments: true }],
+            'padding-line-between-statements': [
+                'error',
+                { blankLine: 'always', prev: 'import', next: '*' },
+                { blankLine: 'any', prev: 'import', next: 'import' },
+                { blankLine: 'always', prev: '*', next: 'return' },
+                { blankLine: 'always', prev: 'multiline-const', next: '*' },
+                { blankLine: 'always', prev: '*', next: 'multiline-const' },
+            ],
+            'no-multiple-empty-lines': ['error', { max: 1, maxEOF: 0 }],
             'no-console': ['error', { allow: ['warn', 'error', 'info'] }],
             'no-restricted-syntax': [
                 'error',

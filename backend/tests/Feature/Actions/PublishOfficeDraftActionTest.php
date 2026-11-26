@@ -21,7 +21,7 @@ final class PublishOfficeDraftActionTest extends TestCase
     public function test_only_a_closed_saved_draft_can_be_submitted_once_for_publication(): void
     {
         config(['office.internal_url' => 'http://office.test', 'office.jwt_secret' => str_repeat('s', 32)]);
-        Http::fake(['http://office.test/*' => Http::sequence()->push(['error' => 0])->push(['error' => 1])->push(['error' => 1])]);
+        Http::fake(['http://office.test/*' => Http::sequence()->push(['error' => 4])->push(['error' => 1])->push(['error' => 1])->push(['error' => 1])]);
         $disk = Storage::fake('local');
         $owner = User::factory()->create();
         $editor = User::factory()->create();
@@ -62,4 +62,30 @@ final class PublishOfficeDraftActionTest extends TestCase
         $this->assertNotSame($version->id, $document->fresh()->desired_version_id);
         $disk->assertExists('saved.docx');
     }
+    public function test_active_editor_snapshot_uses_the_requested_save_without_changing_history(): void
+    {
+        config(['office.internal_url' => 'http://office.test', 'office.jwt_secret' => str_repeat('s', 32)]);
+        $disk = Storage::fake('local');
+        $owner = User::factory()->create();
+        $document = Document::query()->create(['owner_id' => $owner->id, 'title' => 'Document']);
+        $version = $document->versions()->create([
+            'number' => 1, 'creator_id' => $owner->id, 'storage_key' => 'source.docx',
+            'original_name' => 'source.docx', 'mime' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'size' => 3, 'sha256' => hash('sha256', 'old'), 'status' => 'ready',
+        ]);
+        $document->update(['published_version_id' => $version->id, 'desired_version_id' => $version->id]);
+        DB::table('office_drafts')->insert(['document_id' => $document->id, 'source_version_id' => $version->id, 'storage_key' => 'saved.docx', 'editor_key' => 'active-editor']);
+        $disk->put('office-snapshots/current.docx', 'current saved contents');
+        Http::fake(function ($request) {
+            $this->assertSame('forcesave', $request['c']);
+            $this->assertSame('active-editor', $request['key']);
+            \Illuminate\Support\Facades\Cache::put('office-snapshot:'.$request['userdata'], ['key' => 'active-editor', 'path' => 'office-snapshots/current.docx'], 90);
+            return Http::response(['error' => 0]);
+        });
+        $file = app(\App\Modules\Collaboration\Services\OfficeSnapshot::class)->capture($document);
+        $this->assertSame(hash('sha256', 'current saved contents'), $file->sha256());
+        $this->assertDatabaseCount('document_versions', 1);
+        $this->assertSame('active-editor', DB::table('office_drafts')->value('editor_key'));
+    }
+
 }

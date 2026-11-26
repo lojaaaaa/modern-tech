@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 
 final class UpdateManagedUserAction
 {
-    public function __construct(private DestroyUserSessionsAction $sessions)
+    public function __construct(private DestroyUserSessionsAction $sessions, private \App\Modules\Collaboration\Services\OfficeAccess $office)
     {
     }
 
@@ -55,6 +55,9 @@ final class UpdateManagedUserAction
                 ],
             );
 
+            if (!$target->isActive() || $target->isDirty('role')) {
+                $this->office->revokeUser($target->id);
+            }
             $target->save();
 
             if (! $target->isActive()) {

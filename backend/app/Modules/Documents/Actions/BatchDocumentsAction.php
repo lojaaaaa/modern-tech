@@ -36,17 +36,13 @@ final readonly class BatchDocumentsAction
             abort_unless($documents->count() === count($data->ids), 404);
 
             foreach ($documents as $document) {
-                $this->policy->batch($user, $document, $data->operation)->authorize();
+                $this->policy->manage($user, $document)->authorize();
             }
 
             foreach ($documents as $document) {
                 match ($data->operation) {
                     BatchDocumentOperation::TRASH => $this->trash($document),
                     BatchDocumentOperation::RESTORE => $this->restore($document),
-                    BatchDocumentOperation::FAVORITE => DB::table('document_favorites')->insertOrIgnore([
-                        'document_id' => $document->id,
-                        'user_id' => $user->id,
-                    ]),
                 };
 
                 AuditWriter::record($user->id, 'document.batch.' . $data->operation->value, $document->id);

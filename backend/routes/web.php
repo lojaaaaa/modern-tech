@@ -15,6 +15,7 @@ use App\Modules\Identity\Http\Controllers\PasswordController;
 use App\Modules\Identity\Http\Controllers\RegistrationController;
 use App\Modules\Identity\Http\Controllers\UserController;
 use App\Modules\Integrations\Http\Controllers\ConnectionController;
+use App\Modules\Integrations\Http\Controllers\GoogleOAuthController;
 use App\Modules\Integrations\Http\Controllers\TransferController;
 use App\Modules\Integrations\Http\Controllers\YandexOAuthController;
 use App\Modules\Observability\Http\Controllers\MetricsController;
@@ -25,6 +26,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/health/ready', ReadinessController::class);
 
 Route::prefix('api/v1')->group(function (): void {
+    Route::get('/connections/google/callback', [GoogleOAuthController::class, 'callback'])->middleware('throttle:60,1,google-oauth-callback:');
     Route::get('/connections/yandex/callback', [YandexOAuthController::class, 'callback'])
         ->middleware('throttle:60,1,'.YandexOAuthController::CALLBACK_THROTTLE_PREFIX);
 
@@ -65,6 +67,8 @@ Route::prefix('api/v1')->group(function (): void {
         });
 
         Route::prefix('connections')->group(function (): void {
+            Route::get('/google/authorization', [GoogleOAuthController::class, 'availability']);
+            Route::post('/google/authorization', [GoogleOAuthController::class, 'start'])->middleware('throttle:10,1,google-oauth-start:');
             Route::controller(YandexOAuthController::class)->group(function (): void {
                 Route::get('/yandex/authorization', 'availability');
                 Route::post('/yandex/authorization', 'start')
@@ -81,7 +85,7 @@ Route::prefix('api/v1')->group(function (): void {
 
         Route::prefix('transfers')->controller(TransferController::class)->group(function (): void {
             Route::get('/', 'index');
-            Route::post('/', 'store');
+            Route::post('/', 'store')->middleware('throttle:30,1,cloud-transfer:');
             Route::delete('/{transfer}', 'cancel');
         });
 
@@ -100,7 +104,7 @@ Route::prefix('api/v1')->group(function (): void {
             Route::controller(DocumentController::class)->group(function (): void {
                 Route::post('/duplicates', 'duplicates');
                 Route::get('/', 'index');
-                Route::post('/', 'store');
+                Route::post('/', 'store')->middleware('throttle:30,1,document-upload:');
                 Route::post('/{id}/restore', 'restore');
                 Route::delete('/{id}/purge', 'purge')->whereUuid('id');
             });
@@ -111,7 +115,7 @@ Route::prefix('api/v1')->group(function (): void {
                     Route::patch('/', 'update');
                     Route::delete('/', 'destroy');
                     Route::get('/versions', 'versions');
-                    Route::post('/versions', 'addVersion');
+                    Route::post('/versions', 'addVersion')->middleware('throttle:30,1,document-upload:');
                     Route::get('/draft/publication', 'draftStatus');
                     Route::post('/draft/publication', 'publishDraft');
                     Route::get('/participants', 'participants');
@@ -122,7 +126,6 @@ Route::prefix('api/v1')->group(function (): void {
                 Route::controller(LibraryController::class)->group(function (): void {
                     Route::put('/folder', 'move');
                     Route::put('/tags', 'setTags');
-                    Route::put('/favorite', 'favorite');
                 });
 
                 Route::controller(CommentController::class)->group(function (): void {

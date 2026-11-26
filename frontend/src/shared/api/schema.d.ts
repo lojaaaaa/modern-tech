@@ -164,6 +164,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["modules.documents.document.index_30"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/documents/duplicates": {
         parameters: {
             query?: never;
@@ -187,7 +203,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["modules.documents.document.index_30"];
+        get: operations["modules.documents.document.index_33"];
         put?: never;
         post: operations["document.store"];
         delete?: never;
@@ -196,17 +212,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/search": {
+    "/v1/documents/{id}/restore": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["modules.documents.document.index_27"];
+        get?: never;
+        put?: never;
+        post: operations["document.restore"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/documents/{id}/purge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        delete: operations["document.purge"];
         options?: never;
         head?: never;
         patch?: never;
@@ -228,22 +260,6 @@ export interface paths {
         patch: operations["document.update"];
         trace?: never;
     };
-    "/v1/documents/{id}/restore": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["document.restore"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/documents/{document}/versions": {
         parameters: {
             query?: never;
@@ -254,6 +270,54 @@ export interface paths {
         get: operations["document.versions"];
         put?: never;
         post: operations["document.addVersion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/documents/{document}/draft/publication": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["document.draftStatus"];
+        put?: never;
+        post: operations["document.publishDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/documents/{document}/participants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["document.participants"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/documents/{document}/grants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["document.grants"];
+        put: operations["document.setGrants"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -308,14 +372,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/documents/{document}/participants": {
+    "/v1/connections/google/callback": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["document.participants"];
+        get: operations["googleOAuth.callback"];
         put?: never;
         post?: never;
         delete?: never;
@@ -324,16 +388,16 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/documents/{document}/grants": {
+    "/v1/connections/google/authorization": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["document.grants"];
-        put: operations["document.setGrants"];
-        post?: never;
+        get: operations["googleOAuth.availability"];
+        put?: never;
+        post: operations["googleOAuth.start"];
         delete?: never;
         options?: never;
         head?: never;
@@ -413,22 +477,6 @@ export interface paths {
         };
         get?: never;
         put: operations["library.setTags"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/documents/{document}/favorite": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: operations["library.favorite"];
         post?: never;
         delete?: never;
         options?: never;
@@ -660,38 +708,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/documents/{document}/draft/publication": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["document.draftStatus"];
-        put?: never;
-        post: operations["document.publishDraft"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/documents/{id}/purge": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["document.purge"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -712,7 +728,7 @@ export interface components {
          * BatchDocumentOperation
          * @enum {string}
          */
-        BatchDocumentOperation: "trash" | "restore" | "favorite";
+        BatchDocumentOperation: "trash" | "restore";
         /** BatchDocumentsRequest */
         BatchDocumentsRequest: {
             ids: string[];
@@ -901,6 +917,11 @@ export interface components {
             email: string;
             password: string;
         };
+        /** MoveDocumentRequest */
+        MoveDocumentRequest: {
+            /** Format: uuid */
+            folder_id?: string | null;
+        };
         /** PreviewStatusResource */
         PreviewStatusResource: {
             /** @enum {string} */
@@ -934,6 +955,7 @@ export interface components {
         };
         /** ReplaceDocumentGrantsRequest */
         ReplaceDocumentGrantsRequest: {
+            revision: number;
             grants: {
                 user_id: number;
                 read: boolean;
@@ -950,10 +972,26 @@ export interface components {
             password: string;
             password_confirmation: string;
         };
+        /** StartGoogleOAuthRequest */
+        StartGoogleOAuthRequest: {
+            /** Format: uuid */
+            connection_id?: string | null;
+        };
         /** StartYandexOAuthRequest */
         StartYandexOAuthRequest: {
             /** Format: uuid */
             connection_id?: string | null;
+        };
+        /** StoreCommentRequest */
+        StoreCommentRequest: {
+            body: string;
+            /** Format: uuid */
+            version_id: string;
+            /** Format: uuid */
+            parent_id?: string | null;
+            anchor_start?: number | null;
+            anchor_end?: number | null;
+            anchor_quote?: string | null;
         };
         /**
          * TransferDirection
@@ -992,17 +1030,6 @@ export interface components {
          * @enum {string}
          */
         UserRole: "admin" | "employee" | "observer";
-        /** StoreCommentRequest */
-        StoreCommentRequest: {
-            body: string;
-            /** Format: uuid */
-            version_id: string;
-            /** Format: uuid */
-            parent_id?: string | null;
-            anchor_start?: number | null;
-            anchor_end?: number | null;
-            anchor_quote?: string | null;
-        };
     };
     responses: {
         /** @description Not found */
@@ -1068,26 +1095,28 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Paginated set of `stdClass` */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": {
-                        data: Record<string, never>[];
-                        /** @description Base path for paginator generated URLs. */
-                        path: string | null;
-                        /** @description Number of items shown per page. */
-                        per_page: number;
-                        /** @description The "cursor" that points to the next set of items. */
+                        data: {
+                            id: string;
+                            action: string;
+                            display_action: string;
+                            actor_id: number | null;
+                            actor_name: string | null;
+                            resource_id: string | null;
+                            resource_name: string | null;
+                            created_at: string;
+                        }[];
                         next_cursor: string | null;
-                        /** Format: uri */
-                        next_page_url: string | null;
-                        /** @description The "cursor" that points to the previous set of items. */
                         prev_cursor: string | null;
-                        /** Format: uri */
+                        next_page_url: string | null;
                         prev_page_url: string | null;
+                        per_page: number;
+                        path: string;
                     };
                 };
             };
@@ -1497,6 +1526,72 @@ export interface operations {
             404: components["responses"]["ModelNotFoundException"];
         };
     };
+    "modules.documents.document.index_30": {
+        parameters: {
+            query?: {
+                q?: string | null;
+                page?: number | null;
+                per_page?: number | null;
+                trash?: boolean | null;
+                mine?: boolean | null;
+                folder_id?: string | null;
+                tag_id?: string | null;
+                format?: "pdf" | "docx" | "xlsx" | "pptx" | "txt" | "md" | "csv" | "png" | "jpg" | "jpeg" | null;
+                status?: components["schemas"]["DocumentVersionStatus"] | null;
+                created_from?: string | null;
+                created_to?: string | null;
+                updated_from?: string | null;
+                updated_to?: string | null;
+                sort?: "relevance" | "title" | "created_at" | "updated_at" | "deleted_at" | "status" | "format" | "size" | "owner" | null;
+                direction?: "asc" | "desc" | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paginated set of `DocumentResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["DocumentResource"][];
+                        links: {
+                            first: string | null;
+                            last: string | null;
+                            prev: string | null;
+                            next: string | null;
+                        };
+                        meta: {
+                            current_page: number;
+                            from: number | null;
+                            last_page: number;
+                            /** @description Generated paginator links. */
+                            links: {
+                                url: string | null;
+                                label: string;
+                                active: boolean;
+                            }[];
+                            /** @description Base path for paginator generated URLs. */
+                            path: string | null;
+                            /** @description Number of items shown per page. */
+                            per_page: number;
+                            /** @description Number of the last item in the slice. */
+                            to: number | null;
+                            /** @description Total number of items being paginated. */
+                            total: number;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
     "document.duplicates": {
         parameters: {
             query?: never;
@@ -1526,14 +1621,13 @@ export interface operations {
             422: components["responses"]["ValidationException"];
         };
     };
-    "modules.documents.document.index_30": {
+    "modules.documents.document.index_33": {
         parameters: {
             query?: {
                 q?: string | null;
                 page?: number | null;
                 per_page?: number | null;
                 trash?: boolean | null;
-                favorite?: boolean | null;
                 mine?: boolean | null;
                 folder_id?: string | null;
                 tag_id?: string | null;
@@ -1543,7 +1637,7 @@ export interface operations {
                 created_to?: string | null;
                 updated_from?: string | null;
                 updated_to?: string | null;
-                sort?: "relevance" | "title" | "created_at" | "updated_at" | "status" | "format" | "size" | "owner" | null;
+                sort?: "relevance" | "title" | "created_at" | "updated_at" | "deleted_at" | "status" | "format" | "size" | "owner" | null;
                 direction?: "asc" | "desc" | null;
             };
             header?: never;
@@ -1625,71 +1719,53 @@ export interface operations {
             422: components["responses"]["ValidationException"];
         };
     };
-    "modules.documents.document.index_27": {
+    "document.restore": {
         parameters: {
-            query?: {
-                q?: string | null;
-                page?: number | null;
-                per_page?: number | null;
-                trash?: boolean | null;
-                favorite?: boolean | null;
-                mine?: boolean | null;
-                folder_id?: string | null;
-                tag_id?: string | null;
-                format?: "pdf" | "docx" | "xlsx" | "pptx" | "txt" | "md" | "csv" | "png" | "jpg" | "jpeg" | null;
-                status?: components["schemas"]["DocumentVersionStatus"] | null;
-                created_from?: string | null;
-                created_to?: string | null;
-                updated_from?: string | null;
-                updated_to?: string | null;
-                sort?: "relevance" | "title" | "created_at" | "updated_at" | "status" | "format" | "size" | "owner" | null;
-                direction?: "asc" | "desc" | null;
-            };
+            query?: never;
             header?: never;
-            path?: never;
+            path: {
+                id: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Paginated set of `DocumentResource` */
+            /** @description `DocumentResource` */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": {
-                        data: components["schemas"]["DocumentResource"][];
-                        links: {
-                            first: string | null;
-                            last: string | null;
-                            prev: string | null;
-                            next: string | null;
-                        };
-                        meta: {
-                            current_page: number;
-                            from: number | null;
-                            last_page: number;
-                            /** @description Generated paginator links. */
-                            links: {
-                                url: string | null;
-                                label: string;
-                                active: boolean;
-                            }[];
-                            /** @description Base path for paginator generated URLs. */
-                            path: string | null;
-                            /** @description Number of items shown per page. */
-                            per_page: number;
-                            /** @description Number of the last item in the slice. */
-                            to: number | null;
-                            /** @description Total number of items being paginated. */
-                            total: number;
-                        };
+                        data: components["schemas"]["DocumentResource"];
                     };
                 };
             };
             401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            422: components["responses"]["ValidationException"];
+        };
+    };
+    "document.purge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: null;
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
         };
     };
     "document.show": {
@@ -1789,31 +1865,6 @@ export interface operations {
             422: components["responses"]["ValidationException"];
         };
     };
-    "document.restore": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description `DocumentResource` */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        data: components["schemas"]["DocumentResource"];
-                    };
-                };
-            };
-            401: components["responses"]["AuthenticationException"];
-        };
-    };
     "document.versions": {
         parameters: {
             query?: never;
@@ -1868,6 +1919,189 @@ export interface operations {
                 content: {
                     "application/json": {
                         data: components["schemas"]["DocumentResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "document.draftStatus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The document ID */
+                document: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            available: boolean;
+                            reason: string;
+                        };
+                    } | {
+                        data: {
+                            available: boolean;
+                            reason: null;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+        };
+    };
+    "document.publishDraft": {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description An idempotency key of 8–94 bytes. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                /** @description The document ID */
+                document: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `DocumentResource` */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["DocumentResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            /** @description An error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    "document.participants": {
+        parameters: {
+            query?: {
+                search?: string | null;
+                granted?: boolean;
+            };
+            header?: never;
+            path: {
+                /** @description The document ID */
+                document: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["User"][];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "document.grants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The document ID */
+                document: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["DocumentGrant"][];
+                        meta: {
+                            revision: number;
+                            owner_permissions: {
+                                read: boolean;
+                                comment: boolean;
+                                edit: boolean;
+                                export: boolean;
+                            };
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+        };
+    };
+    "document.setGrants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The document ID */
+                document: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplaceDocumentGrantsRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["DocumentGrant"][];
+                        meta: {
+                            revision: number;
+                            owner_permissions: {
+                                read: boolean;
+                                comment: boolean;
+                                edit: boolean;
+                                export: boolean;
+                            };
+                        };
                     };
                 };
             };
@@ -1969,14 +2203,32 @@ export interface operations {
             404: components["responses"]["ModelNotFoundException"];
         };
     };
-    "document.participants": {
+    "googleOAuth.callback": {
+        parameters: {
+            query?: {
+                state?: string;
+                code?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            302: {
+                headers: {
+                    Location: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    "googleOAuth.availability": {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                /** @description The document ID */
-                document: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -1987,55 +2239,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        data: components["schemas"]["User"][];
+                        data: {
+                            available: boolean;
+                        };
                     };
                 };
             };
             401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            404: components["responses"]["ModelNotFoundException"];
         };
     };
-    "document.grants": {
+    "googleOAuth.start": {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                /** @description The document ID */
-                document: string;
-            };
+            path?: never;
             cookie?: never;
         };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        data: components["schemas"]["DocumentGrant"][];
-                    };
-                };
-            };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            404: components["responses"]["ModelNotFoundException"];
-        };
-    };
-    "document.setGrants": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The document ID */
-                document: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
+        requestBody?: {
             content: {
-                "application/json": components["schemas"]["ReplaceDocumentGrantsRequest"];
+                "application/json": components["schemas"]["StartGoogleOAuthRequest"];
             };
         };
         responses: {
@@ -2045,14 +2267,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        data: components["schemas"]["DocumentGrant"][];
+                        data: {
+                            url: string;
+                        };
                     };
                 };
             };
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
-            404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description An error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
         };
     };
     "library.folders": {
@@ -2175,10 +2407,7 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": {
-                    /** Format: uuid */
-                    folder_id?: string | null;
-                };
+                "application/json": components["schemas"]["MoveDocumentRequest"];
             };
         };
         responses: {
@@ -2223,40 +2452,6 @@ export interface operations {
                 content: {
                     "application/json": {
                         data: null;
-                    };
-                };
-            };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            404: components["responses"]["ModelNotFoundException"];
-            422: components["responses"]["ValidationException"];
-        };
-    };
-    "library.favorite": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The document ID */
-                document: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    favorite: boolean;
-                };
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        data: string;
                     };
                 };
             };
@@ -2427,8 +2622,8 @@ export interface operations {
                                 customization: {
                                     autosave: boolean;
                                     forcesave: boolean;
-                                    /** @enum {string} */
-                                    uiTheme: "default-dark" | "default-light";
+                                    /** @constant */
+                                    uiTheme: "theme-white";
                                 };
                             };
                             token: string;
@@ -2908,105 +3103,6 @@ export interface operations {
                     "application/json": components["schemas"]["ApiError"];
                 };
             };
-        };
-    };
-    "document.draftStatus": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The document ID */
-                document: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        data: {
-                            available: boolean;
-                            reason: string;
-                        };
-                    } | {
-                        data: {
-                            available: boolean;
-                            reason: null;
-                        };
-                    };
-                };
-            };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            404: components["responses"]["ModelNotFoundException"];
-        };
-    };
-    "document.publishDraft": {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description An idempotency key of 8–94 bytes. */
-                "Idempotency-Key": string;
-            };
-            path: {
-                /** @description The document ID */
-                document: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description `DocumentResource` */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        data: components["schemas"]["DocumentResource"];
-                    };
-                };
-            };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            404: components["responses"]["ModelNotFoundException"];
-            /** @description An error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-        };
-    };
-    "document.purge": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        data: null;
-                    };
-                };
-            };
-            401: components["responses"]["AuthenticationException"];
         };
     };
 }

@@ -74,6 +74,12 @@ final class UploadDocument
                         ])
                         : Document::query()->whereKey($existing->id)->lockForUpdate()->firstOrFail();
 
+                    if ($existing !== null) {
+                        $this->policy->uploadVersion($actor, $document)->authorize();
+                    }
+                    $usage = DocumentVersion::query()->where('creator_id', $actor->id);
+                    abort_if((clone $usage)->count() >= config('documents.max_account_versions'), 429, 'Достигнут лимит версий аккаунта.');
+                    abort_if((clone $usage)->sum('size') + $incoming->file->getSize() > config('documents.max_account_bytes'), 413, 'Недостаточно места в квоте аккаунта.');
                     $version = DocumentVersion::query()->create([
                         'document_id' => $document->id,
                         'creator_id' => $actor->id,

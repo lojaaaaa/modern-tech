@@ -1,14 +1,14 @@
-import { queryKeys } from '@/shared/api/query-keys';
-import { useLayoutEffect, useRef, useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { MessageSquare, MoreHorizontal, Send, Trash2, X } from 'lucide-react';
 import type { TextAnchor } from '@/features/document-reader';
 import { api } from '@/shared/api/client';
+import { queryKeys } from '@/shared/api/query-keys';
 import type { CommentRecord, Resource } from '@/shared/api/types';
-import { Popover } from '@/shared/ui/popover';
+import { formatDate } from '@/shared/lib/utils';
+import { ActionMenu } from '@/shared/ui/action-menu';
 import { Button } from '@/shared/ui/button';
 import { ErrorMessage } from '@/shared/ui/error-message';
-import { formatDate } from '@/shared/lib/utils';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { MessageSquare, Send, Trash2, X } from 'lucide-react';
+import { useLayoutEffect, useRef, useState } from 'react';
 
 export const DiscussionPanel = ({
     documentId,
@@ -48,9 +48,11 @@ export const DiscussionPanel = ({
         children.push(comment);
         replies.set(comment.parent_id, children);
     }
+
     const orderedComments = comments
         .filter((comment) => !comment.parent_id)
         .flatMap((comment) => [comment, ...(replies.get(comment.id) ?? [])]);
+
     const listRef = useRef<HTMLDivElement>(null);
     const newCommentRef = useRef<HTMLElement>(null);
     useLayoutEffect(() => {
@@ -68,10 +70,12 @@ export const DiscussionPanel = ({
         }
         onCommentShown();
     }, [comments, newCommentId, onCommentShown]);
+
     const remove = useMutation({
         mutationFn: (id: string) => api(`/comments/${id}`, { method: 'DELETE' }),
         onSuccess: () => client.invalidateQueries({ queryKey: [queryKeys.comments, documentId] }),
     });
+
     return (
         <aside className="content-panel comments-panel">
             <header className="discussion-heading">
@@ -94,14 +98,12 @@ export const DiscussionPanel = ({
                         >
                             <div className="comment-meta">
                                 <span className="avatar tiny">{c.author_name.slice(0, 1)}</span>
-                                <strong>{c.author_name}</strong>
-                                <small>{formatDate(c.created_at)}</small>
+                                <div className="comment-author">
+                                    <strong>{c.author_name}</strong>
+                                    <time dateTime={c.created_at}>{formatDate(c.created_at)}</time>
+                                </div>
                                 {c.can_delete && (
-                                    <Popover
-                                        align="end"
-                                        label="Действия с комментарием"
-                                        trigger={<MoreHorizontal size={16} />}
-                                    >
+                                    <ActionMenu label="Действия с комментарием">
                                         {(close) => (
                                             <Button
                                                 variant="destructive"
@@ -114,7 +116,7 @@ export const DiscussionPanel = ({
                                                 <Trash2 size={15} /> Удалить комментарий
                                             </Button>
                                         )}
-                                    </Popover>
+                                    </ActionMenu>
                                 )}
                             </div>
                             {c.anchor_quote && (
@@ -162,6 +164,7 @@ const CommentComposer = ({
     const client = useQueryClient();
     const [comment, setComment] = useState('');
     const commentKey = useRef(crypto.randomUUID());
+
     const add = useMutation({
         mutationFn: () =>
             api<Resource<{ id: string }>>(`/documents/${documentId}/comments`, {
@@ -187,6 +190,7 @@ const CommentComposer = ({
             await client.invalidateQueries({ queryKey: [queryKeys.comments, documentId] });
         },
     });
+
     return (
         <>
             <ErrorMessage error={add.error} />{' '}

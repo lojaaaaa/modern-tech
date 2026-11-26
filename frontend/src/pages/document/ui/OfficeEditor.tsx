@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
 import { api } from '@/shared/api/client';
-import { ErrorMessage } from '@/shared/ui/error-message';
 import { Button } from '@/shared/ui/button';
+import { ErrorMessage } from '@/shared/ui/error-message';
+import { Spinner } from '@/shared/ui/spinner';
+import { useEffect, useState } from 'react';
 
 type EditorInstance = { destroyEditor: () => void };
 type OfficeWindow = Window & {
@@ -43,6 +44,7 @@ const loadEditor = (baseUrl: string): Promise<void> => {
         };
         document.head.appendChild(script);
     });
+
     return scriptPromise;
 };
 
@@ -53,10 +55,18 @@ export const OfficeEditor = ({ documentId }: { documentId: string }) => {
     const [elementId] = useState(() => `office-editor-${crypto.randomUUID()}`);
 
     useEffect(() => {
+        // The proxied editor shares this origin. Its stored theme overrides uiTheme.
+        try {
+            localStorage.setItem('ui-theme-id', 'theme-white');
+            localStorage.setItem('content-theme', 'light');
+        } catch {
+            // The server configuration still supplies the theme when storage is unavailable.
+        }
         const controller = new AbortController();
         let editor: EditorInstance | undefined;
         let isDisposed = false;
         let isFailed = false;
+
         const timeout = window.setTimeout(() => {
             if (isDisposed || isFailed) {
                 return;
@@ -73,13 +83,15 @@ export const OfficeEditor = ({ documentId }: { documentId: string }) => {
             setLoading(false);
             setError(new Error('Редактор не ответил. Проверьте подключение к серверу и попробуйте снова.'));
         }, 30000);
+
         const open = async () => {
             try {
                 const session = await api<EditorSession>(`/documents/${documentId}/editor/session`, {
                     method: 'POST',
                     signal: controller.signal,
-                    body: JSON.stringify({ dark: document.documentElement.classList.contains('dark') }),
+                    body: JSON.stringify({ dark: false }),
                 });
+
                 await loadEditor(session.documentServerUrl);
                 if (isDisposed || isFailed) {
                     return;
@@ -117,7 +129,9 @@ export const OfficeEditor = ({ documentId }: { documentId: string }) => {
                 }
             }
         };
+
         void open();
+
         return () => {
             isDisposed = true;
             window.clearTimeout(timeout);
@@ -130,7 +144,7 @@ export const OfficeEditor = ({ documentId }: { documentId: string }) => {
         <div className="office-editor" aria-busy={isLoading}>
             {isLoading && (
                 <div className="office-editor-loading" role="status" aria-label="Загрузка редактора">
-                    <div className="loading-orbit" aria-hidden="true" />
+                    <Spinner />
                 </div>
             )}
             <ErrorMessage error={error} />

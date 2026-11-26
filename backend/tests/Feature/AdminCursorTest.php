@@ -37,6 +37,7 @@ final class AdminCursorTest extends TestCase
             ->assertJsonPath('per_page', 2)
             ->assertJsonPath('prev_cursor', null)
             ->json();
+        $this->assertSame('2026-11-08T12:00:00+00:00', $first['data'][0]['created_at']);
         $cursorValues = [
             'created_at' => '2026-11-08 12:00:00',
             'id' => $first['data'][1]['id'],

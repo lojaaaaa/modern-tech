@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 return [
 
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect_uri' => env('GOOGLE_REDIRECT_URI', rtrim(env('APP_URL', 'http://localhost:8088'), '/').'/api/v1/connections/google/callback'),
+    ],
+
     'yandex' => [
         'client_id' => env('YANDEX_CLIENT_ID'),
         'client_secret' => env('YANDEX_CLIENT_SECRET'),

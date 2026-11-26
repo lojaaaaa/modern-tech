@@ -6,6 +6,8 @@ namespace App\Modules\Integrations\Enums;
 
 enum CloudProviderId: string
 {
+    case GOOGLE = 'google';
+
     case MAIL = 'mail';
     case YANDEX = 'yandex';
 }

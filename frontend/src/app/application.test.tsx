@@ -7,6 +7,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { App } from './application';
 import { client } from './query-client';
 import { useTheme } from './theme';
+
 afterEach(() => {
     client.clear();
     vi.unstubAllGlobals();
@@ -163,6 +164,7 @@ it('does not restore an old identity when an in-flight session response complete
                         completeSession = resolve;
                     });
                 }
+
                 return Response.json({ data: account });
             }
             if (url.startsWith('/api/v1/documents?')) {
@@ -190,4 +192,19 @@ it('does not restore an old identity when an in-flight session response complete
     await background;
     expect(client.getQueryData([queryKeys.session])).toBeNull();
     expect(screen.queryByRole('heading', { name: /Все документы/ })).not.toBeInTheDocument();
+});
+
+it('shows registration to an anonymous visitor', async () => {
+    vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => new Response('{}', { status: 401 }))
+    );
+    render(
+        <QueryClientProvider client={client}>
+            <MemoryRouter initialEntries={['/register']}>
+                <App />
+            </MemoryRouter>
+        </QueryClientProvider>
+    );
+    expect(await screen.findByRole('button', { name: 'Создать учётную запись' })).toBeInTheDocument();
 });

@@ -1,6 +1,7 @@
 import { useEffect, useEffectEvent, useState } from 'react';
 import { Search, X } from 'lucide-react';
 import { Button } from './button';
+
 export const SearchInput = ({
     initialValue,
     onSearch,
@@ -28,8 +29,10 @@ export const SearchInput = ({
             return;
         }
         const timer = window.setTimeout(() => submit(value), 350);
+
         return () => window.clearTimeout(timer);
     }, [value, initialValue]);
+
     return (
         <div className="search-field" aria-busy={isBusy}>
             <Search size={18} />

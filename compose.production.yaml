@@ -19,6 +19,8 @@ services:
     environment:
       APP_ENV: production
       APP_DEBUG: "false"
+      OFFICE_APP_INTERNAL_URL: http://web
+      OFFICE_BROWSER_URL: /office-editor
     volumes: !override ["documents:/var/www/html/storage/app/private"]
   worker:
     environment: {APP_ENV: production, APP_DEBUG: "false"}

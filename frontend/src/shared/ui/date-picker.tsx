@@ -1,7 +1,8 @@
 import { useDismiss } from '@/shared/lib/use-dismiss';
-import { useRef, useState } from 'react';
+import { useRef, useState, useLayoutEffect } from 'react';
 import { CalendarDays, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { Button } from './button';
+
 export const DatePicker = ({
     value,
     onChange,
@@ -11,8 +12,25 @@ export const DatePicker = ({
     onChange: (value: string) => void;
     label: string;
 }) => {
-    const root = useRef<HTMLDivElement>(null);
     const [isOpen, setOpen] = useState(false);
+
+    const trigger = useRef<HTMLButtonElement>(null);
+    const popup = useRef<HTMLDivElement>(null);
+    useLayoutEffect(() => {
+        if (!isOpen || !trigger.current || !popup.current) {
+            return;
+        }
+        const rect = trigger.current.getBoundingClientRect();
+        const width = Math.min(288, window.innerWidth - 24);
+        Object.assign(popup.current.style, {
+            left: `${Math.max(12, Math.min(rect.left, window.innerWidth - width - 12))}px`,
+            top: `${rect.bottom + 330 > window.innerHeight ? Math.max(12, rect.top - 330) : rect.bottom + 6}px`,
+            width: `${width}px`,
+        });
+        popup.current.showPopover?.();
+    }, [isOpen]);
+    const root = useRef<HTMLDivElement>(null);
+
     const [month, setMonth] = useState(() => (value ? new Date(`${value}T12:00:00`) : new Date()));
     useDismiss(root, isOpen, () => setOpen(false));
     const year = month.getFullYear();
@@ -20,6 +38,7 @@ export const DatePicker = ({
     const count = new Date(year, index + 1, 0).getDate();
     const offset = (new Date(year, index, 1).getDay() + 6) % 7;
     const key = (day: number) => `${year}-${String(index + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
     return (
         <div
             ref={root}
@@ -31,6 +50,7 @@ export const DatePicker = ({
             }}
         >
             <button
+                ref={trigger}
                 type="button"
                 className="date-trigger"
                 aria-label={label}
@@ -42,6 +62,8 @@ export const DatePicker = ({
             </button>
             {isOpen && (
                 <div
+                    ref={popup}
+                    popover="manual"
                     className="calendar-popover"
                     onKeyDown={(e) => {
                         if (e.key === 'Escape') {

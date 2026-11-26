@@ -4,10 +4,12 @@ import { api, initializeCsrf, ApiError } from '@/shared/api/client';
 import type { Resource, User, RegistrationInput } from '@/shared/api/types';
 import type { components } from '@/shared/api/schema';
 import { clearPrivateSession, replaceSession } from './transition';
+
 export { replaceSession } from './transition';
 
 export const useSession = () => {
     const client = useQueryClient();
+
     return useQuery({
         queryKey: [queryKeys.session],
         queryFn: async ({ signal }) => {
@@ -25,6 +27,7 @@ export const useSession = () => {
             if (previous?.data.id && previous.data.id !== session?.data.id) {
                 clearPrivateSession(client);
             }
+
             return session;
         },
         retry: false,
@@ -33,9 +36,11 @@ export const useSession = () => {
 };
 export const useLogin = () => {
     const client = useQueryClient();
+
     return useMutation({
         mutationFn: async (values: components['schemas']['LoginRequest']) => {
             await initializeCsrf();
+
             return api<Resource<User>>('/auth/login', { method: 'POST', body: JSON.stringify(values) });
         },
         onSuccess: (data) => {
@@ -45,6 +50,7 @@ export const useLogin = () => {
 };
 export const useLogout = () => {
     const client = useQueryClient();
+
     return useMutation({
         mutationFn: () => api('/auth/logout', { method: 'POST' }),
         onSuccess: () => {
@@ -55,9 +61,11 @@ export const useLogout = () => {
 
 export const useRegister = () => {
     const client = useQueryClient();
+
     return useMutation({
         mutationFn: async (values: RegistrationInput) => {
             await initializeCsrf();
+
             return api<Resource<User>>('/auth/register', { method: 'POST', body: JSON.stringify(values) });
         },
         onSuccess: (data) => {

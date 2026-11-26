@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
 import { TextReader } from './index';
+
 it('captures exact offsets and quote across unicode text for a contextual comment', () => {
     const onComment = vi.fn();
     render(

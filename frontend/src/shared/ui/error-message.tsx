@@ -1,8 +1,10 @@
 import { AlertCircle } from 'lucide-react';
+
 export const ErrorMessage = ({ error }: { error: unknown }) => {
     if (!error) {
         return null;
     }
+
     return (
         <div className="error-message" role="alert">
             <AlertCircle size={17} />
