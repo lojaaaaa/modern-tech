@@ -17,7 +17,6 @@ use App\Modules\Identity\Http\Controllers\UserController;
 use App\Modules\Integrations\Http\Controllers\ConnectionController;
 use App\Modules\Integrations\Http\Controllers\GoogleOAuthController;
 use App\Modules\Integrations\Http\Controllers\TransferController;
-use App\Modules\Integrations\Http\Controllers\YandexOAuthController;
 use App\Modules\Observability\Http\Controllers\MetricsController;
 use App\Modules\Observability\Http\Controllers\ReadinessController;
 use App\Providers\AppServiceProvider;
@@ -27,8 +26,7 @@ Route::get('/health/ready', ReadinessController::class);
 
 Route::prefix('api/v1')->group(function (): void {
     Route::get('/connections/google/callback', [GoogleOAuthController::class, 'callback'])->middleware('throttle:60,1,google-oauth-callback:');
-    Route::get('/connections/yandex/callback', [YandexOAuthController::class, 'callback'])
-        ->middleware('throttle:60,1,'.YandexOAuthController::CALLBACK_THROTTLE_PREFIX);
+
 
     Route::prefix('office')->controller(OfficeController::class)->group(function (): void {
         Route::get('/source/{capability}', 'source')->where('capability', '[A-Za-z0-9._-]+');
@@ -69,11 +67,7 @@ Route::prefix('api/v1')->group(function (): void {
         Route::prefix('connections')->group(function (): void {
             Route::get('/google/authorization', [GoogleOAuthController::class, 'availability']);
             Route::post('/google/authorization', [GoogleOAuthController::class, 'start'])->middleware('throttle:10,1,google-oauth-start:');
-            Route::controller(YandexOAuthController::class)->group(function (): void {
-                Route::get('/yandex/authorization', 'availability');
-                Route::post('/yandex/authorization', 'start')
-                    ->middleware('throttle:10,1,'.YandexOAuthController::START_THROTTLE_PREFIX);
-            });
+
 
             Route::controller(ConnectionController::class)->group(function (): void {
                 Route::get('/', 'index');

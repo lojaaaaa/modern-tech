@@ -7,10 +7,14 @@ export const DatePicker = ({
     value,
     onChange,
     label,
+    min,
+    max,
 }: {
     value: string;
     onChange: (value: string) => void;
     label: string;
+    min?: string;
+    max?: string;
 }) => {
     const [isOpen, setOpen] = useState(false);
 
@@ -38,6 +42,10 @@ export const DatePicker = ({
     const count = new Date(year, index + 1, 0).getDate();
     const offset = (new Date(year, index, 1).getDay() + 6) % 7;
     const key = (day: number) => `${year}-${String(index + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+    const allowed = (date: string) => (!min || date >= min) && (!max || date <= max);
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
     return (
         <div
@@ -101,6 +109,7 @@ export const DatePicker = ({
                             <button
                                 type="button"
                                 key={day}
+                                disabled={!allowed(key(day))}
                                 aria-pressed={value === key(day)}
                                 onClick={() => {
                                     onChange(key(day));
@@ -115,6 +124,7 @@ export const DatePicker = ({
                         <Button
                             size="small"
                             variant="ghost"
+                            disabled={!allowed(today)}
                             onClick={() => {
                                 const now = new Date();
                                 onChange(

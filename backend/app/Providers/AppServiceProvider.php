@@ -45,6 +45,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Scramble::configure()->withDocumentTransformers([ApiErrorResponses::class]);
+        Gate::define('viewApiDocs', fn (User $user): bool => $user->isActive() && $user->isAdministrator());
         Gate::policy(Document::class, DocumentPolicy::class);
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(CloudConnection::class, CloudConnectionPolicy::class);

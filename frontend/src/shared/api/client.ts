@@ -33,7 +33,8 @@ export const initializeCsrf = async (): Promise<void> => {
         throw new ApiError(response.status, 'Не удалось установить защищённую сессию.');
     }
 };
-export const api = async <T>(path: string, init: RequestInit = {}): Promise<T> => {
+
+const request = async <T>(path: string, init: RequestInit, read: (response: Response) => Promise<T>): Promise<T> => {
     const generation = identityGeneration;
     const controller = new AbortController();
     const cancel = () => controller.abort();
@@ -80,9 +81,23 @@ export const api = async <T>(path: string, init: RequestInit = {}): Promise<T> =
             if (response.status === 401 && path !== '/me' && path !== '/auth/login') {
                 window.dispatchEvent(new Event('session-expired'));
             }
-            throw new ApiError(response.status, message);
+
+            const translated = /[а-яё]/i.test(message)
+                ? message
+                : ((
+                      {
+                          401: 'Войдите в аккаунт.',
+                          403: 'Недостаточно прав для этого действия.',
+                          404: 'Документ или ресурс не найден.',
+                          409: 'Данные изменились. Обновите страницу и повторите действие.',
+                          422: 'Проверьте введённые данные.',
+                          429: 'Слишком много запросов. Попробуйте позже.',
+                      } as Record<number, string>
+                  )[response.status] ?? 'Не удалось выполнить запрос. Попробуйте позже.');
+
+            throw new ApiError(response.status, translated);
         }
-        const payload = (await response.json()) as T;
+        const payload = await read(response);
         current();
 
         return payload;
@@ -91,3 +106,9 @@ export const api = async <T>(path: string, init: RequestInit = {}): Promise<T> =
         init.signal?.removeEventListener('abort', cancel);
     }
 };
+
+export const api = <T>(path: string, init: RequestInit = {}): Promise<T> =>
+    request(path, init, (response) => response.json() as Promise<T>);
+
+export const apiBlob = (path: string, init: RequestInit = {}): Promise<Blob> =>
+    request(path, init, (response) => response.blob());

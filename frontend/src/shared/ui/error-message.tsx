@@ -8,7 +8,11 @@ export const ErrorMessage = ({ error }: { error: unknown }) => {
     return (
         <div className="error-message" role="alert">
             <AlertCircle size={17} />
-            <span>{error instanceof Error ? error.message : 'Произошла ошибка. Повторите попытку.'}</span>
+            <span>
+                {error instanceof Error && /[а-яё]/i.test(error.message)
+                    ? error.message
+                    : 'Не удалось выполнить действие. Повторите попытку.'}
+            </span>
         </div>
     );
 };

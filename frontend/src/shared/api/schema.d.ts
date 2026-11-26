@@ -171,7 +171,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["modules.documents.document.index_30"];
+        get: operations["modules.documents.document.index_27"];
         put?: never;
         post?: never;
         delete?: never;
@@ -203,7 +203,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["modules.documents.document.index_33"];
+        get: operations["modules.documents.document.index_30"];
         put?: never;
         post: operations["document.store"];
         delete?: never;
@@ -676,38 +676,6 @@ export interface paths {
         patch: operations["user.update"];
         trace?: never;
     };
-    "/v1/connections/yandex/callback": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["yandexOAuth.callback"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/connections/yandex/authorization": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["yandexOAuth.availability"];
-        put?: never;
-        post: operations["yandexOAuth.start"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -925,7 +893,7 @@ export interface components {
         /** PreviewStatusResource */
         PreviewStatusResource: {
             /** @enum {string} */
-            kind: "image" | "pdf" | "text";
+            kind: "image" | "pdf" | "text" | "markdown" | "csv" | "spreadsheet";
             /** @enum {string} */
             status: "ready" | "failed" | "pending";
         };
@@ -974,11 +942,6 @@ export interface components {
         };
         /** StartGoogleOAuthRequest */
         StartGoogleOAuthRequest: {
-            /** Format: uuid */
-            connection_id?: string | null;
-        };
-        /** StartYandexOAuthRequest */
-        StartYandexOAuthRequest: {
             /** Format: uuid */
             connection_id?: string | null;
         };
@@ -1526,7 +1489,7 @@ export interface operations {
             404: components["responses"]["ModelNotFoundException"];
         };
     };
-    "modules.documents.document.index_30": {
+    "modules.documents.document.index_27": {
         parameters: {
             query?: {
                 q?: string | null;
@@ -1621,7 +1584,7 @@ export interface operations {
             422: components["responses"]["ValidationException"];
         };
     };
-    "modules.documents.document.index_33": {
+    "modules.documents.document.index_30": {
         parameters: {
             query?: {
                 q?: string | null;
@@ -3019,90 +2982,6 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
-        };
-    };
-    "yandexOAuth.callback": {
-        parameters: {
-            query?: {
-                state?: string;
-                code?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            302: {
-                headers: {
-                    Location: string;
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    "yandexOAuth.availability": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        data: {
-                            available: boolean;
-                        };
-                    };
-                };
-            };
-            401: components["responses"]["AuthenticationException"];
-        };
-    };
-    "yandexOAuth.start": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["StartYandexOAuthRequest"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        data: {
-                            url: string;
-                        };
-                    };
-                };
-            };
-            401: components["responses"]["AuthenticationException"];
-            403: components["responses"]["AuthorizationException"];
-            422: components["responses"]["ValidationException"];
-            /** @description An error */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
         };
     };
 }

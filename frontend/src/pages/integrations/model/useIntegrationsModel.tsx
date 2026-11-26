@@ -9,7 +9,7 @@ export const useIntegrationsModel = () => {
     const operationKeys = useRef(new Map<string, string>());
     const client = useQueryClient();
     const [params, setParams] = useSearchParams();
-    const authorizationResult = params.get('google') ?? params.get('yandex');
+    const authorizationResult = params.get('google');
 
     const [selected, setSelected] = useState(() =>
         authorizationResult === 'connected' ? (params.get('connection') ?? '') : ''
@@ -17,12 +17,12 @@ export const useIntegrationsModel = () => {
 
     const [path, setPath] = useState('/');
 
-    const [provider, setProvider] = useState<'yandex' | 'google' | 'mail'>(() =>
+    const [provider, setProvider] = useState<'google' | 'mail'>(() =>
         params.has('google') || params.get('provider') === 'google'
             ? 'google'
             : params.get('provider') === 'mail'
               ? 'mail'
-              : 'yandex'
+              : 'google'
     );
 
     const [isConnectOpen, setConnectOpen] = useState(() => params.get('connect') === '1');
@@ -42,7 +42,7 @@ export const useIntegrationsModel = () => {
         enabled: provider !== 'mail',
     });
 
-    const connectYandex = useMutation({
+    const connectGoogle = useMutation({
         mutationFn: (connectionId?: string) =>
             api<Resource<{ url: string }>>(`/connections/${provider}/authorization`, {
                 method: 'POST',
@@ -141,13 +141,13 @@ export const useIntegrationsModel = () => {
     const providerTransfers =
         transfers.data?.data.filter((t) => providerConnections.some((c) => c.id === t.connection_id)) ?? [];
 
-    const chooseProvider = (service: 'yandex' | 'google' | 'mail') => {
+    const chooseProvider = (service: 'google' | 'mail') => {
         setProvider(service);
         setSelected('');
         setPath('/');
         setPassword('');
         create.reset();
-        connectYandex.reset();
+        connectGoogle.reset();
     };
 
     const closeConnect = () => {
@@ -182,7 +182,7 @@ export const useIntegrationsModel = () => {
         setPassword,
         connections,
         authorization,
-        connectYandex,
+        connectGoogle,
         files,
         transfers,
         create,

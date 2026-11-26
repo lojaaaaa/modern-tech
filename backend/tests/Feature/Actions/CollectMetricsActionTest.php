@@ -38,7 +38,7 @@ final class CollectMetricsActionTest extends TestCase
 
         $connection = CloudConnection::query()->create([
             'owner_id' => $user->id,
-            'provider' => 'yandex',
+            'provider' => 'mail',
             'name' => 'Test disk',
             'credentials' => ['token' => 'test'],
         ]);

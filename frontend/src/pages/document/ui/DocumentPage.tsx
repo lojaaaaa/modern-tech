@@ -10,7 +10,6 @@ import { lazy, Suspense } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { AccessEditor } from './AccessEditor';
 import { DiscussionPanel } from './DiscussionPanel';
-import { DocumentEntities } from './DocumentEntities';
 import { DocumentHeading } from './DocumentHeading';
 import { DocumentToolbar } from './DocumentToolbar';
 import { DocumentVersions } from './DocumentVersions';
@@ -63,7 +62,6 @@ export const DocumentWorkspace = ({ searchMatch }: { searchMatch?: DocumentSearc
         activeVersion,
         isImage,
         text,
-        entities,
         comments,
         remove,
         version,
@@ -165,7 +163,6 @@ export const DocumentWorkspace = ({ searchMatch }: { searchMatch?: DocumentSearc
                                 selectedVersion={selectedVersion}
                                 isImage={isImage}
                                 text={text}
-                                entities={entities}
                                 version={version}
                             />
                             {selectedVersion && selectedVersion !== d.version?.id && (
@@ -229,7 +226,6 @@ export const DocumentWorkspace = ({ searchMatch }: { searchMatch?: DocumentSearc
                                 </>
                             )}
                             {tab === 'text' && reader}
-                            {tab === 'entities' && !isImage && <DocumentEntities id={id} entities={entities} />}
                             {tab === 'compare' && (
                                 <>
                                     <div className="compare-breadcrumb">

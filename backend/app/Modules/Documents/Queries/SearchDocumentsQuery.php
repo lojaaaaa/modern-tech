@@ -73,6 +73,7 @@ final class SearchDocumentsQuery
             ->selectRaw('MAX(' . self::SEGMENT_RANK . ')');
 
         $query
+            ->whereHas('publishedVersion', fn (Builder $version) => $version->where('status', 'ready'))
             ->where(fn (Builder $results) => $results
                 ->whereRaw($titleMatch, [$pattern])
                 ->orWhereIn('documents.published_version_id', $literalVersions)

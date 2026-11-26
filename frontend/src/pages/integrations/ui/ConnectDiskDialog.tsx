@@ -1,4 +1,4 @@
-const providerNames: Record<string, string> = { yandex: 'Яндекс Диск', google: 'Google Drive', mail: 'Облако Mail' };
+const providerNames: Record<string, string> = { google: 'Google Drive', mail: 'Облако Mail' };
 import { Button } from '@/shared/ui/button';
 import { ErrorMessage } from '@/shared/ui/error-message';
 import { Modal } from '@/shared/ui/modal';
@@ -15,7 +15,7 @@ type Props = Pick<
     | 'password'
     | 'setPassword'
     | 'authorization'
-    | 'connectYandex'
+    | 'connectGoogle'
     | 'create'
     | 'chooseProvider'
     | 'closeConnect'
@@ -29,26 +29,23 @@ export const ConnectDiskDialog = ({
     password,
     setPassword,
     authorization,
-    connectYandex,
+    connectGoogle,
     create,
     chooseProvider,
     closeConnect,
 }: Props) => (
-    <Modal titleId="connect-disk-title" onClose={closeConnect} isBusy={create.isPending || connectYandex.isPending}>
+    <Modal titleId="connect-disk-title" onClose={closeConnect} isBusy={create.isPending || connectGoogle.isPending}>
         <h2 id="connect-disk-title">Подключить диск</h2>
-        <ErrorMessage error={create.error || connectYandex.error || authorization.error} />
+        <ErrorMessage error={create.error || connectGoogle.error || authorization.error} />
         <div className="cloud-provider-field">
             <Select
                 label="Сервис"
                 value={provider}
                 options={[
-                    { value: 'yandex', label: 'Яндекс Диск' },
                     { value: 'google', label: 'Google Drive' },
                     { value: 'mail', label: 'Облако Mail' },
                 ]}
-                onValueChange={(value) =>
-                    chooseProvider(value === 'google' ? 'google' : value === 'mail' ? 'mail' : 'yandex')
-                }
+                onValueChange={(value) => chooseProvider(value === 'mail' ? 'mail' : 'google')}
             />
         </div>
         {provider !== 'mail' ? (
@@ -57,14 +54,14 @@ export const ConnectDiskDialog = ({
                     <p className="muted">Подключение пока недоступно. Обратитесь к администратору.</p>
                 )}
                 <footer>
-                    <Button variant="secondary" onClick={closeConnect} disabled={connectYandex.isPending}>
+                    <Button variant="secondary" onClick={closeConnect} disabled={connectGoogle.isPending}>
                         Отмена
                     </Button>
                     <Button
-                        disabled={connectYandex.isPending || !authorization.data?.data.available}
-                        onClick={() => connectYandex.mutate(undefined)}
+                        disabled={connectGoogle.isPending || !authorization.data?.data.available}
+                        onClick={() => connectGoogle.mutate(undefined)}
                     >
-                        {connectYandex.isPending ? 'Переходим к входу…' : `Подключить ${providerNames[provider]}`}
+                        {connectGoogle.isPending ? 'Переходим к входу…' : `Подключить ${providerNames[provider]}`}
                     </Button>
                 </footer>
             </>

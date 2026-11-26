@@ -73,6 +73,9 @@ export const Pagination = ({
     isBusy?: boolean;
     label?: string;
 }) => {
+    if (count === 0) {
+        return null;
+    }
     if (pages <= 1) {
         return <PaginationLayout label={label} count={count} isBusy={isBusy} />;
     }

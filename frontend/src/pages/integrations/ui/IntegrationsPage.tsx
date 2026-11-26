@@ -7,7 +7,7 @@ import { useIntegrationsModel } from '../model/useIntegrationsModel';
 import { ConnectDiskDialog } from './ConnectDiskDialog';
 import { RemoteFiles } from './RemoteFiles';
 
-const providerNames: Record<string, string> = { yandex: 'Яндекс Диск', google: 'Google Drive', mail: 'Облако Mail' };
+const providerNames: Record<string, string> = { google: 'Google Drive', mail: 'Облако Mail' };
 
 const statuses: Record<CloudTransfer['status'], string> = {
     queued: 'В очереди',
@@ -18,7 +18,7 @@ const statuses: Record<CloudTransfer['status'], string> = {
 };
 
 const authorizationMessages = new Map([
-    ['connected', 'Яндекс Диск подключён.'],
+    ['connected', 'Google Drive подключён.'],
     ['cancelled', 'Подключение отменено.'],
     ['expired', 'Время подключения истекло или аккаунт изменился. Попробуйте снова.'],
     ['failed', 'Не удалось подключить облачный диск. Проверьте разрешения и попробуйте снова.'],
@@ -44,7 +44,7 @@ export const IntegrationsPage = () => {
         setPassword,
         connections,
         authorization,
-        connectYandex,
+        connectGoogle,
         files,
         transfers,
         create,
@@ -64,7 +64,7 @@ export const IntegrationsPage = () => {
                 <Button
                     onClick={() => {
                         create.reset();
-                        connectYandex.reset();
+                        connectGoogle.reset();
                         setConnectOpen(true);
                     }}
                 >
@@ -72,16 +72,14 @@ export const IntegrationsPage = () => {
                 </Button>
             </div>
             <div className="provider-tabs" role="group" aria-label="Облачный сервис">
-                {(['yandex', 'google', 'mail'] as const).map((service) => (
+                {(['google', 'mail'] as const).map((service) => (
                     <Button
                         key={service}
                         variant={provider === service ? 'default' : 'ghost'}
                         aria-pressed={provider === service}
                         onClick={() => chooseProvider(service)}
                     >
-                        <span className={`provider-icon ${service}`}>
-                            {service === 'yandex' ? 'Я' : service === 'google' ? 'G' : '@'}
-                        </span>
+                        <span className={`provider-icon ${service}`}>{service === 'google' ? 'G' : '@'}</span>
                         {providerNames[service]}
                     </Button>
                 ))}
@@ -89,7 +87,7 @@ export const IntegrationsPage = () => {
             <ErrorMessage
                 error={
                     authorization.error ||
-                    connectYandex.error ||
+                    connectGoogle.error ||
                     connections.error ||
                     create.error ||
                     disconnect.error ||
@@ -115,7 +113,6 @@ export const IntegrationsPage = () => {
                         size="small"
                         onClick={() => {
                             const next = new URLSearchParams(params);
-                            next.delete('yandex');
                             next.delete('google');
                             next.delete('connection');
                             setParams(next, { replace: true });
@@ -172,11 +169,11 @@ export const IntegrationsPage = () => {
                                             <Button
                                                 variant="ghost"
                                                 disabled={
-                                                    connectYandex.isPending || !authorization.data?.data.available
+                                                    connectGoogle.isPending || !authorization.data?.data.available
                                                 }
                                                 onClick={() => {
                                                     close();
-                                                    connectYandex.mutate(c.id);
+                                                    connectGoogle.mutate(c.id);
                                                 }}
                                             >
                                                 Переподключить
@@ -211,7 +208,7 @@ export const IntegrationsPage = () => {
                     password={password}
                     setPassword={setPassword}
                     authorization={authorization}
-                    connectYandex={connectYandex}
+                    connectGoogle={connectGoogle}
                     create={create}
                     chooseProvider={chooseProvider}
                     closeConnect={closeConnect}

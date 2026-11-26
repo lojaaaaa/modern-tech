@@ -58,9 +58,9 @@ try {
     assert.equal(uploaded.status(), 202, 'Private document creation failed');
     const documentId = (await uploaded.json()).data.id;
     const connectionName = `private-connection-${run}`;
-    const connection = await post(context, '/connections', { provider: 'yandex', name: connectionName, token: 'synthetic-test-token' });
+    const connection = await post(context, '/connections', { provider: 'mail', name: connectionName, email: 'synthetic@example.test', password: 'synthetic-test-password' });
     assert.equal(connection.status(), 201, 'Private test connection was not created');
-    await page.goto(`${base}/integrations`);
+    await page.goto(`${base}/integrations?provider=mail`);
     await page.getByText(connectionName).waitFor();
     await page.goto(`${base}/documents/${documentId}`);
     await page.getByText(title, { exact: true }).first().waitFor();
@@ -80,7 +80,7 @@ try {
     await page.waitForLoadState('networkidle');
     assert.equal(await page.getByText(title, { exact: true }).count(), 0, 'Private document remained visible after account switch');
     await page.goto(base);
-    await page.goto(`${base}/integrations`);
+    await page.goto(`${base}/integrations?provider=mail`);
     await page.waitForLoadState('networkidle');
     assert.equal(await page.getByText(connectionName).count(), 0, 'Previous account connection remained visible');
     const secondConnections = await (await context.request.get(`${base}/api/v1/connections`)).json();

@@ -24,7 +24,7 @@ final class PreviewController
             return new PreviewStatusResource($action->handle($version));
         }
 
-        $isNativePreview = $version->hasNativePreview();
+        $isNativePreview = $version->hasNativePreview() || in_array($version->getFileExtension(), ['md', 'csv', 'xlsx'], true);
         $key = $isNativePreview ? $version->storage_key : $version->preview_key;
         abort_if($key === null || $key === '', 404);
 

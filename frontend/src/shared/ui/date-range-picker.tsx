@@ -17,11 +17,29 @@ export const DateRangePicker = ({
         <legend>{label}</legend>
         <label>
             С
-            <DatePicker label={`${label}, с`} value={from} onChange={onFromChange} />
+            <DatePicker
+                label={`${label}, с`}
+                value={from}
+                max={to}
+                onChange={(value) => {
+                    if (!value || !to || value <= to) {
+                        onFromChange(value);
+                    }
+                }}
+            />
         </label>
         <label>
             По
-            <DatePicker label={`${label}, по`} value={to} onChange={onToChange} />
+            <DatePicker
+                label={`${label}, по`}
+                value={to}
+                min={from}
+                onChange={(value) => {
+                    if (!value || !from || value >= from) {
+                        onToChange(value);
+                    }
+                }}
+            />
         </label>
     </fieldset>
 );

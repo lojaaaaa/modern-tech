@@ -1,11 +1,13 @@
 FROM node:24-alpine AS dependencies
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci --registry=https://registry.npmjs.org
+RUN npm ci --registry=https://registry.npmjs.org \
+ && sha256sum package-lock.json | cut -d ' ' -f 1 > node_modules/.modern-tech-lock
 FROM dependencies AS development
+COPY start-development.sh /usr/local/bin/start-development
 COPY . .
 EXPOSE 5173
-CMD ["npm", "run", "dev"]
+CMD ["sh", "/usr/local/bin/start-development"]
 FROM dependencies AS build
 COPY . .
 RUN npm run build

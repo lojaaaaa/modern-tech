@@ -51,6 +51,21 @@ class PreviewAndAnchorsTest extends TestCase
         $this->getJson($url)->assertConflict();
     }
 
+    public function test_structured_previews_return_original_only_to_authorized_readers(): void
+    {
+        Queue::fake();
+        foreach (['md' => 'markdown', 'csv' => 'csv', 'xlsx' => 'spreadsheet'] as $extension => $kind) {
+            [$owner, , $version] = $this->document('report.' . $extension, 'application/octet-stream');
+            $url = '/api/v1/versions/' . $version->id . '/preview';
+            $this->actingAs($owner)->getJson($url . '?status=1')->assertOk()->assertJsonPath('data.kind', $kind);
+            $this->get($url)->assertOk()->assertHeader('X-Content-Type-Options', 'nosniff')->assertStreamedContent('test');
+            $this->actingAs(User::factory()->create())->get($url)->assertNotFound();
+            $version->update(['status' => 'scanning']);
+            $this->actingAs($owner)->getJson($url)->assertConflict();
+        }
+        Queue::assertNothingPushed();
+    }
+
     public function test_office_preview_is_queued_once_and_does_not_return_original(): void
     {
         Queue::fake()->serializeAndRestore();

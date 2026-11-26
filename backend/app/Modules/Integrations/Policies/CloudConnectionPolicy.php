@@ -7,6 +7,7 @@ namespace App\Modules\Integrations\Policies;
 use App\Models\User;
 use App\Modules\Identity\Enums\UserRole;
 use App\Modules\Integrations\Enums\CloudConnectionStatus;
+use App\Modules\Integrations\Enums\CloudProviderId;
 use App\Modules\Integrations\Models\CloudConnection;
 use Illuminate\Auth\Access\Response;
 
@@ -21,7 +22,7 @@ final class CloudConnectionPolicy
 
     public function listFiles(User $user, CloudConnection $connection): Response
     {
-        return $connection->isOwnedBy($user) && $connection->status !== CloudConnectionStatus::DISCONNECTED
+        return CloudProviderId::tryFrom($connection->provider) !== null && $connection->isOwnedBy($user) && $connection->status !== CloudConnectionStatus::DISCONNECTED
             ? Response::allow()
             : Response::denyAsNotFound('Запрос отклонён.');
     }
@@ -35,6 +36,6 @@ final class CloudConnectionPolicy
 
     public function transfer(User $user, CloudConnection $connection): bool
     {
-        return $connection->isOwnedBy($user) && $connection->status === CloudConnectionStatus::CONNECTED;
+        return CloudProviderId::tryFrom($connection->provider) !== null && $connection->isOwnedBy($user) && $connection->status === CloudConnectionStatus::CONNECTED;
     }
 }

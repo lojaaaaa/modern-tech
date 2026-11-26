@@ -998,3 +998,53 @@ select,
         display: none;
     }
 }
+
+.compact-library > .table-scroll {
+    max-height: none;
+    height: auto;
+    overflow: visible;
+}
+#upload-title {
+    margin-bottom: 24px;
+}
+.document-heading {
+    position: relative;
+    padding-left: 42px;
+}
+.document-heading .document-return {
+    position: absolute;
+    left: 0;
+    top: 5px;
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    margin: 0;
+    border-radius: 6px;
+}
+.document-return:hover {
+    background: var(--soft);
+}
+.document-layout.is-expanded .editor-savebar {
+    display: none;
+}
+.calendar-grid button:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+.app-toast {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 200;
+    max-width: min(460px, calc(100vw - 32px));
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface, #fff);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 6px 24px #17233d20;
+}

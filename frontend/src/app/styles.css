@@ -1938,9 +1938,7 @@ select {
     border-radius: 6px;
     background: #fff;
 }
-.provider-icon.yandex {
-    color: #e63730;
-}
+
 .provider-icon.mail {
     color: #176ae8;
 }

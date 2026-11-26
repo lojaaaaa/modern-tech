@@ -31,7 +31,7 @@ services:
       target: development
     working_dir: /app
     volumes: ["./frontend:/app", "web_modules:/app/node_modules"]
-    command: npm run dev
+    command: ["sh", "/usr/local/bin/start-development"]
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5173').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 5s

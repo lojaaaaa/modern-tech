@@ -10,7 +10,7 @@ use App\Modules\Integrations\Models\CloudConnection;
 
 final class ProviderFactory
 {
-    public function __construct(private readonly YandexOAuth $yandexOAuth, private readonly GoogleOAuth $googleOAuth)
+    public function __construct(private readonly GoogleOAuth $googleOAuth)
     {
     }
 
@@ -19,10 +19,6 @@ final class ProviderFactory
         return match (CloudProviderId::tryFrom($connection->provider)) {
             CloudProviderId::GOOGLE => new GoogleDisk($this->googleOAuth->getAccessToken($connection), fn (string $token): string => $this->googleOAuth->getAccessToken($connection, $token)),
             CloudProviderId::MAIL => $this->mailCloud($connection),
-            CloudProviderId::YANDEX => new YandexDisk(
-                $this->yandexOAuth->getAccessToken($connection),
-                fn (string $token): string => $this->yandexOAuth->getAccessToken($connection, $token),
-            ),
             null => throw new CloudFailure('UNKNOWN_PROVIDER'),
         };
     }

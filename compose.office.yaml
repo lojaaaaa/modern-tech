@@ -7,9 +7,9 @@ services:
       OFFICE_APP_INTERNAL_URL: http://gateway
       OFFICE_JWT_SECRET: ${OFFICE_JWT_SECRET:?Set OFFICE_JWT_SECRET for the local Office editor}
   office-documentserver:
-    image: modern-tech-office-poc-documentserver:9.4.0.1-amd-fix
+    image: modern-tech-office-documentserver:9.4.0.1-amd-fix
     build:
-      context: ./tools/office-poc/documentserver-patch
+      context: ./infra/onlyoffice
     platform: linux/arm64
     environment:
       JWT_ENABLED: "true"

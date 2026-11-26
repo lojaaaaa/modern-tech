@@ -93,7 +93,7 @@ class RegistrationTest extends TestCase
     public function test_an_employee_can_queue_a_cloud_import_without_email_verification(): void
     {
         $account = User::factory()->create();
-        $connection = CloudConnection::query()->create(['owner_id' => $account->id, 'provider' => 'yandex', 'name' => 'Personal disk', 'credentials' => ['token' => 'test-only-token']]);
+        $connection = CloudConnection::query()->create(['owner_id' => $account->id, 'provider' => 'mail', 'name' => 'Personal disk', 'credentials' => ['token' => 'test-only-token']]);
 
         $this->actingAs($account)->postJson('/api/v1/transfers', [
             'connection_id' => $connection->id,

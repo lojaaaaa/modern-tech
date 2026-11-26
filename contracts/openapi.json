@@ -940,7 +940,7 @@
         },
         "/v1/search": {
             "get": {
-                "operationId": "modules.documents.document.index_30",
+                "operationId": "modules.documents.document.index_27",
                 "tags": [
                     "Document"
                 ],
@@ -1344,7 +1344,7 @@
         },
         "/v1/documents": {
             "get": {
-                "operationId": "modules.documents.document.index_33",
+                "operationId": "modules.documents.document.index_30",
                 "tags": [
                     "Document"
                 ],
@@ -4249,144 +4249,6 @@
                     }
                 }
             }
-        },
-        "/v1/connections/yandex/callback": {
-            "get": {
-                "operationId": "yandexOAuth.callback",
-                "tags": [
-                    "YandexOAuth"
-                ],
-                "parameters": [
-                    {
-                        "name": "state",
-                        "in": "query",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "code",
-                        "in": "query",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "302": {
-                        "description": "",
-                        "headers": {
-                            "Location": {
-                                "required": true,
-                                "schema": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/connections/yandex/authorization": {
-            "get": {
-                "operationId": "yandexOAuth.availability",
-                "tags": [
-                    "YandexOAuth"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object",
-                                            "properties": {
-                                                "available": {
-                                                    "type": "boolean"
-                                                }
-                                            },
-                                            "required": [
-                                                "available"
-                                            ]
-                                        }
-                                    },
-                                    "required": [
-                                        "data"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    }
-                }
-            },
-            "post": {
-                "operationId": "yandexOAuth.start",
-                "tags": [
-                    "YandexOAuth"
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/StartYandexOAuthRequest"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object",
-                                            "properties": {
-                                                "url": {
-                                                    "type": "string"
-                                                }
-                                            },
-                                            "required": [
-                                                "url"
-                                            ]
-                                        }
-                                    },
-                                    "required": [
-                                        "data"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "503": {
-                        "description": "An error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ApiError"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    }
-                }
-            }
         }
     },
     "components": {
@@ -5171,7 +5033,10 @@
                         "enum": [
                             "image",
                             "pdf",
-                            "text"
+                            "text",
+                            "markdown",
+                            "csv",
+                            "spreadsheet"
                         ]
                     },
                     "status": {
@@ -5360,19 +5225,6 @@
                     }
                 },
                 "title": "StartGoogleOAuthRequest"
-            },
-            "StartYandexOAuthRequest": {
-                "type": "object",
-                "properties": {
-                    "connection_id": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "uuid"
-                    }
-                },
-                "title": "StartYandexOAuthRequest"
             },
             "StoreCommentRequest": {
                 "type": "object",

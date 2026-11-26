@@ -1,6 +1,7 @@
 import { useId, type ReactNode } from 'react';
 import { SlidersHorizontal } from 'lucide-react';
 import { Button } from './button';
+import { Select } from './select';
 import { Popover } from './popover';
 
 export const FilterPopover = ({
@@ -47,16 +48,10 @@ export const FilterOptions = ({
     const name = useId();
     if (options.length > 6) {
         return (
-            <label className="filter-select">
+            <div className="filter-select">
                 <span>{label}</span>
-                <select value={value} onChange={(event) => onValueChange(event.target.value)}>
-                    {options.map((option) => (
-                        <option key={option.value} value={option.value}>
-                            {option.label}
-                        </option>
-                    ))}
-                </select>
-            </label>
+                <Select label={label} value={value} options={options} onValueChange={onValueChange} />
+            </div>
         );
     }
 

@@ -1,4 +1,16 @@
 #!/usr/bin/env sh
 set -eu
 cd "$(git rev-parse --show-toplevel)"
-exec make test
+# Test exactly the checked-out commit; do not let uncommitted fixes hide a failing push.
+if test -n "$(git status --porcelain)"; then
+  printf 'Рабочая папка не чистая: сначала закоммитьте изменения. Push остановлен.\n' >&2
+  exit 1
+fi
+while read -r local_ref local_sha remote_ref remote_sha; do
+  case "$local_sha" in 0000000000000000000000000000000000000000) continue ;; esac
+  if test "$local_sha" != "$(git rev-parse HEAD)"; then
+    printf 'Для проверки переключитесь на отправляемую ветку. Push остановлен.\n' >&2
+    exit 1
+  fi
+done
+bash scripts/check-quality.sh

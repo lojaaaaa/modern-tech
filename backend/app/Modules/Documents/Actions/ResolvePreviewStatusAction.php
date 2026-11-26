@@ -20,6 +20,16 @@ final class ResolvePreviewStatusAction
 
     public function handle(DocumentVersion $version): PreviewStatusData
     {
+        $structuredKind = match ($version->getFileExtension()) {
+            'md' => PreviewKind::MARKDOWN,
+            'csv' => PreviewKind::CSV,
+            'xlsx' => PreviewKind::SPREADSHEET,
+            default => null,
+        };
+        if ($structuredKind !== null) {
+            return new PreviewStatusData($structuredKind, PreviewStatus::READY);
+        }
+
         if ($version->hasNativePreview()) {
             $kind = str_starts_with($version->mime, 'image/') ? PreviewKind::IMAGE : PreviewKind::PDF;
 

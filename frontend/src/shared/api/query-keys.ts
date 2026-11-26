@@ -14,5 +14,4 @@ export const queryKeys = {
     transfers: 'transfers',
     users: 'users',
     versions: 'versions',
-    yandexAuthorization: 'yandex-authorization',
 } as const;

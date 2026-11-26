@@ -65,7 +65,7 @@ export const useLibraryModel = ({ user, isTrash = false }: { user: User; isTrash
         placeholderData: keepPreviousData,
         queryFn: ({ signal }) =>
             api<Page<DocumentRecord>>(
-                `/documents?${new URLSearchParams({ ...Object.fromEntries(params), page: String(page), per_page: '12', trash: isTrash ? '1' : '0' })}`,
+                `/documents?${new URLSearchParams({ ...Object.fromEntries(params), page: String(page), per_page: '10', trash: isTrash ? '1' : '0' })}`,
                 { signal }
             ),
         refetchInterval: (state) =>

@@ -9,4 +9,7 @@ enum PreviewKind: string
     case IMAGE = 'image';
     case PDF = 'pdf';
     case TEXT = 'text';
+    case MARKDOWN = 'markdown';
+    case CSV = 'csv';
+    case SPREADSHEET = 'spreadsheet';
 }

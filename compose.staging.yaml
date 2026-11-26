@@ -1,4 +1,4 @@
-# Standalone isolated test environment; see docs/STAGING.md.
+# Standalone isolated test environment; see docs/production.md.
 name: modern-tech-staging
 x-api: &api
   image: modern-tech-api:${RELEASE_TAG:-staging}

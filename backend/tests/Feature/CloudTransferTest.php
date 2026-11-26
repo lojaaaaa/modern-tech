@@ -26,7 +26,7 @@ class CloudTransferTest extends TestCase
     public function test_connection_secrets_are_encrypted_and_other_admin_has_no_access(): void
     {
         $owner = User::factory()->create(['role' => 'employee']);
-        $connection = CloudConnection::query()->create(['owner_id' => $owner->id, 'provider' => 'yandex', 'name' => 'Personal', 'credentials' => ['token' => 'private-token']]);
+        $connection = CloudConnection::query()->create(['owner_id' => $owner->id, 'provider' => 'mail', 'name' => 'Personal', 'credentials' => ['email' => 'test@example.test', 'password' => 'private-token']]);
         $this->assertStringNotContainsString('private-token', $connection->getRawOriginal('credentials'));
         $this->actingAs($owner)->getJson('/api/v1/connections')->assertOk()->assertJsonMissingPath('data.0.credentials');
         $admin = User::factory()->create(['role' => 'admin']);
@@ -67,7 +67,7 @@ class CloudTransferTest extends TestCase
         $doc->grants()->create(['user_id' => $actor->id, 'read' => true, 'export' => true]);
         $version = DocumentVersion::query()->create(['document_id' => $doc->id, 'creator_id' => $owner->id, 'number' => 1, 'storage_key' => 'file.txt', 'original_name' => 'file.txt', 'mime' => 'text/plain', 'size' => 4, 'sha256' => hash('sha256', 'text'), 'status' => 'ready']);
         $doc->update(['published_version_id' => $version->id, 'desired_version_id' => $version->id]);
-        $connection = CloudConnection::query()->create(['owner_id' => $actor->id, 'provider' => 'yandex', 'name' => 'Disk', 'credentials' => ['token' => 'token']]);
+        $connection = CloudConnection::query()->create(['owner_id' => $actor->id, 'provider' => 'mail', 'name' => 'Disk', 'credentials' => ['email' => 'test@example.test', 'password' => 'token']]);
         $payload = [
             'connection_id' => $connection->id,
             'direction' => 'export',
@@ -94,18 +94,18 @@ class CloudTransferTest extends TestCase
     {
         Storage::fake('local');
         Storage::disk('local')->put('file.txt', 'text');
-        Http::fake(['cloud-api.yandex.net/*' => Http::response(['href' => 'https://storage.yandex.net/upload']), 'storage.yandex.net/*' => Http::response('', 201)]);
+        Http::fake(['webdav.cloud.mail.ru/*' => Http::response('', 201)]);
         $user = User::factory()->create(['role' => 'employee']);
         $doc = Document::query()->create(['owner_id' => $user->id, 'title' => 'File']);
         $version = DocumentVersion::query()->create(['document_id' => $doc->id, 'creator_id' => $user->id, 'number' => 1, 'storage_key' => 'file.txt', 'original_name' => 'file.txt', 'mime' => 'text/plain', 'size' => 4, 'sha256' => hash('sha256', 'text'), 'status' => 'ready']);
-        $connection = CloudConnection::query()->create(['owner_id' => $user->id, 'provider' => 'yandex', 'name' => 'Disk', 'credentials' => ['token' => 'secret']]);
+        $connection = CloudConnection::query()->create(['owner_id' => $user->id, 'provider' => 'mail', 'name' => 'Disk', 'credentials' => ['email' => 'test@example.test', 'password' => 'secret']]);
         $transfer = CloudTransfer::query()->create(['initiator_id' => $user->id, 'connection_id' => $connection->id, 'version_id' => $version->id, 'direction' => 'export', 'remote_path' => '/file.txt', 'filename' => 'file.txt']);
         $job = new ProcessTransfer($transfer->id);
         $job->handle(app(ProviderFactory::class), app(UploadDocument::class), app(DocumentPolicy::class));
         $job->handle(app(ProviderFactory::class), app(UploadDocument::class), app(DocumentPolicy::class));
         $this->assertSame(CloudTransferStatus::COMPLETED, $transfer->fresh()->status);
-        Http::assertSentCount(2);
-        Http::assertSent(fn ($request) => $request->url() === 'https://storage.yandex.net/upload' && ! $request->hasHeader('Authorization'));
+        Http::assertSentCount(1);
+        Http::assertSent(fn ($request) => $request->url() === 'https://webdav.cloud.mail.ru/file.txt' && $request->method() === 'PUT');
     }
 
     public function test_import_validates_downloaded_contents_before_quarantine(): void
@@ -113,16 +113,15 @@ class CloudTransferTest extends TestCase
         Storage::fake('local');
         Http::preventStrayRequests();
         Http::fake([
-            'cloud-api.yandex.net/*' => Http::response(['href' => 'https://storage.yandex.net/download']),
-            'storage.yandex.net/download' => fn () => Http::response('Plain text from the cloud'),
+            'webdav.cloud.mail.ru/*' => fn () => Http::response('Plain text from the cloud'),
         ]);
 
         $user = User::factory()->create();
         $connection = CloudConnection::query()->create([
             'owner_id' => $user->id,
-            'provider' => 'yandex',
+            'provider' => 'mail',
             'name' => 'Disk',
-            'credentials' => ['token' => 'token'],
+            'credentials' => ['email' => 'test@example.test', 'password' => 'token'],
         ]);
         $attributes = [
             'initiator_id' => $user->id,

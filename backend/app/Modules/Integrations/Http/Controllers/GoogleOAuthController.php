@@ -8,7 +8,7 @@ use App\Models\User;
 use App\Modules\Identity\Enums\UserRole;
 use App\Modules\Integrations\Actions\ConnectGoogleDiskAction;
 use App\Modules\Integrations\Cache\GoogleOAuthCache;
-use App\Modules\Integrations\Enums\YandexAuthorizationResult;
+use App\Modules\Integrations\Enums\OAuthAuthorizationResult;
 use App\Modules\Integrations\Exceptions\CloudOAuthNotConfigured;
 use App\Modules\Integrations\Http\Requests\StartGoogleOAuthRequest;
 use App\Modules\Integrations\Services\CloudFailure;
@@ -48,30 +48,30 @@ final class GoogleOAuthController
         $user = $user instanceof User ? $user->fresh() : null;
         $state = $request->query('state');
         if (! $user || ! $user->isActive() || $user->role === UserRole::OBSERVER || ! is_string($state)) {
-            return $this->back(YandexAuthorizationResult::EXPIRED);
+            return $this->back(OAuthAuthorizationResult::EXPIRED);
         }
         try {
             $pending = $cache->getAndConsumeState($user, $request->session()->getId(), $state);
             if ($request->query('error') === 'access_denied') {
-                return $this->back(YandexAuthorizationResult::CANCELLED);
+                return $this->back(OAuthAuthorizationResult::CANCELLED);
             }
             $code = $request->query('code');
             if ($request->has('error') || ! is_string($code) || $code === '' || strlen($code) > 4096) {
-                return $this->back(YandexAuthorizationResult::FAILED);
+                return $this->back(OAuthAuthorizationResult::FAILED);
             }
             $connection = $connect->handle($user, $code, $pending);
 
-            return $this->back(YandexAuthorizationResult::CONNECTED, $connection->id);
+            return $this->back(OAuthAuthorizationResult::CONNECTED, $connection->id);
         } catch (CloudFailure $error) {
             return $this->back($error->getMessage() === 'OAUTH_STATE_INVALID'
-                ? YandexAuthorizationResult::EXPIRED
-                : YandexAuthorizationResult::FAILED);
+                ? OAuthAuthorizationResult::EXPIRED
+                : OAuthAuthorizationResult::FAILED);
         } catch (LockTimeoutException) {
-            return $this->back(YandexAuthorizationResult::FAILED);
+            return $this->back(OAuthAuthorizationResult::FAILED);
         }
     }
 
-    private function back(YandexAuthorizationResult $result, ?string $connectionId = null): RedirectResponse
+    private function back(OAuthAuthorizationResult $result, ?string $connectionId = null): RedirectResponse
     {
         return redirect('/integrations?'.http_build_query(array_filter(['google' => $result->value, 'connection' => $connectionId])))
             ->withHeaders(['Referrer-Policy' => 'no-referrer']);

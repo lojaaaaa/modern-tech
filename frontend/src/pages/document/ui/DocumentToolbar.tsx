@@ -18,7 +18,6 @@ type Props = Omit<
         | 'selectedVersion'
         | 'isImage'
         | 'text'
-        | 'entities'
         | 'version'
     >,
     'd'
@@ -33,8 +32,6 @@ export const DocumentToolbar = ({
     isExpanded,
     setExpanded,
     d,
-    isImage,
-    selectedVersion,
 }: Props) => (
     <div className="document-view-toolbar">
         <div className="tabs" role="group" aria-label="Разделы документа">
@@ -52,15 +49,6 @@ export const DocumentToolbar = ({
                         Совместная работа
                     </button>
                 )}
-            {!isImage && (!selectedVersion || selectedVersion === d.version?.id) && (
-                <button
-                    aria-pressed={tab === 'entities'}
-                    className={tab === 'entities' ? 'active' : ''}
-                    onClick={() => setTab('entities')}
-                >
-                    Данные
-                </button>
-            )}
             <button
                 aria-label="Предпросмотр"
                 aria-pressed={tab === 'preview'}
@@ -99,7 +87,7 @@ export const DocumentToolbar = ({
             )}
         </div>
         <div className="document-view-tools">
-            {(isDiscussionVisible || tab === 'editor' || tab === 'compare') && (
+            {
                 <Button
                     variant="secondary"
                     size="small"
@@ -110,7 +98,7 @@ export const DocumentToolbar = ({
                     <Maximize size={16} />
                     <span className="view-tool-label">{isExpanded ? 'Свернуть' : 'На весь экран'}</span>
                 </Button>
-            )}
+            }
             {isDiscussionVisible && (
                 <Button
                     variant="secondary"

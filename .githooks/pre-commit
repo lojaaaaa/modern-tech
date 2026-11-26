@@ -1,11 +1,10 @@
 #!/usr/bin/env sh
 set -eu
 cd "$(git rev-parse --show-toplevel)"
-git diff --cached --check
-printf 'Checking frontend lint and production build…\n'
-(cd frontend && npm run lint && npm run build)
-if ! git diff --cached --quiet -- backend/; then
-  printf 'Checking PHP style and static analysis…\n'
-  docker compose exec -T api vendor/bin/pint --test
-  docker compose exec -T api vendor/bin/phpstan analyse --memory-limit=512M --no-progress
+# Never validate different bytes from those about to be committed.
+if ! git diff --quiet || test -n "$(git ls-files --others --exclude-standard)"; then
+  printf 'Есть неиндексированные изменения. Добавьте их в коммит или временно уберите перед проверкой.\n' >&2
+  exit 1
 fi
+git diff --cached --check
+bash scripts/check-quality.sh

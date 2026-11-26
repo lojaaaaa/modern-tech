@@ -57,7 +57,7 @@ class SessionRecoveryTest extends TestCase
 
     public function test_guest_password_and_oauth_routes_have_separate_rate_limits(): void
     {
-        $this->get('/api/v1/connections/yandex/callback')->assertRedirect();
+        $this->get('/api/v1/connections/google/callback')->assertRedirect();
         $this->postJson('/api/v1/auth/reset-password')->assertUnprocessable();
 
         for ($attempt = 0; $attempt < 3; $attempt++) {
@@ -66,7 +66,7 @@ class SessionRecoveryTest extends TestCase
         $this->postJson('/api/v1/auth/forgot-password')->assertTooManyRequests()->assertHeader('Retry-After');
 
         $this->postJson('/api/v1/auth/reset-password')->assertUnprocessable()->assertHeader('X-RateLimit-Remaining', '8');
-        $this->get('/api/v1/connections/yandex/callback')->assertRedirect()->assertHeader('X-RateLimit-Remaining', '58');
+        $this->get('/api/v1/connections/google/callback')->assertRedirect()->assertHeader('X-RateLimit-Remaining', '58');
     }
 
     public function test_a_mail_derived_reset_changes_the_password_and_the_token_cannot_be_used_twice(): void

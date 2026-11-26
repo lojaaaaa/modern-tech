@@ -17,7 +17,7 @@ export const useDocumentWorkspace = ({ searchMatch }: { searchMatch?: DocumentSe
     const publicationKeyRef = useRef('');
     const [isDiscussionOpen, setDiscussionOpen] = useState(false);
 
-    const [tab, setTab] = useState<'preview' | 'text' | 'versions' | 'access' | 'compare' | 'entities' | 'editor'>(
+    const [tab, setTab] = useState<'preview' | 'text' | 'versions' | 'access' | 'compare' | 'editor'>(
         searchMatch ? 'text' : 'preview'
     );
 
@@ -103,7 +103,7 @@ export const useDocumentWorkspace = ({ searchMatch }: { searchMatch?: DocumentSe
         enabled:
             !!activeVersionId &&
             activeVersion?.status === 'ready' &&
-            (tab === 'text' || (tab === 'preview' && /\.(txt|md|csv)$/i.test(activeVersion.original_name))),
+            (tab === 'text' || (tab === 'preview' && /\.txt$/i.test(activeVersion.original_name))),
     });
 
     const extractedText = text.data?.data.text;
@@ -125,16 +125,6 @@ export const useDocumentWorkspace = ({ searchMatch }: { searchMatch?: DocumentSe
 
         return extractedText.slice(start, end) === searchMatch.quote ? { start, end, quote: searchMatch.quote } : null;
     }, [searchMatch, isSearchDismissed, extractedText, activeVersionId]);
-
-    const entities = useQuery({
-        queryKey: [queryKeys.entities, activeVersionId],
-        queryFn: ({ signal }) =>
-            api<Resource<{ id: number; type: string; value: string }[]>>(`/versions/${activeVersionId}/entities`, {
-                signal,
-            }),
-        enabled:
-            !!activeVersionId && activeVersionId === d?.version?.id && !isImage && activeVersion?.status === 'ready',
-    });
 
     const comments = useQuery({
         queryKey: [queryKeys.comments, id],
@@ -284,7 +274,6 @@ export const useDocumentWorkspace = ({ searchMatch }: { searchMatch?: DocumentSe
         text,
         extractedText,
         searchTarget,
-        entities,
         comments,
         remove,
         version,

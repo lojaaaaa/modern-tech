@@ -8,7 +8,6 @@ use App\Modules\Integrations\DTO\ConnectMailCloudData;
 use App\Modules\Integrations\Enums\CloudProviderId;
 use App\Modules\Integrations\Models\CloudConnection;
 use Illuminate\Auth\Access\Response;
-use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
@@ -39,14 +38,4 @@ final class ConnectMailCloudRequest extends FormRequest
         );
     }
 
-    protected function failedValidation(Validator $validator): void
-    {
-        abort_if(
-            $this->input('provider') === CloudProviderId::YANDEX->value,
-            422,
-            'Подключите Яндекс Диск через авторизацию в Яндексе.',
-        );
-
-        parent::failedValidation($validator);
-    }
 }

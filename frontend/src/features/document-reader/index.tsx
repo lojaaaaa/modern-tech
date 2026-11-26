@@ -9,6 +9,7 @@ import { Button } from '@/shared/ui/button';
 import { ErrorMessage } from '@/shared/ui/error-message';
 import './file-preview.css';
 import { PdfPreview } from './PdfPreview';
+import { StructuredPreview } from './StructuredPreview';
 
 export interface TextAnchor {
     start: number;
@@ -328,7 +329,7 @@ export const FilePreview = ({ versionId, fallback }: { versionId: string; fallba
     const query = useQuery({
         queryKey: [queryKeys.preview, versionId],
         queryFn: ({ signal }) =>
-            api<Resource<{ kind: 'image' | 'pdf' | 'text'; status: string }>>(
+            api<Resource<{ kind: 'image' | 'pdf' | 'text' | 'markdown' | 'csv' | 'spreadsheet'; status: string }>>(
                 `/versions/${versionId}/preview?status=1`,
                 { signal }
             ),
@@ -351,6 +352,9 @@ export const FilePreview = ({ versionId, fallback }: { versionId: string; fallba
         return <div className="empty-state">Предпросмотр недоступен. Откройте вкладку «Текст документа».</div>;
     }
     const url = `/api/v1/versions/${versionId}/preview`;
+    if (preview && ['markdown', 'csv', 'spreadsheet'].includes(preview.kind)) {
+        return <StructuredPreview versionId={versionId} kind={preview.kind as 'markdown' | 'csv' | 'spreadsheet'} />;
+    }
     if (preview?.kind === 'text') {
         return fallback;
     }

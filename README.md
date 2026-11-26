@@ -2,25 +2,35 @@
 
 Командная библиотека документов. Загружайте файлы, ищите по содержимому, сравнивайте версии и обсуждайте отдельные фрагменты.
 
-![Библиотека Modern Tech с результатами поиска документов](docs/images/library.png)
+![Главный экран Modern Tech — библиотека документов](docs/images/library.png)
 
 ## Возможности
 
-- Предпросмотр, распознавание текста на сканах и полнотекстовый поиск.
-- Роли, права на отдельные документы и журнал действий.
-- Импорт и экспорт через Яндекс Диск, Google Drive и Облако Mail. [Настройка OAuth](docs/integrations/cloud-oauth.md).
-- Совместное редактирование DOCX в ONLYOFFICE с явной публикацией версии. Режим экспериментальный.
+- Загрузка PDF, DOCX, XLSX, PPTX, TXT, Markdown, CSV, PNG и JPEG, проверка на вирусы, распознавание и индексация через очередь.
+- Полнотекстовый поиск с ранжированием и фильтрами, версии, комментарии и журнал действий.
+- Роли администратора, сотрудника и наблюдателя, права на отдельные документы.
+- Форматированный Markdown, просмотр CSV и XLSX с переключением листов, постраничный просмотр PDF, DOCX и PPTX.
+- Импорт и экспорт через Google Drive и Облако Mail.ru. [Настройка подключений](docs/integrations/cloud-oauth.md).
+- Совместное редактирование DOCX в ONLYOFFICE: обычное сохранение обновляет рабочий файл, кнопка «Добавить новую версию» публикует изменения в истории.
 
-## Технологии
+## Архитектура
 
-| Область | Что используется |
-| --- | --- |
-| Интерфейс | React 19, TypeScript, React Router и Tailwind CSS. TanStack Query обновляет данные API, Zustand хранит состояние интерфейса, Vite собирает приложение. |
-| Сервер | PHP 8.4 и Laravel 13. Sanctum обслуживает сессии браузера, OpenAPI описывает HTTP API. |
-| Данные и очереди | PostgreSQL 18 хранит данные и выполняет полнотекстовый поиск. Redis 7.4 обслуживает кэш и очереди фоновых задач. |
-| Обработка файлов | ClamAV проверяет файлы, Apache Tika извлекает текст, Tesseract распознаёт сканы, Gotenberg конвертирует офисные файлы в PDF для предпросмотра. |
-| Интеграции | ONLYOFFICE Docs для совместного редактирования. REST API и OAuth 2.0 для Google Drive и Яндекс Диска, WebDAV для Облака Mail. |
-| Запуск и проверки | Nginx и Docker Compose для локального стенда. Vitest и PHPUnit для тестов, GitHub Actions для CI. |
+React 19 и TypeScript, React Router, TanStack Query, Zustand и Vite на клиенте. PHP 8.4 и Laravel 13 на сервере; PostgreSQL 18 для хранения и полнотекстового поиска, Redis для кэша и очередей. Apache Tika и Tesseract извлекают текст, ClamAV проверяет файлы, Gotenberg готовит постраничный предпросмотр. Сервисы запускаются через Docker Compose.
+
+```mermaid
+flowchart LR
+  Browser[Браузер] --> Nginx
+  Nginx --> Web[React]
+  Nginx --> API[Laravel API]
+  Nginx --> Office[ONLYOFFICE]
+  API --> DB[(PostgreSQL)]
+  API --> Redis[(Redis)]
+  Redis --> Workers[Фоновые обработчики]
+  Workers --> Processing[Tika / Tesseract / ClamAV / Gotenberg]
+  Workers --> Files[(Хранилище файлов)]
+  API --> Files
+  Workers --> Cloud[Google Drive / Облако Mail.ru]
+```
 
 ## Локальный запуск
 
@@ -30,30 +40,30 @@
 make up
 ```
 
-Откройте [localhost:8088](http://localhost:8088). Можно зарегистрировать сотрудника или создать администратора командой `docker compose exec api php artisan app:create-admin admin@example.test`.
+Откройте [localhost:8088](http://localhost:8088). Зарегистрируйте сотрудника или создайте администратора:
 
-Чтобы запустить ONLYOFFICE, перед `make up` создайте `.local/office.env` с `OFFICE_JWT_SECRET`. Секрет сгенерируйте командой `openssl rand -hex 32`. У готового DOCX с правом редактирования или комментирования появится вкладка «Совместная работа».
+```sh
+docker compose exec api php artisan app:create-admin admin@example.test
+```
+
+Для ONLYOFFICE перед запуском создайте `.local/office.env` с `OFFICE_JWT_SECRET` (случайное значение: `openssl rand -hex 32`). Готовый DOCX с правом редактирования или комментирования открывается во вкладке «Совместная работа».
+
+## Production
+
+[Инструкция запуска и проверки](docs/production.md). Основная конфигурация — `compose.production.yaml`, изолированный проверочный стенд — `compose.staging.yaml`. Рабочие секреты, данные и резервные копии хранятся вне Git. Деплой выполняется отдельно после выбора площадки.
+
+API описан в [OpenAPI](contracts/openapi.json). Интерактивная документация доступна в приложении по `/docs/api`; в production она защищена доступом администратора. [Серверная документация](backend/README.md).
 
 ## Проверки
 
-Для локальных хуков нужны запущенный контейнер `api` и Node.js 24 с npm.
+Нужны Node.js 24 с npm, Docker и запущенный сервис `api`.
 
 ```sh
 npm ci --prefix frontend
-./scripts/install-hooks.sh
+bash scripts/install-hooks.sh
+bash scripts/check-quality.sh
 ```
 
-- `pre-commit` проверяет пробельные ошибки, запускает ESLint и Prettier, проверяет типы и собирает фронтенд. При изменениях в `backend/` также запускает Pint и PHPStan.
-- `pre-push` запускает `make test` — Vitest на клиенте и PHPUnit Unit и Feature на сервере.
-- [GitHub Actions](.github/workflows/quality.yml) дополнительно запускает интеграционные тесты на отдельном PostgreSQL и публикует отчёты о покрытии.
+`pre-commit` и `pre-push` запускают ESLint, Prettier, TypeScript, клиентские тесты и сборку, Pint, PHPStan, серверные и PostgreSQL-тесты. PostgreSQL-тесты используют отдельный временный контейнер без данных приложения. Перед коммитом добавьте все изменения в индекс; перед push рабочая папка должна быть чистой.
 
-## Покрытие тестами
-
-Локальный замер покрытия строк от 26 ноября 2026 года.
-
-| Код | Покрытие | Тесты |
-| --- | ---: | ---: |
-| Frontend (`frontend/src`) | 60,13% (860 из 1430) | 32 |
-| Backend (`backend/app`) | 82,93% (2283 из 2753) | 140 |
-
-`make coverage` обновляет отчёты. Для PHP-отчёта нужны локальные PHP 8.4+, зависимости Composer, PDO SQLite и Xdebug. HTML-отчёты открываются из `frontend/coverage/index.html` и `backend/coverage/index.html`. Сборка CI хранит их в артефактах `coverage-frontend` и `coverage-backend`.
+[GitHub Actions](.github/workflows/quality.yml) выполняет проверки на push и pull request, собирает Docker-образы и сохраняет отчёты о покрытии. `make coverage` обновляет локальные отчёты. Для PHP-покрытия нужны PHP 8.4+, Composer-зависимости, PDO SQLite и Xdebug. Сквозные проверки с отдельной базой описаны в [tools/app-e2e](tools/app-e2e/README.md).

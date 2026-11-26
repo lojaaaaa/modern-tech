@@ -45,9 +45,6 @@ final class CloudHttp
 
     public static function validatePath(string $path): string
     {
-        if (str_starts_with($path, 'disk:')) {
-            $path = substr($path, 5);
-        }
         if (strlen($path) > 2048 || str_contains($path, "\0") || preg_match('~(^|/)\.\.(/|$)~', $path)) {
             throw new CloudFailure('INVALID_REMOTE_PATH');
         }
@@ -55,14 +52,4 @@ final class CloudHttp
         return '/'.ltrim($path, '/');
     }
 
-    public static function yandexUrl(string $url): string
-    {
-        $parts = parse_url($url);
-        $host = strtolower($parts['host'] ?? '');
-        if (($parts['scheme'] ?? '') !== 'https' || isset($parts['user']) || isset($parts['pass']) || isset($parts['port']) || ! (str_ends_with($host, '.yandex.net') || str_ends_with($host, '.yandex.ru'))) {
-            throw new CloudFailure('UNSAFE_PROVIDER_URL');
-        }
-
-        return $url;
-    }
 }

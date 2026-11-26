@@ -20,10 +20,11 @@ export const DocumentHeading = ({ setConfirmDelete, d }: Props) => {
             <div>
                 <Link
                     className="document-return"
+                    aria-label="Вернуться в библиотеку"
+                    title="Вернуться в библиотеку"
                     to={typeof librarySearch === 'string' && librarySearch ? `/?${librarySearch}` : '/'}
                 >
                     <ArrowLeft size={15} />
-                    Библиотека
                 </Link>
                 <div className="document-title-line">
                     <h1 className="detail-title" title={d.title}>

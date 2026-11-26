@@ -1,3 +1,4 @@
+import { notify } from '@/shared/lib/notify';
 import { Spinner } from '@/shared/ui/spinner';
 import { queryKeys } from '@/shared/api/query-keys';
 import type { DocumentRecord, Resource } from '@/shared/api/types';
@@ -88,6 +89,13 @@ export const UploadPanel = ({ onClose }: { onClose: () => void }) => {
             setResults([...completed]);
         }
         setBusy(false);
+        const failed = completed.filter((result) => !result.isSuccessful);
+        if (failed.length === 0) {
+            onClose();
+            notify('Файлы загружены и отправлены на проверку и обработку. Они появятся в списке документов.');
+        } else {
+            notify(`Не удалось загрузить файлов: ${failed.length}. Подробности — в окне загрузки.`);
+        }
         await client.invalidateQueries({ queryKey: [queryKeys.documents] });
     };
 
