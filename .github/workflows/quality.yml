@@ -22,7 +22,12 @@ jobs:
       - run: npm run lint
       - run: npm run format:check
       - run: npm run typecheck
-      - run: npm test
+      - run: npm run test:coverage
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-frontend
+          path: frontend/coverage/
+          if-no-files-found: error
       - run: npm run build
       - run: npm audit --omit=dev --audit-level=high
   api:
@@ -50,12 +55,17 @@ jobs:
         with:
           php-version: '8.4'
           extensions: pdo_sqlite, pdo_pgsql, mbstring, intl, zip
-          coverage: none
+          coverage: xdebug
       - run: composer install --no-interaction --prefer-dist
       - run: cp .env.example .env && php artisan key:generate
       - run: vendor/bin/pint --test
       - run: vendor/bin/phpstan analyse --memory-limit=512M --no-progress
-      - run: php artisan test
+      - run: make -C .. coverage-api
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-backend
+          path: backend/coverage/
+          if-no-files-found: error
       - run: vendor/bin/phpunit tests/Postgres
         env:
           POSTGRES_TEST_PORT: ${{ job.services.postgres.ports[5432] }}

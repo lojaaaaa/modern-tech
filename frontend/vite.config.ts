@@ -19,5 +19,15 @@ export default defineConfig({
       },
     },
   },
-  test: { environment: 'jsdom', setupFiles: ['./src/shared/testing/setup.ts'], css: false },
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./src/shared/testing/setup.ts'],
+    css: false,
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['**/*.test.{ts,tsx}', '**/*.d.ts', 'src/shared/testing/**'],
+      reporter: ['text', 'html', 'json-summary'],
+    },
+  },
 });

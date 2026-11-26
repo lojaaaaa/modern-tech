@@ -9,6 +9,7 @@
         "typecheck": "tsc -b --pretty false",
         "lint": "eslint . --max-warnings=0 && npm run format:check",
         "test": "vitest run",
+        "test:coverage": "vitest run --coverage",
         "format": "prettier --write src",
         "format:check": "prettier --check src",
         "generate:api": "openapi-typescript ../contracts/openapi.json -o src/shared/api/schema.d.ts"
@@ -37,6 +38,7 @@
         "@types/react": "^19.2.0",
         "@types/react-dom": "^19.2.0",
         "@vitejs/plugin-react": "^5.0.0",
+        "@vitest/coverage-v8": "5.0.5",
         "eslint": "^10.14.0",
         "eslint-plugin-react-hooks": "^7.0.0",
         "eslint-plugin-react-refresh": "^0.5.7",

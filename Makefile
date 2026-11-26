@@ -1,4 +1,4 @@
-.PHONY: bootstrap dependencies up down migrate smoke test lint web-check backup staging staging-down
+.PHONY: bootstrap dependencies up down migrate smoke test coverage coverage-web coverage-api lint web-check backup staging staging-down
 
 LOCAL_COMPOSE := docker compose
 ifneq ($(wildcard .local/office.env),)
@@ -23,8 +23,13 @@ smoke:
 	docker compose exec -T api php tests/Smoke/session.php
 	docker compose exec -T api php tests/Smoke/preview.php
 test:
-	docker compose exec api php artisan test
+	$(LOCAL_COMPOSE) exec -T api php artisan test
 	cd frontend && npm test
+coverage: coverage-web coverage-api
+coverage-web:
+	cd frontend && npm run test:coverage
+coverage-api:
+	cd backend && XDEBUG_MODE=coverage php vendor/bin/phpunit --coverage-text --coverage-html coverage --coverage-clover coverage/clover.xml
 lint:
 	docker compose exec api vendor/bin/pint --test
 	docker compose exec api vendor/bin/phpstan analyse --memory-limit=512M
